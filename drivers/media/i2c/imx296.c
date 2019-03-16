@@ -825,9 +825,29 @@ static const struct v4l2_subdev_ops imx296_subdev_ops = {
  * Probe & Remove
  */
 
+static int imx296_read_temperature(struct imx296 *imx, int *temp)
+{
+	int tmdout;
+	int ret;
+
+	ret = imx296_write(imx, IMX296_TMDCTRL, IMX296_TMDCTRL_LATCH, NULL);
+	if (ret < 0)
+		return ret;
+
+	tmdout = imx296_read(imx, IMX296_TMDOUT) & IMX296_TMDOUT_MASK;
+	if (tmdout < 0)
+		return tmdout;
+
+	/* T(°C) = 246.312 - 0.304 * TMDOUT */;
+	*temp = 246312 - 304 * tmdout;
+
+	return imx296_write(imx, IMX296_TMDCTRL, 0, NULL);
+}
+
 static int imx296_identify_model(struct imx296 *imx)
 {
 	unsigned int model;
+	int temp = 0;
 	int ret;
 
 	ret = imx296_power_on(imx);
@@ -857,9 +877,6 @@ static int imx296_identify_model(struct imx296 *imx)
 	switch (model) {
 	case 296:
 		imx->mono = ret & IMX296_SENSOR_INFO_MONO;
-		dev_info(imx->dev, "found IMX%u%s\n", model,
-			 imx->mono ? "LL" : "LQ");
-		ret = 0;
 		break;
 	/*
 	 * The IMX297 seems to share features with the IMX296, it may be
@@ -869,8 +886,15 @@ static int imx296_identify_model(struct imx296 *imx)
 	default:
 		dev_err(imx->dev, "invalid device model 0x%04x\n", ret);
 		ret = -ENODEV;
-		break;
+		goto done;
 	}
+
+	ret = imx296_read_temperature(imx, &temp);
+	if (ret < 0)
+		goto done;
+
+	dev_info(imx->dev, "found IMX%u%s (%u.%uC)\n", model,
+		 imx->mono ? "LL" : "LQ", temp / 1000, (temp / 100) % 10);
 
 done:
 	imx296_write(imx, IMX296_CTRL00, IMX296_CTRL00_STANDBY, NULL);
