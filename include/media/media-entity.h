@@ -181,6 +181,7 @@ enum media_pad_signal_type {
  *
  * @graph_obj:	Embedded structure containing the media object common data
  * @entity:	Entity this pad belongs to
+ * @pipe:	Pipeline this pad belongs to
  * @index:	Pad index in the entity pads array, numbered from 0 to n
  * @sig_type:	Type of the signal inside a media pad
  * @flags:	Pad flags, as defined in
@@ -190,6 +191,7 @@ enum media_pad_signal_type {
 struct media_pad {
 	struct media_gobj graph_obj;	/* must be first field in struct */
 	struct media_entity *entity;
+	struct media_pipeline *pipe;
 	u16 index;
 	enum media_pad_signal_type sig_type;
 	unsigned long flags;
@@ -269,7 +271,6 @@ enum media_entity_type {
  * @links:	List of data links.
  * @ops:	Entity operations.
  * @use_count:	Use count for the entity.
- * @pipe:	Pipeline this entity belongs to.
  * @info:	Union with devnode information.  Kept just for backward
  *		compatibility.
  * @info.dev:	Contains device major and minor info.
@@ -305,8 +306,6 @@ struct media_entity {
 
 	int use_count;
 
-	struct media_pipeline *pipe;
-
 	union {
 		struct {
 			u32 major;
@@ -314,6 +313,18 @@ struct media_entity {
 		} dev;
 	} info;
 };
+
+/**
+ * media_entity_for_each_pad - Iterate on all pads in an entity
+ * @entity: The entity the pads belong to
+ * @iter: The iterator pad
+ *
+ * Iterate on all pads in a media entity.
+ */
+#define media_entity_for_each_pad(entity, iter)			\
+	for (iter = (entity)->pads;				\
+	     iter < &(entity)->pads[(entity)->num_pads];	\
+	     ++iter)
 
 /**
  * struct media_interface - A media interface graph object.
@@ -860,6 +871,18 @@ struct media_link *media_entity_find_link(struct media_pad *source,
 struct media_pad *media_entity_remote_pad(const struct media_pad *pad);
 
 /**
+ * media_pad_is_streaming - Test if a pad is part of a streaming pipeline
+ * @pad: The pad
+ *
+ * Return: True if the pad is part of a pipeline started with the
+ * media_pipeline_start() function, false otherwise.
+ */
+static inline bool media_pad_is_streaming(const struct media_pad *pad)
+{
+	return pad->pipe;
+}
+
+/**
  * media_entity_is_streaming - Test if an entity is part of a streaming pipeline
  * @entity: The entity
  *
@@ -868,7 +891,14 @@ struct media_pad *media_entity_remote_pad(const struct media_pad *pad);
  */
 static inline bool media_entity_is_streaming(const struct media_entity *entity)
 {
-	return entity->pipe;
+	struct media_pad *pad;
+
+	media_entity_for_each_pad(entity, pad) {
+		if (media_pad_is_streaming(pad))
+			return true;
+	}
+
+	return false;
 }
 
 /**
@@ -1121,15 +1151,3 @@ void media_remove_intf_links(struct media_interface *intf);
 	 (entity)->ops->operation((entity) , ##args) : -ENOIOCTLCMD)
 
 #endif
-
-/**
- * media_entity_for_each_pad - Iterate on all pads in an entity
- * @entity: The entity the pads belong to
- * @iter: The iterator pad
- *
- * Iterate on all pads in a media entity.
- */
-#define media_entity_for_each_pad(entity, iter)			\
-	for (iter = (entity)->pads;				\
-	     iter < &(entity)->pads[(entity)->num_pads];	\
-	     ++iter)
