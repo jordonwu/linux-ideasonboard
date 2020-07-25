@@ -29,12 +29,6 @@
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&gpio1 19 GPIO_ACTIVE_LOW>;
 	};
-
-	sound-micfil {
-		compatible = "fsl,imx-audio-micfil";
-		model = "imx-audio-micfil";
-		cpu-dai = <&micfil>;
-	};
 };
 
 &A53_0 {
