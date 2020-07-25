@@ -29,6 +29,32 @@
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&gpio1 19 GPIO_ACTIVE_LOW>;
 	};
+
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		regulator-tft-vcc {
+			compatible = "regulator-fixed";
+			regulator-name = "tft-vcc";
+			gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+			regulator-min-microvolt = <13000000>;
+			regulator-max-microvolt = <13000000>;
+			regulator-always-on; /* TODO: Make this runtime-controllable */
+		};
+
+		regulator-tft-vio {
+			compatible = "regulator-fixed";
+			regulator-name = "tft-vio";
+			gpio = <&gpio1 10 GPIO_ACTIVE_LOW>;
+			enable-active-low;
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on; /* TODO: Make this runtime-controllable */
+		};
+	};
 };
 
 &A53_0 {
@@ -38,8 +64,28 @@
 &ecspi1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1>;
-	cs-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
 	status = "okay";
+
+	/* CS is controlled by SS0. */
+	num-cs = <1>;
+
+	/* Densitron TFT Display */
+	display@0 {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_tft>;
+		compatible = "solomon,ssd1351";
+		reg = <0>;
+
+		spi-max-frequency = <20000000>;
+
+		dc-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
+
+		backlight = <2>; /* On-board backlight */
+		bgr;
+		buswidth = <8>;
+		gamma = "0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 4 4 4 4 4";
+	};
 };
 
 &micfil {
@@ -242,6 +288,17 @@
 		};
 	};
 
+        /* Touchscreen */
+	touch@38 {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_touchscreen>;
+
+		compatible = "edt,edt-ft5206";
+		reg = <0x38>;
+		interrupts-extended = <&gpio1 6 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+	};
+
 	lsm6dsm@6a {
 		compatible = "st,lsm6dsm";
 		reg = <0x6a>;
@@ -286,7 +343,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gpios>,
 		    <&pinctrl_leds_driver>, <&pinctrl_leds_power>,
-		    <&pinctrl_touchscreen>, <&pinctrl_tft>,
 		    <&pinctrl_camera>;
 
 	pinctrl_bluetooth: bluetoothgrp {
@@ -310,7 +366,7 @@
 		fsl,pins = <
 			MX8MM_IOMUXC_ECSPI1_MOSI_ECSPI1_MOSI	0x90
 			MX8MM_IOMUXC_ECSPI1_SCLK_ECSPI1_SCLK	0x90
-			MX8MM_IOMUXC_ECSPI1_SS0_GPIO5_IO9	0x90
+			MX8MM_IOMUXC_ECSPI1_SS0_ECSPI1_SS0	0x90
 		>;
 	};
 
