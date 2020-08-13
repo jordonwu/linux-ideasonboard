@@ -539,26 +539,30 @@ static int imx296_s_power(struct v4l2_subdev *sd, int on)
 
 	mutex_lock(imx->ctrls.lock);
 
-	if (imx->power_count == !on) {
-		if (on) {
-			ret = imx296_power_on(imx);
-			if (ret < 0)
-				goto done;
-			ret = imx296_setup(imx);
-			if (ret < 0) {
-				imx296_power_off(imx);
-				goto done;
-			}
-		} else {
-			imx296_power_off(imx);
-		}
-	}
-
-	/* Update the power count. */
+	/*
+	 * Update the power count. This must be done first, to ensure controls
+	 * will be applied by __v4l2_ctrl_handler_setup().
+	 */
 	imx->power_count += on ? 1 : -1;
 	WARN_ON(imx->power_count < 0);
 
+	if (imx->power_count == 1 && on) {
+		ret = imx296_power_on(imx);
+		if (ret < 0)
+			goto done;
+		ret = imx296_setup(imx);
+		if (ret < 0) {
+			imx296_power_off(imx);
+			goto done;
+		}
+	} else if (imx->power_count == 0 && !on) {
+		imx296_power_off(imx);
+	}
+
 done:
+	if (ret < 0)
+		imx->power_count -= on ? 1 : -1;
+
 	mutex_unlock(imx->ctrls.lock);
 	return ret;
 }
