@@ -302,7 +302,6 @@ static int imx296_s_ctrl(struct v4l2_ctrl *ctrl)
 				     IMX296_BLKLEVELAUTO_OFF, &ret);
 			imx296_write(imx, IMX296_PGCTRL,
 				     IMX296_PGCTRL_REGEN |
-				     IMX296_PGCTRL_THRU |
 				     IMX296_PGCTRL_CLKEN |
 				     IMX296_PGCTRL_MODE(ctrl->val - 1), &ret);
 		} else {
