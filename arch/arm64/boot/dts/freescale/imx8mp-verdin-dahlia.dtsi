@@ -19,49 +19,6 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-name = "+V3.3_SW";
 	};
-
-	sound_card: sound-card {
-		compatible = "simple-audio-card";
-		simple-audio-card,bitclock-master = <&dailink_master>;
-		simple-audio-card,format = "i2s";
-		simple-audio-card,frame-master = <&dailink_master>;
-		simple-audio-card,name = "imx8mp-wm8904";
-		simple-audio-card,routing =
-			"Headphone Jack", "HPOUTL",
-			"Headphone Jack", "HPOUTR",
-			"IN2L", "Line In Jack",
-			"IN2R", "Line In Jack",
-			"Headphone Jack", "MICBIAS",
-			"IN1L", "Headphone Jack";
-		simple-audio-card,widgets =
-			"Microphone", "Headphone Jack",
-			"Headphone", "Headphone Jack",
-			"Line", "Line In Jack";
-
-		dailink_master: simple-audio-card,codec {
-			sound-dai = <&wm8904_1a>;
-			clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1>;
-		};
-
-		simple-audio-card,cpu {
-			sound-dai = <&sai1>;
-		};
-	};
-
-	sound_hdmi: sound-hdmi {
-		compatible = "fsl,imx-audio-cdnhdmi";
-		model = "audio-hdmi";
-		audio-cpu = <&aud2htx>;
-		hdmi-out;
-		constraint-rate = <44100>,
-				<88200>,
-				<176400>,
-				<32000>,
-				<48000>,
-				<96000>,
-				<192000>;
-		status = "disabled";
-	};
 };
 
 &backlight {
@@ -127,30 +84,6 @@
 
 &i2c4 {
 	status = "okay";
-
-	/* Audio Codec */
-	wm8904_1a: codec@1a {
-		compatible = "wlf,wm8904";
-		#sound-dai-cells = <0>;
-		clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1>;
-		clock-names = "mclk";
-		reg = <0x1a>;
-		DCVDD-supply = <&reg_1p8v>;
-		DBVDD-supply = <&reg_1p8v>;
-		AVDD-supply = <&reg_1p8v>;
-		CPVDD-supply = <&reg_1p8v>;
-		MICVDD-supply = <&reg_1p8v>;
-	};
-};
-
-/* Verdin PCIE_1 */
-&pcie {
-	epdev_on-supply = <&reg_3p3v>;
-	status = "okay";
-};
-
-&pcie_phy{
-	status = "okay";
 };
 
 /* Verdin PWM_1 */
@@ -170,11 +103,6 @@
 
 &reg_usdhc2_vmmc {
 	vin-supply = <&reg_3p3v>;
-};
-
-/* VERDIN I2S_1 */
-&sai1 {
-	status = "okay";
 };
 
 /* Verdin UART_1 */
