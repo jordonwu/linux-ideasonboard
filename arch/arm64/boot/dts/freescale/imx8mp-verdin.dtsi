@@ -559,30 +559,6 @@
 	status = "okay";
 };
 
-/* Verdin PCIE_1 */
-&pcie {
-	bus-range = <0x00 0xff>;
-	clocks = <&clk IMX8MP_CLK_HSIO_AXI_DIV>,
-		 <&clk IMX8MP_CLK_PCIE_AUX>,
-		 <&clk IMX8MP_CLK_PCIE_PHY>,
-		 <&clk IMX8MP_CLK_PCIE_ROOT>;
-	clock-names = "pcie", "pcie_aux", "pcie_phy", "pcie_bus";
-	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI_SRC>,
-			  <&clk IMX8MP_CLK_PCIE_AUX>;
-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
-				 <&clk IMX8MP_SYS_PLL2_50M>;
-	ext_osc = <0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pcie>;
-	reserved-region = <&rpmsg_reserved>;
-	/* PCIE_1_RESET# (SODIMM 244) */
-	reset-gpio = <&gpio4 19 GPIO_ACTIVE_LOW>;
-};
-
-&pcie_phy {
-	ext_osc = <0>;
-};
-
 /* Verdin PWM_1 */
 &pwm1 {
 	pinctrl-names = "default";
@@ -602,40 +578,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm_3>;
 	#pwm-cells = <3>;
-};
-
-/* VERDIN I2S_1 */
-&sai1 {
-	#sound-dai-cells = <0>;
-	assigned-clocks = <&clk IMX8MP_CLK_SAI1>;
-	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <24576000>;
-	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI1_IPG>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI1_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&clk IMX8MP_CLK_DUMMY>;
-	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
-	fsl,sai-mclk-direction-output;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_sai1>;
-};
-
-/* VERDIN I2S_2 */
-&sai3 {
-	#sound-dai-cells = <0>;
-	assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
-	assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <24576000>;
-	clocks = <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_IPG>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&audiomix_clk IMX8MP_CLK_AUDIOMIX_SAI3_MCLK1>, <&clk IMX8MP_CLK_DUMMY>,
-		 <&clk IMX8MP_CLK_DUMMY>;
-	clock-names = "bus", "mclk0", "mclk1", "mclk2", "mclk3";
-	fsl,sai-mclk-direction-output;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_sai3>;
-};
-
-&sdma2 {
-	status = "okay";
 };
 
 &snvs_pwrkey {
@@ -724,18 +666,6 @@
 	status = "okay";
 	vqmmc-supply = <&buck5_reg>;
 	vmmc-supply = <&buck4_reg>;
-};
-
-&vpu_g1 {
-	status = "okay";
-};
-
-&vpu_g2 {
-	status = "okay";
-};
-
-&vpu_vc8000e {
-	status = "okay";
 };
 
 &wdog1 {
