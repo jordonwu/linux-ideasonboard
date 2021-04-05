@@ -937,6 +937,7 @@ static int imx290_probe(struct i2c_client *client)
 	struct imx290 *imx290;
 	u32 xclk_freq;
 	s64 fq;
+	u8 id_low, id_high;
 	int ret;
 
 	imx290 = devm_kzalloc(dev, sizeof(*imx290), GFP_KERNEL);
@@ -1099,6 +1100,16 @@ static int imx290_probe(struct i2c_client *client)
 		dev_err(dev, "Could not power on the device\n");
 		goto free_entity;
 	}
+
+	ret = imx290_read_reg(imx290, 0x319a, &id_low);
+	ret |= imx290_read_reg(imx290, 0x319b, &id_high);
+	if (ret) {
+		dev_err(dev, "Could not read chip ID: %d\n", ret);
+		imx290_power_off(dev);
+		goto free_entity;
+	}
+
+	dev_info(dev, "chip ID 0x%04x\n", (id_high << 8) | id_low);
 
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
