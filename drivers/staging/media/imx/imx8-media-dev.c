@@ -95,7 +95,6 @@ struct mxc_parallel_csi_info {
 struct mxc_sensor_info {
 	int				id;
 	struct v4l2_subdev		*sd;
-	struct v4l2_async_subdev asd;
 	bool mipi_mode;
 };
 
@@ -536,26 +535,21 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 	return 0;
 }
 
+struct mxc_async_subdev {
+	struct v4l2_async_subdev asd;
+	struct mxc_sensor_info *sensor;
+};
+
 static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 				 struct v4l2_subdev *sd,
 				 struct v4l2_async_subdev *asd)
 {
 	struct mxc_md *mxc_md = notifier_to_mxc_md(notifier);
-	struct mxc_sensor_info *sensor = NULL;
-	int i;
+	struct mxc_async_subdev *masd =
+		container_of(asd, struct mxc_async_subdev, asd);
+	struct mxc_sensor_info *sensor = masd->sensor;
 
 	dev_dbg(&mxc_md->pdev->dev, "%s\n", __func__);
-
-	/* Find platform data for this sensor subdev */
-	for (i = 0; i < ARRAY_SIZE(mxc_md->sensor); i++) {
-		if (mxc_md->sensor[i].asd.match.fwnode ==
-		    of_fwnode_handle(sd->dev->of_node)) {
-			sensor = &mxc_md->sensor[i];
-		}
-	}
-
-	if (!sensor)
-		return -EINVAL;
 
 	sd->grp_id = GRP_ID_MXC_SENSOR;
 	sensor->sd = sd;
@@ -881,9 +875,9 @@ static int mxc_md_register_platform_entities(struct mxc_md *mxc_md,
 static int register_sensor_entities(struct mxc_md *mxc_md)
 {
 	struct device_node *parent = mxc_md->pdev->dev.of_node;
-	struct device_node *node, *ep, *rem;
+	struct device_node *node, *ep;
 	struct v4l2_fwnode_endpoint endpoint;
-	struct i2c_client *client;
+	struct mxc_async_subdev *masd;
 	int index = 0;
 	int ret;
 
@@ -923,31 +917,19 @@ static int register_sensor_entities(struct mxc_md *mxc_md)
 		if (!of_node_cmp(node->name, MIPI_CSI2_OF_NODE_NAME))
 			mxc_md->sensor[index].mipi_mode = true;
 
-		/* remote port---sensor node */
-		rem = of_graph_get_remote_port_parent(ep);
+		masd = v4l2_async_notifier_add_fwnode_remote_subdev(
+			&mxc_md->subdev_notifier, of_fwnode_handle(ep),
+			struct mxc_async_subdev);
 		of_node_put(ep);
-		if (!rem) {
-			v4l2_info(&mxc_md->v4l2_dev,
-				  "Remote device at %s not found\n",
-				  ep->full_name);
-			continue;
+
+		if (IS_ERR(masd)) {
+			ret = PTR_ERR(masd);
+			dev_err(&mxc_md->pdev->dev,
+				"Failed to add async subdev: %d\n", ret);
+			return ret;
 		}
 
-		/*
-		 * Need to wait sensor driver probed for the first time
-		 */
-		client = of_find_i2c_device_by_node(rem);
-		if (!client) {
-			v4l2_info(&mxc_md->v4l2_dev,
-				  "Can't find i2c client device for %s\n",
-				  of_node_full_name(rem));
-			return -EPROBE_DEFER;
-		}
-
-		mxc_md->sensor[index].asd.match_type = V4L2_ASYNC_MATCH_FWNODE;
-		mxc_md->sensor[index].asd.match.fwnode = of_fwnode_handle(rem);
-		v4l2_async_notifier_add_subdev(&mxc_md->subdev_notifier,
-					       &mxc_md->sensor[index].asd);
+		masd->sensor = &mxc_md->sensor[index];
 		mxc_md->num_sensors++;
 
 		index++;
