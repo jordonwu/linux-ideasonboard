@@ -1440,6 +1440,14 @@ config VIDEO_S5C73M3
 	  This is a V4L2 sensor driver for Samsung S5C73M3
 	  8 Mpixel camera.
 
+config VIDEO_VC_MIPI
+	tristate "Vision Components MIPI Module support"
+	depends on I2C
+	help
+	  This is a driver for the camera module controller found in the Vision
+	  Components MIPI modules. The controller controls the power supplies
+	  and reset signal to the actual camera sensor.
+
 endmenu
 
 menu "Lens drivers"
