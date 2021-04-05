@@ -19,10 +19,20 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-name = "+V3.3_SW";
 	};
+
+	x16_clk: clock-x16 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <37125000>;
+	};
 };
 
 &backlight {
 	power-supply = <&reg_3p3v>;
+};
+
+&cameradev {
+	status = "okay";
 };
 
 /* Verdin SPI_1 */
@@ -80,10 +90,62 @@
 
 &i2c3 {
 	status = "okay";
+
+	vc_ctrl: controller@10 {
+		compatible = "vision-components,mipi-module";
+		reg = <0x10>;
+	};
+
+	camera@1a {
+		compatible = "sony,imx327", "sony,imx290";
+		reg = <0x1a>;
+
+		clocks = <&x16_clk>;
+		clock-names = "xclk";
+		clock-frequency = <37125000>;
+
+		vdda-supply = <&vc_ctrl>;
+		vddd-supply = <&vc_ctrl>;
+		vdddo-supply = <&vc_ctrl>;
+
+		port {
+			imx327_out: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <148500000 222750000>;
+				remote-endpoint = <&mipi_csi0_ep>;
+			};
+		};
+	};
 };
 
 &i2c4 {
 	status = "okay";
+};
+
+&isi_0 {
+	status = "okay";
+
+	cap_device {
+		status = "okay";
+	};
+};
+
+&mipi_csi_0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	port@0 {
+		reg = <0>;
+		mipi_csi0_ep: endpoint {
+			remote-endpoint = <&imx327_out>;
+			/* FIXME: This should be <1 2 3 4> */
+			data-lanes = <4>;
+			csis-hs-settle = <13>;
+			csis-clk-settle = <2>;
+			csis-wclk;
+		};
+	};
 };
 
 /* Verdin PWM_1 */
