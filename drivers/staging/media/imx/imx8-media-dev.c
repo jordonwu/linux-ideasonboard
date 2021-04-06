@@ -486,7 +486,7 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 						&source->pads[source_pad],
 						&sink->pads[sink_pad],
 						0);
-			if (ret)
+			if (ret && ret != -ENOIOCTLCMD)
 				return ret;
 			v4l2_info(&mxc_md->v4l2_dev,
 				  "created link [%s] => [%s]\n",
@@ -523,7 +523,7 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 							&source->pads[source_pad + j],
 							&sink->pads[sink_pad + j],
 							0);
-				if (ret)
+				if (ret && ret != -ENOIOCTLCMD)
 					return ret;
 			}
 			v4l2_info(&mxc_md->v4l2_dev,
