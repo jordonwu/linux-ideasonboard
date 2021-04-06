@@ -27,7 +27,9 @@ static const struct soc_device_attribute imx8_soc[] = {
 		.revision = "1.0",
 	}, {
 		.soc_id   = "i.MX8MP",
-	},
+	}, {
+		/* sentinel */
+	}
 };
 
 static const struct of_device_id mxc_isi_of_match[];
