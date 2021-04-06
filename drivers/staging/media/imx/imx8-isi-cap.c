@@ -374,7 +374,7 @@ static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
 	return 0;
 }
 
-void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
+static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_cap_dev *isi_cap = mxc_isi->isi_cap;
 	struct device *dev = &isi_cap->pdev->dev;
@@ -431,7 +431,6 @@ void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
 	vb2->state = VB2_BUF_STATE_ACTIVE;
 	list_move_tail(isi_cap->out_pending.next, &isi_cap->out_active);
 }
-EXPORT_SYMBOL_GPL(mxc_isi_cap_frame_write_done);
 
 static int cap_vb2_queue_setup(struct vb2_queue *q,
 			       unsigned int *num_buffers,
@@ -805,7 +804,7 @@ static int mxc_isi_capture_open(struct file *file)
 	}
 	mutex_unlock(&isi_cap->lock);
 
-	if (mxc_isi->m2m_enabled) {
+	if (mxc_isi->frame_write_done) {
 		dev_err(dev, "ISI channel[%d] is busy\n", isi_cap->id);
 		return ret;
 	}
@@ -834,7 +833,7 @@ static int mxc_isi_capture_open(struct file *file)
 	/* increase usage count for ISI channel */
 	mutex_lock(&mxc_isi->lock);
 	atomic_inc(&mxc_isi->usage_count);
-	mxc_isi->m2m_enabled = false;
+	mxc_isi->frame_write_done = mxc_isi_cap_frame_write_done;
 	mutex_unlock(&mxc_isi->lock);
 
 	return 0;
@@ -873,6 +872,10 @@ static int mxc_isi_capture_release(struct file *file)
 		dev_err(dev, "%s s_power fail\n", __func__);
 		goto label;
 	}
+
+	mutex_lock(&mxc_isi->lock);
+	mxc_isi->frame_write_done = NULL;
+	mutex_unlock(&mxc_isi->lock);
 
 label:
 	pm_runtime_put(dev);
@@ -1203,7 +1206,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 		return ret;
 
 	ret = vb2_ioctl_streamon(file, priv, type);
-	mxc_isi_channel_enable(mxc_isi, mxc_isi->m2m_enabled);
+	mxc_isi_channel_enable(mxc_isi, false);
 	ret = mxc_isi_pipeline_enable(isi_cap, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
 		return ret;
