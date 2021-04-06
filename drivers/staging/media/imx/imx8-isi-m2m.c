@@ -90,7 +90,7 @@ static struct v4l2_m2m_buffer *to_v4l2_m2m_buffer(struct vb2_v4l2_buffer *vbuf)
 	return b;
 }
 
-void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *mxc_isi)
+static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_m2m_dev *isi_m2m = mxc_isi->isi_m2m;
 	struct v4l2_fh *fh;
@@ -149,7 +149,6 @@ void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *mxc_isi)
 job_finish:
 	v4l2_m2m_job_finish(isi_m2m->m2m_dev, fh->m2m_ctx);
 }
-EXPORT_SYMBOL_GPL(mxc_isi_m2m_frame_write_done);
 
 static void mxc_isi_m2m_device_run(void *priv)
 {
@@ -174,7 +173,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 
 	src_buf = to_isi_buffer(vbuf);
 	mxc_isi_channel_set_m2m_src_addr(mxc_isi, src_buf);
-	mxc_isi_channel_enable(mxc_isi, mxc_isi->m2m_enabled);
+	mxc_isi_channel_enable(mxc_isi, true);
 
 unlock:
 	spin_unlock_irqrestore(&isi_m2m->slock, flags);
@@ -485,7 +484,7 @@ static int mxc_isi_m2m_open(struct file *file)
 
 	/* lock host data */
 	mutex_lock(&mxc_isi->lock);
-	mxc_isi->m2m_enabled = true;
+	mxc_isi->frame_write_done = mxc_isi_m2m_frame_write_done;
 	mutex_unlock(&mxc_isi->lock);
 unlock:
 	mutex_unlock(&isi_m2m->lock);
@@ -511,7 +510,7 @@ static int mxc_isi_m2m_release(struct file *file)
 		mxc_isi_channel_deinit(mxc_isi);
 
 	mutex_lock(&mxc_isi->lock);
-	mxc_isi->m2m_enabled = false;
+	mxc_isi->frame_write_done = NULL;
 	mutex_unlock(&mxc_isi->lock);
 
 	pm_runtime_put(dev);
