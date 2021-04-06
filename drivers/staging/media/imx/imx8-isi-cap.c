@@ -824,7 +824,7 @@ static int mxc_isi_capture_open(struct file *file)
 	pm_runtime_get_sync(dev);
 
 	ret = v4l2_subdev_call(sd, core, s_power, 1);
-	if (ret) {
+	if (ret && ret != -ENOIOCTLCMD) {
 		dev_err(dev, "Call subdev s_power fail!\n");
 		pm_runtime_put(dev);
 		return ret;
