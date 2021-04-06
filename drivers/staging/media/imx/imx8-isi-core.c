@@ -48,12 +48,8 @@ static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 	mxc_isi->status = status;
 	mxc_isi_clean_irq_status(mxc_isi, status);
 
-	if (status & CHNL_STS_FRM_STRD_MASK) {
-		if (mxc_isi->m2m_enabled)
-			mxc_isi_m2m_frame_write_done(mxc_isi);
-		else
-			mxc_isi_cap_frame_write_done(mxc_isi);
-	}
+	if (status & CHNL_STS_FRM_STRD_MASK && mxc_isi->frame_write_done)
+		mxc_isi->frame_write_done(mxc_isi);
 
 	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
 		      CHNL_STS_AXI_WR_ERR_U_MASK |

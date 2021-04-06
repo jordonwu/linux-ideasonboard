@@ -353,8 +353,9 @@ struct mxc_isi_dev {
 
 	u8 chain_buf;
 	u8 alpha;
-	bool m2m_enabled;
 	bool buf_active_reverse;
+
+	void (*frame_write_done)(struct mxc_isi_dev *mxc_isi);
 
 	/* manage share ISI channel resource */
 	atomic_t usage_count;
