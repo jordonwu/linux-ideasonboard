@@ -722,26 +722,18 @@ void mxc_isi_ctrls_delete(struct mxc_isi_cap_dev *isi_cap)
 static struct media_pad
 *mxc_isi_get_remote_source_pad(struct v4l2_subdev *subdev)
 {
-	struct media_pad *sink_pad, *source_pad;
-	int i;
+	unsigned int i;
 
-	while (1) {
-		source_pad = NULL;
-		for (i = 0; i < subdev->entity.num_pads; i++) {
-			sink_pad = &subdev->entity.pads[i];
+	for (i = 0; i < subdev->entity.num_pads; i++) {
+		struct media_pad *pad = &subdev->entity.pads[i];
 
-			if (sink_pad->flags & MEDIA_PAD_FL_SINK) {
-				source_pad = media_entity_remote_pad(sink_pad);
-				if (source_pad)
-					break;
-			}
-		}
-		/* return first pad point in the loop  */
-		return source_pad;
+		if (!(pad->flags & MEDIA_PAD_FL_SINK))
+			continue;
+
+		pad = media_entity_remote_pad(pad);
+		if (pad)
+			return pad;
 	}
-
-	if (i == subdev->entity.num_pads)
-		v4l2_err(subdev, "(%d): No remote pad found!\n", __LINE__);
 
 	return NULL;
 }
