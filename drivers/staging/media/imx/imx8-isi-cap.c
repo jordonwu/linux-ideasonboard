@@ -738,7 +738,7 @@ static struct media_pad
 	return NULL;
 }
 
-static struct v4l2_subdev *mxc_get_remote_subdev(struct v4l2_subdev *subdev,
+static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
 						 const char * const label)
 {
 	struct media_pad *source_pad;
@@ -769,11 +769,11 @@ static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
 	if (!vdev->entity.num_links || !isi_cap->sd.entity.num_links)
 		return false;
 
-	csi_sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	csi_sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!csi_sd || !csi_sd->entity.num_links)
 		return false;
 
-	sen_sd = mxc_get_remote_subdev(csi_sd, __func__);
+	sen_sd = mxc_get_source_subdev(csi_sd, __func__);
 	if (!sen_sd || !sen_sd->entity.num_links)
 		return false;
 
@@ -801,7 +801,7 @@ static int mxc_isi_capture_open(struct file *file)
 		return ret;
 	}
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd)
 		return -ENODEV;
 
@@ -842,7 +842,7 @@ static int mxc_isi_capture_release(struct file *file)
 	if (!isi_cap->is_link_setup)
 		return 0;
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd)
 		goto label;
 
@@ -924,7 +924,7 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 		return -EINVAL;
 	}
 
-	src_sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	src_sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!src_sd)
 		return -EINVAL;
 
@@ -1022,7 +1022,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 		return -EINVAL;
 	}
 
-	src_sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	src_sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!src_sd)
 		return -EINVAL;
 
@@ -1163,7 +1163,7 @@ static int mxc_isi_cap_g_parm(struct file *file, void *fh,
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct v4l2_subdev *sd;
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd)
 		return -ENODEV;
 
@@ -1176,7 +1176,7 @@ static int mxc_isi_cap_s_parm(struct file *file, void *fh,
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct v4l2_subdev *sd;
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd)
 		return -ENODEV;
 
@@ -1332,7 +1332,7 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 		return -EINVAL;
 	fse.code = fmt->mbus_code;
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd) {
 		v4l2_err(&isi_cap->sd, "Can't find subdev\n");
 		return -ENODEV;
@@ -1387,7 +1387,7 @@ static int mxc_isi_cap_enum_frameintervals(struct file *file, void *fh,
 		return -EINVAL;
 	fie.code = fmt->mbus_code;
 
-	sd = mxc_get_remote_subdev(&isi_cap->sd, __func__);
+	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
 	if (!sd)
 		return -EINVAL;
 
