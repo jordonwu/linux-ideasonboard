@@ -15,6 +15,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of.h>
@@ -22,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
+#include <linux/regmap.h>
 #include <linux/reset.h>
 #include <linux/spinlock.h>
 
@@ -224,6 +226,16 @@
 
 #define DEFAULT_SCLK_CSIS_FREQ			166000000UL
 
+/* Gasket registers (i.MX8MN and i.MX8MP only) */
+#define GASKET_CTRL				0x0000
+#define GASKET_CTRL_DATA_TYPE(dt)		((dt) << 8)
+#define GASKET_CTRL_DATA_TYPE_MASK		(0x3f << 8)
+#define GASKET_CTRL_DUAL_COMP_ENABLE		BIT(1)
+#define GASKET_CTRL_ENABLE			BIT(0)
+
+#define GASKET_HSIZE				0x0004
+#define GASKET_VSIZE				0x0008
+
 /* MIPI CSI-2 Data Types */
 #define MIPI_CSI2_DATA_TYPE_YUV420_8		0x18
 #define MIPI_CSI2_DATA_TYPE_YUV420_10		0x19
@@ -308,6 +320,7 @@ enum mipi_csis_version {
 struct mipi_csis_info {
 	enum mipi_csis_version version;
 	unsigned int num_clocks;
+	bool has_gasket;
 };
 
 struct csi_state {
@@ -316,6 +329,7 @@ struct csi_state {
 	struct clk_bulk_data *clks;
 	struct reset_control *mrst;
 	struct regulator *mipi_phy_regulator;
+	struct regmap *gasket;
 	const struct mipi_csis_info *info;
 
 	struct v4l2_subdev sd;
@@ -451,7 +465,39 @@ static const struct csis_pix_format *find_csis_format(u32 code)
 }
 
 /* -----------------------------------------------------------------------------
- * Hardware configuration
+ * Media block control (i.MX8MN and i.MX8MP only)
+ */
+
+static void media_blk_ctrl_gasket_config(struct csi_state *state)
+{
+	struct v4l2_mbus_framefmt *mf = &state->format_mbus;
+	struct regmap *gasket = state->gasket;
+	u32 val;
+
+	if (!state->info->has_gasket)
+		return;
+
+	regmap_read(gasket, GASKET_CTRL, &val);
+	if (state->csis_fmt->data_type == MIPI_CSI2_DATA_TYPE_YUV422_8)
+		val |= GASKET_CTRL_DUAL_COMP_ENABLE;
+	val |= GASKET_CTRL_DATA_TYPE(state->csis_fmt->data_type);
+	regmap_write(gasket, GASKET_CTRL, val);
+
+	regmap_write(gasket, GASKET_HSIZE, mf->width);
+	regmap_write(gasket, GASKET_VSIZE, mf->height);
+}
+
+static void media_blk_ctrl_gasket_enable(struct csi_state *state, bool enable)
+{
+	if (!state->info->has_gasket)
+		return;
+
+	regmap_update_bits(state->gasket, GASKET_CTRL, GASKET_CTRL_ENABLE,
+			   enable ? GASKET_CTRL_ENABLE : 0);
+}
+
+/* -----------------------------------------------------------------------------
+ * CSIS hardware configuration
  */
 
 static inline u32 mipi_csis_read(struct csi_state *state, u32 reg)
@@ -653,8 +699,12 @@ static int mipi_csis_clk_get(struct csi_state *state)
 static void mipi_csis_start_stream(struct csi_state *state)
 {
 	mipi_csis_sw_reset(state);
+
+	media_blk_ctrl_gasket_config(state);
 	mipi_csis_set_params(state);
+
 	mipi_csis_system_enable(state, true);
+	media_blk_ctrl_gasket_enable(state, true);
 	mipi_csis_enable_interrupts(state, true);
 }
 
@@ -662,6 +712,7 @@ static void mipi_csis_stop_stream(struct csi_state *state)
 {
 	mipi_csis_enable_interrupts(state, false);
 	mipi_csis_system_enable(state, false);
+	media_blk_ctrl_gasket_enable(state, false);
 }
 
 static irqreturn_t mipi_csis_irq_handler(int irq, void *dev_id)
@@ -1408,6 +1459,16 @@ static int mipi_csis_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
+	if (state->info->has_gasket) {
+		state->gasket = syscon_regmap_lookup_by_phandle(dev->of_node,
+								"csi-gpr");
+		if (IS_ERR(state->gasket)) {
+			ret = PTR_ERR(state->gasket);
+			dev_err(dev, "failed to get CSI gasket: %d\n", ret);
+			return ret;
+		}
+	}
+
 	/* Reset PHY and enable the clocks. */
 	mipi_csis_phy_reset(state);
 
@@ -1494,12 +1555,21 @@ static const struct of_device_id mipi_csis_of_match[] = {
 		.data = &(const struct mipi_csis_info){
 			.version = MIPI_CSIS_V3_3,
 			.num_clocks = 3,
+			.has_gasket = false,
 		},
 	}, {
 		.compatible = "fsl,imx8mm-mipi-csi2",
 		.data = &(const struct mipi_csis_info){
 			.version = MIPI_CSIS_V3_6_3,
 			.num_clocks = 4,
+			.has_gasket = false,
+		},
+	}, {
+		.compatible = "fsl,imx8mp-mipi-csi2",
+		.data = &(const struct mipi_csis_info){
+			.version = MIPI_CSIS_V3_6_3,
+			.num_clocks = 4,
+			.has_gasket = true,
 		},
 	},
 	{ /* sentinel */ },
