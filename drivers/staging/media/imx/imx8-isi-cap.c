@@ -1367,45 +1367,6 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_cap_enum_frameintervals(struct file *file, void *fh,
-					   struct v4l2_frmivalenum *interval)
-{
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct device_node *parent;
-	struct v4l2_subdev *sd;
-	struct mxc_isi_fmt *fmt;
-	struct v4l2_subdev_frame_interval_enum fie = {
-		.index = interval->index,
-		.width = interval->width,
-		.height = interval->height,
-		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
-	};
-	int ret;
-
-	fmt = mxc_isi_find_format(&interval->pixel_format, NULL, 0);
-	if (!fmt || fmt->fourcc != interval->pixel_format)
-		return -EINVAL;
-	fie.code = fmt->mbus_code;
-
-	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
-	if (!sd)
-		return -EINVAL;
-
-	ret = v4l2_subdev_call(sd, pad, enum_frame_interval, NULL, &fie);
-	if (ret)
-		return ret;
-
-	parent = of_get_parent(isi_cap->pdev->dev.of_node);
-	if (of_device_is_compatible(parent, "fsl,imx8mp-isi") &&
-	    fie.width > ISI_2K && isi_cap->id == 1)
-		return -EINVAL;
-
-	interval->type = V4L2_FRMIVAL_TYPE_DISCRETE;
-	interval->discrete = fie.interval;
-
-	return 0;
-}
-
 static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_querycap		= mxc_isi_cap_querycap,
 
@@ -1432,7 +1393,6 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_s_selection		= mxc_isi_cap_s_selection,
 
 	.vidioc_enum_framesizes = mxc_isi_cap_enum_framesizes,
-	.vidioc_enum_frameintervals = mxc_isi_cap_enum_frameintervals,
 };
 
 /* Capture subdev media entity operations */
