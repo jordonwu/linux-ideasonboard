@@ -46,18 +46,11 @@
 #define GRP_ID_MXC_SENSOR		BIT(8)
 #define GRP_ID_MXC_ISI			BIT(9)
 #define GRP_ID_MXC_MIPI_CSI2		BIT(11)
-#define GRP_ID_MXC_HDMI_RX		BIT(12)
-#define GRP_ID_MXC_MJPEG_DEC		BIT(13)
-#define GRP_ID_MXC_MJPEG_ENC		BIT(14)
 #define GRP_ID_MXC_PARALLEL_CSI		BIT(15)
 
 enum mxc_subdev_index {
-	IDX_SENSOR,
 	IDX_ISI,
 	IDX_MIPI_CSI2,
-	IDX_HDMI_RX,
-	IDX_MJPEG_ENC,
-	IDX_MJPEG_DEC,
 	IDX_PARALLEL_CSI,
 	IDX_MAX,
 };
@@ -114,7 +107,6 @@ struct mxc_md {
 	struct platform_device *pdev;
 
 	struct v4l2_async_notifier subdev_notifier;
-	struct v4l2_async_subdev *async_subdevs[MXC_MAX_SENSORS];
 };
 
 static inline struct mxc_md *notifier_to_mxc_md(struct v4l2_async_notifier *n)
@@ -816,7 +808,7 @@ static int mxc_md_register_platform_entities(struct mxc_md *mxc_md,
 		else if (!strcmp(node->name, PARALLEL_OF_NODE_NAME))
 			plat_entity = IDX_PARALLEL_CSI;
 
-		if (plat_entity >= IDX_SENSOR && plat_entity < IDX_MAX) {
+		if (plat_entity >= IDX_ISI && plat_entity < IDX_MAX) {
 			ret = mxc_md_register_platform_entity(mxc_md, node,
 							      plat_entity);
 			if (ret < 0)
