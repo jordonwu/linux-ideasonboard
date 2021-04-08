@@ -40,14 +40,6 @@
 
 #define MXC_NAME_LENS		32
 
-/*
- * The subdevices' group IDs.
- */
-#define GRP_ID_MXC_SENSOR		BIT(8)
-#define GRP_ID_MXC_ISI			BIT(9)
-#define GRP_ID_MXC_MIPI_CSI2		BIT(11)
-#define GRP_ID_MXC_PARALLEL_CSI		BIT(15)
-
 enum mxc_subdev_index {
 	IDX_ISI,
 	IDX_MIPI_CSI2,
@@ -499,7 +491,6 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 
 	dev_dbg(&mxc_md->pdev->dev, "%s\n", __func__);
 
-	sd->grp_id = GRP_ID_MXC_SENSOR;
 	sensor->sd = sd;
 	mxc_md->valid_num_sensors++;
 
@@ -686,8 +677,6 @@ static int register_isi_entity(struct mxc_md *mxc_md,
 	if (mxc_isi->id >= MXC_ISI_MAX_DEVS)
 		return -EBUSY;
 
-	sd->grp_id = GRP_ID_MXC_ISI;
-
 	ret = v4l2_device_register_subdev(&mxc_md->v4l2_dev, sd);
 	if (!ret)
 		mxc_isi->sd = sd;
@@ -714,8 +703,6 @@ static int register_mipi_csi2_entity(struct mxc_md *mxc_md,
 	if (mipi_csi2->id >= MXC_MIPI_CSI2_MAX_DEVS)
 		return -EBUSY;
 
-	sd->grp_id = GRP_ID_MXC_MIPI_CSI2;
-
 	ret = v4l2_device_register_subdev(&mxc_md->v4l2_dev, sd);
 	if (!ret)
 		mipi_csi2->sd = sd;
@@ -738,8 +725,6 @@ static int register_parallel_csi_entity(struct mxc_md *mxc_md,
 			 pcsidev->node->name);
 		return -EPROBE_DEFER;
 	}
-
-	sd->grp_id = GRP_ID_MXC_PARALLEL_CSI;
 
 	ret = v4l2_device_register_subdev(&mxc_md->v4l2_dev, sd);
 	if (!ret)
