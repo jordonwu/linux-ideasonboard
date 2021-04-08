@@ -305,7 +305,7 @@ static int mxc_isi_parse_dt(struct mxc_isi_dev *mxc_isi)
 
 	mxc_isi->id = of_alias_get_id(node, "isi");
 
-	ret = of_property_read_u32_array(node, "interface", mxc_isi->interface, 3);
+	ret = of_property_read_u32_array(node, "interface", mxc_isi->interface, 2);
 	if (ret < 0)
 		return ret;
 

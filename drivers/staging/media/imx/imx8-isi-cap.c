@@ -1285,14 +1285,8 @@ static int mxc_isi_link_setup(struct media_entity *entity,
 		}
 	} else if (local->flags & MEDIA_PAD_FL_SINK) {
 		switch (local->index) {
-		case MXC_ISI_SD_PAD_SINK_MIPI0_VC0:
-		case MXC_ISI_SD_PAD_SINK_MIPI0_VC1:
-		case MXC_ISI_SD_PAD_SINK_MIPI0_VC2:
-		case MXC_ISI_SD_PAD_SINK_MIPI0_VC3:
-		case MXC_ISI_SD_PAD_SINK_MIPI1_VC0:
-		case MXC_ISI_SD_PAD_SINK_MIPI1_VC1:
-		case MXC_ISI_SD_PAD_SINK_MIPI1_VC2:
-		case MXC_ISI_SD_PAD_SINK_MIPI1_VC3:
+		case MXC_ISI_SD_PAD_SINK_MIPI0:
+		case MXC_ISI_SD_PAD_SINK_MIPI1:
 		case MXC_ISI_SD_PAD_SINK_HDMI:
 		case MXC_ISI_SD_PAD_SINK_DC0:
 		case MXC_ISI_SD_PAD_SINK_DC1:
@@ -1336,14 +1330,8 @@ static int mxc_isi_subdev_get_fmt(struct v4l2_subdev *sd,
 	case MXC_ISI_SD_PAD_SOURCE_DC1:
 		f = &isi_cap->dst_f;
 		break;
-	case MXC_ISI_SD_PAD_SINK_MIPI0_VC0:
-	case MXC_ISI_SD_PAD_SINK_MIPI0_VC1:
-	case MXC_ISI_SD_PAD_SINK_MIPI0_VC2:
-	case MXC_ISI_SD_PAD_SINK_MIPI0_VC3:
-	case MXC_ISI_SD_PAD_SINK_MIPI1_VC0:
-	case MXC_ISI_SD_PAD_SINK_MIPI1_VC1:
-	case MXC_ISI_SD_PAD_SINK_MIPI1_VC2:
-	case MXC_ISI_SD_PAD_SINK_MIPI1_VC3:
+	case MXC_ISI_SD_PAD_SINK_MIPI0:
+	case MXC_ISI_SD_PAD_SINK_MIPI1:
 	case MXC_ISI_SD_PAD_SINK_HDMI:
 	case MXC_ISI_SD_PAD_SINK_DC0:
 	case MXC_ISI_SD_PAD_SINK_DC1:
@@ -1695,14 +1683,8 @@ static int isi_cap_probe(struct platform_device *pdev)
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 
 	/* ISI Sink pads */
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0_VC0].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0_VC1].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0_VC2].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0_VC3].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1_VC0].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1_VC1].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1_VC2].flags = MEDIA_PAD_FL_SINK;
-	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1_VC3].flags = MEDIA_PAD_FL_SINK;
+	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0].flags = MEDIA_PAD_FL_SINK;
+	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1].flags = MEDIA_PAD_FL_SINK;
 	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_DC0].flags = MEDIA_PAD_FL_SINK;
 	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_DC1].flags = MEDIA_PAD_FL_SINK;
 	isi_cap->sd_pads[MXC_ISI_SD_PAD_SINK_HDMI].flags = MEDIA_PAD_FL_SINK;
