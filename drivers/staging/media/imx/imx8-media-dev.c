@@ -80,7 +80,6 @@ struct mxc_mipi_csi2_info {
 
 	char sd_name[MXC_NAME_LENS];
 	int id;
-	bool vchannel;
 };
 
 struct mxc_parallel_csi_info {
@@ -206,27 +205,19 @@ static int mxc_md_clean_channel(struct mxc_md *mxc_md, int index)
 	struct mxc_parallel_csi_info *pcsidev;
 	struct media_pad *local_pad;
 	struct media_entity *local_en;
-	u32 i, mipi_vc = 0;
 	int ret;
 
 	if (mxc_md->mipi_csi2[index].sd) {
 		mipi_csi2 = &mxc_md->mipi_csi2[index];
 
-		if (mipi_csi2->vchannel == true)
-			mipi_vc = 4;
-		else
-			mipi_vc = 1;
-
 		local_en = &mipi_csi2->sd->entity;
 		if (local_en == NULL)
 			return -ENODEV;
 
-		for (i = 0; i < mipi_vc; i++) {
-			local_pad = &local_en->pads[MXC_MIPI_CSI2_VC0_PAD_SOURCE + i];
-			ret = mxc_md_do_clean(mxc_md, local_pad);
-			if (ret < 0)
-				return -ENODEV;
-		}
+		local_pad = &local_en->pads[MXC_MIPI_CSI2_PAD_SOURCE];
+		ret = mxc_md_do_clean(mxc_md, local_pad);
+		if (ret < 0)
+			return -ENODEV;
 	} else if (mxc_md->parallel_csi && !sensor->mipi_mode) {
 		pcsidev = &mxc_md->pcsidev;
 		if (pcsidev->sd == NULL)
@@ -291,10 +282,9 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 	struct mxc_mipi_csi2_info *mipi_csi2;
 	struct mxc_parallel_csi_info *pcsidev;
 	int num_sensors = mxc_md->num_sensors;
-	int i, j, ret = 0;
+	int i, ret = 0;
 	u16  source_pad, sink_pad;
 	u32 flags;
-	u32 mipi_vc = 0;
 
 	/* Create links between each ISI's subdev and video node */
 	flags = MEDIA_LNK_FL_ENABLED;
@@ -356,24 +346,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 				continue;
 			source = find_entity_by_name(mxc_md, mipi_csi2->sd_name);
 
-			switch (mxc_isi->interface[SUB_IN_PORT]) {
-			case ISI_INPUT_SUB_INTERFACE_VC1:
-				source_pad = MXC_MIPI_CSI2_VC1_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI0_VC1;
-				break;
-			case ISI_INPUT_SUB_INTERFACE_VC2:
-				source_pad = MXC_MIPI_CSI2_VC2_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI0_VC2;
-				break;
-			case ISI_INPUT_SUB_INTERFACE_VC3:
-				source_pad = MXC_MIPI_CSI2_VC3_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI0_VC3;
-				break;
-			default:
-				source_pad = MXC_MIPI_CSI2_VC0_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI0_VC0;
-				break;
-			}
+			source_pad = MXC_MIPI_CSI2_PAD_SOURCE;
+			sink_pad = MXC_ISI_SD_PAD_SINK_MIPI0;
 			break;
 
 		case ISI_INPUT_INTERFACE_MIPI1_CSI2:
@@ -382,24 +356,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 				continue;
 			source = find_entity_by_name(mxc_md, mipi_csi2->sd_name);
 
-			switch (mxc_isi->interface[SUB_IN_PORT]) {
-			case ISI_INPUT_SUB_INTERFACE_VC1:
-				source_pad = MXC_MIPI_CSI2_VC1_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI1_VC1;
-				break;
-			case ISI_INPUT_SUB_INTERFACE_VC2:
-				source_pad = MXC_MIPI_CSI2_VC2_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI1_VC2;
-				break;
-			case ISI_INPUT_SUB_INTERFACE_VC3:
-				source_pad = MXC_MIPI_CSI2_VC3_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI1_VC3;
-				break;
-			default:
-				source_pad = MXC_MIPI_CSI2_VC0_PAD_SOURCE;
-				sink_pad = MXC_ISI_SD_PAD_SINK_MIPI1_VC0;
-				break;
-			}
+			source_pad = MXC_MIPI_CSI2_PAD_SOURCE;
+			sink_pad = MXC_ISI_SD_PAD_SINK_MIPI1;
 			break;
 
 		case ISI_INPUT_INTERFACE_PARALLEL_CSI:
@@ -499,33 +457,31 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
 			source_pad = 0;
 			sink_pad = source_pad;
 
-			mipi_vc = (mipi_csi2->vchannel) ? 4 : 1;
-			for (j = 0; j < mipi_vc; j++) {
-				ret = media_create_pad_link(source,
-							    source_pad + j,
-							    sink,
-							    sink_pad + j,
-							    MEDIA_LNK_FL_IMMUTABLE |
-							    MEDIA_LNK_FL_ENABLED);
-				if (ret)
-					return ret;
+			ret = media_create_pad_link(source,
+						    source_pad,
+						    sink,
+						    sink_pad,
+						    MEDIA_LNK_FL_IMMUTABLE |
+						    MEDIA_LNK_FL_ENABLED);
+			if (ret)
+				return ret;
 
-				/* Notify MIPI subdev entity */
-				ret = media_entity_call(sink, link_setup,
-							&sink->pads[sink_pad + j],
-							&source->pads[source_pad + j],
-							0);
-				if (ret)
-					return ret;
+			/* Notify MIPI subdev entity */
+			ret = media_entity_call(sink, link_setup,
+						&sink->pads[sink_pad],
+						&source->pads[source_pad],
+						0);
+			if (ret)
+				return ret;
 
-				/* Notify MIPI sensor subdev entity */
-				ret = media_entity_call(source, link_setup,
-							&source->pads[source_pad + j],
-							&sink->pads[sink_pad + j],
-							0);
-				if (ret && ret != -ENOIOCTLCMD)
-					return ret;
-			}
+			/* Notify MIPI sensor subdev entity */
+			ret = media_entity_call(source, link_setup,
+						&source->pads[source_pad],
+						&sink->pads[sink_pad],
+						0);
+			if (ret && ret != -ENOIOCTLCMD)
+				return ret;
+
 			v4l2_info(&mxc_md->v4l2_dev,
 				  "created link [%s] => [%s]\n",
 				  source->name, sink->name);
@@ -640,7 +596,7 @@ static struct mxc_isi_info *mxc_md_parse_isi_entity(struct mxc_md *mxc_md,
 	sprintf(mxc_isi->vdev_name, "mxc_isi.%d.capture", mxc_isi->id);
 
 	ret = of_property_read_u32_array(node, "interface",
-					 mxc_isi->interface, 3);
+					 mxc_isi->interface, 2);
 	if (ret < 0) {
 		dev_err(dev, "%s node has not interface property\n", child->name);
 		return NULL;
@@ -667,7 +623,6 @@ mxc_md_parse_csi_entity(struct mxc_md *mxc_md,
 	if (!mipi_csi2)
 		return NULL;
 
-	mipi_csi2->vchannel = of_property_read_bool(node, "virtual-channel");
 	mipi_csi2->id = id;
 	mipi_csi2->node = node;
 	sprintf(mipi_csi2->sd_name, "mxc-mipi-csi2.%d", mipi_csi2->id);
