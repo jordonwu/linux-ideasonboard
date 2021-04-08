@@ -1707,6 +1707,10 @@ static int isi_cap_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, isi_cap);
 
 	pm_runtime_enable(dev);
+
+	sd->fwnode = of_fwnode_handle(dev->parent->of_node);
+	v4l2_async_register_subdev(sd);
+
 	return 0;
 }
 
@@ -1715,7 +1719,7 @@ static int isi_cap_remove(struct platform_device *pdev)
 	struct mxc_isi_cap_dev *isi_cap = platform_get_drvdata(pdev);
 	struct v4l2_subdev *sd = &isi_cap->sd;
 
-	v4l2_device_unregister_subdev(sd);
+	v4l2_async_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
 	v4l2_set_subdevdata(sd, NULL);
 	pm_runtime_disable(&pdev->dev);
