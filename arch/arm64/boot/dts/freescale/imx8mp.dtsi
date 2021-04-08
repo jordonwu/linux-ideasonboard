@@ -1158,41 +1158,39 @@
 				};
 
 				mipi_csi_0: csi@32e40000 {
-					compatible = "fsl,imx8mp-mipi-csi", "fsl,imx8mn-mipi-csi";
+					compatible = "fsl,imx8mp-mipi-csi2";
 					reg = <0x32e40000 0x10000>;
 					interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
 					clock-frequency = <500000000>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI>,
-						 <&clk IMX8MP_CLK_MEDIA_APB>;
-					clock-names = "mipi_clk", "disp_axi", "disp_apb";
+					clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
+						 <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
+						 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
+						 <&clk IMX8MP_CLK_MEDIA_AXI>;
+					clock-names = "pclk", "wrap", "phy", "axi";
 					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>;
 					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
 					assigned-clock-rates = <500000000>;
-					bus-width = <4>;
 					csi-gpr = <&mediamix_gasket0>;
 					gpr = <&mediamix_blk_ctl>;
-					no-reset-control;
 					power-domains = <&mipi_phy1_pd>;
 					status = "disabled";
 				};
 
 				mipi_csi_1: csi@32e50000 {
-					compatible = "fsl,imx8mp-mipi-csi", "fsl,imx8mn-mipi-csi";
+					compatible = "fsl,imx8mp-mipi-csi2";
 					reg = <0x32e50000 0x10000>;
 					interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
 					clock-frequency = <266000000>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI>,
-						 <&clk IMX8MP_CLK_MEDIA_APB>;
-					clock-names = "mipi_clk", "disp_axi", "disp_apb";
+					clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
+						 <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
+						 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
+						 <&clk IMX8MP_CLK_MEDIA_AXI>;
+					clock-names = "pclk", "wrap", "phy", "axi";
 					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>;
 					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
 					assigned-clock-rates = <266000000>;
-					bus-width = <4>;
 					csi-gpr = <&mediamix_gasket1>;
 					gpr = <&mediamix_blk_ctl>;
-					no-reset-control;
 					power-domains = <&mipi_phy2_pd>;
 					status = "disabled";
 				};
