@@ -287,15 +287,11 @@ void mxc_isi_channel_source_config(struct mxc_isi_dev *mxc_isi)
 	switch (mxc_isi->interface[IN_PORT]) {
 	case ISI_INPUT_INTERFACE_MIPI0_CSI2:
 		val |= mxc_isi->pdata->chan_src->src_mipi0;
-		if (mxc_isi->interface[SUB_IN_PORT] <= CHNL_CTRL_MIPI_VC_ID_VC3 &&
-		    mxc_isi->interface[SUB_IN_PORT] >= CHNL_CTRL_MIPI_VC_ID_VC0)
-			val |= (mxc_isi->interface[SUB_IN_PORT] << CHNL_CTRL_MIPI_VC_ID_OFFSET);
+		val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET;
 		break;
 	case ISI_INPUT_INTERFACE_MIPI1_CSI2:
 		val |= mxc_isi->pdata->chan_src->src_mipi1;
-		if (mxc_isi->interface[SUB_IN_PORT] <= CHNL_CTRL_MIPI_VC_ID_VC3 &&
-		    mxc_isi->interface[SUB_IN_PORT] >= CHNL_CTRL_MIPI_VC_ID_VC0)
-			val |= (mxc_isi->interface[SUB_IN_PORT] << CHNL_CTRL_MIPI_VC_ID_OFFSET);
+		val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET;
 		break;
 	case ISI_INPUT_INTERFACE_DC0:
 		val |= mxc_isi->pdata->chan_src->src_dc0;
