@@ -139,11 +139,7 @@
 		reg = <0>;
 		mipi_csi0_ep: endpoint {
 			remote-endpoint = <&imx327_out>;
-			/* FIXME: This should be <1 2 3 4> */
-			data-lanes = <4>;
-			csis-hs-settle = <13>;
-			csis-clk-settle = <2>;
-			csis-wclk;
+			data-lanes = <1 2 3 4>;
 		};
 	};
 };
