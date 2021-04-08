@@ -1292,50 +1292,24 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct device_node *parent;
-	struct v4l2_subdev *sd;
 	struct mxc_isi_fmt *fmt;
-	struct v4l2_subdev_frame_size_enum fse = {
-		.index = fsize->index,
-		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
-	};
-	int ret;
 
 	fmt = mxc_isi_find_format(&fsize->pixel_format, NULL, 0);
 	if (!fmt || fmt->fourcc != fsize->pixel_format)
 		return -EINVAL;
-	fse.code = fmt->mbus_code;
 
-	sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
-	if (!sd) {
-		v4l2_err(&isi_cap->sd, "Can't find subdev\n");
-		return -ENODEV;
-	}
-
-	ret = v4l2_subdev_call(sd, pad, enum_frame_size, NULL, &fse);
-	if (ret)
-		return ret;
-
-	parent = of_get_parent(isi_cap->pdev->dev.of_node);
-	if ((of_device_is_compatible(parent, "fsl,imx8mp-isi")) &&
-	    (fse.max_width > ISI_2K || fse.min_width > ISI_2K) &&
-	    (isi_cap->id == 1))
-		return -EINVAL;
-
-	if (fse.min_width == fse.max_width &&
-	    fse.min_height == fse.max_height) {
-		fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
-		fsize->discrete.width = fse.min_width;
-		fsize->discrete.height = fse.min_height;
-		return 0;
-	}
-
-	fsize->type = V4L2_FRMSIZE_TYPE_STEPWISE;
-	fsize->stepwise.min_width = fse.min_width;
-	fsize->stepwise.max_width = fse.max_width;
-	fsize->stepwise.min_height = fse.min_height;
-	fsize->stepwise.max_height = fse.max_height;
+	fsize->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
+	fsize->stepwise.min_width = 4;
+	fsize->stepwise.max_width = 4;
+	fsize->stepwise.min_height = 4096;
+	fsize->stepwise.max_height = 4096;
 	fsize->stepwise.step_width = 1;
 	fsize->stepwise.step_height = 1;
+
+	parent = of_get_parent(isi_cap->pdev->dev.of_node);
+	if (of_device_is_compatible(parent, "fsl,imx8mp-isi") &&
+	    isi_cap->id == 1)
+		fsize->stepwise.min_height /= 2;
 
 	return 0;
 }
@@ -1362,7 +1336,7 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_g_selection		= mxc_isi_cap_g_selection,
 	.vidioc_s_selection		= mxc_isi_cap_s_selection,
 
-	.vidioc_enum_framesizes = mxc_isi_cap_enum_framesizes,
+	.vidioc_enum_framesizes		= mxc_isi_cap_enum_framesizes,
 };
 
 /* Capture subdev media entity operations */
