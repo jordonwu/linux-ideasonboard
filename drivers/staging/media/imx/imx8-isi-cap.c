@@ -299,54 +299,68 @@ static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
 }
 
+static struct media_pad
+*mxc_isi_get_remote_source_pad(struct v4l2_subdev *subdev)
+{
+	unsigned int i;
+
+	for (i = 0; i < subdev->entity.num_pads; i++) {
+		struct media_pad *pad = &subdev->entity.pads[i];
+
+		if (!(pad->flags & MEDIA_PAD_FL_SINK))
+			continue;
+
+		pad = media_entity_remote_pad(pad);
+		if (pad)
+			return pad;
+	}
+
+	return NULL;
+}
+
+static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
+						 const char * const label)
+{
+	struct media_pad *source_pad;
+	struct v4l2_subdev *sen_sd;
+
+	/* Get remote source pad */
+	source_pad = mxc_isi_get_remote_source_pad(subdev);
+	if (!source_pad) {
+		v4l2_err(subdev, "%s, No remote pad found!\n", label);
+		return NULL;
+	}
+
+	/* Get remote source pad subdev */
+	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	if (!sen_sd) {
+		v4l2_err(subdev, "%s, No remote subdev found!\n", label);
+		return NULL;
+	}
+
+	return sen_sd;
+}
+
 /*
  * mxc_isi_pipeline_enable() - Enable streaming on a pipeline
  */
 static int mxc_isi_pipeline_enable(struct mxc_isi_cap_dev *isi_cap, bool enable)
 {
 	struct device *dev = &isi_cap->pdev->dev;
-	struct media_entity *entity = &isi_cap->vdev.entity;
-	struct media_device *mdev = entity->graph_obj.mdev;
-	struct media_graph graph;
-	struct v4l2_subdev *subdev;
-	int ret = 0;
+	struct v4l2_subdev *src_sd;
+	int ret;
 
-	mutex_lock(&mdev->graph_mutex);
+	src_sd = mxc_get_source_subdev(&isi_cap->sd, __func__);
+	if (!src_sd)
+		return -EPIPE;
 
-	ret = media_graph_walk_init(&graph, entity->graph_obj.mdev);
-	if (ret) {
-		mutex_unlock(&mdev->graph_mutex);
+	ret = v4l2_subdev_call(src_sd, video, s_stream, enable);
+	if (ret < 0 && ret != -ENOIOCTLCMD) {
+		dev_err(dev, "subdev %s s_stream failed\n", src_sd->name);
 		return ret;
 	}
-	media_graph_walk_start(&graph, entity);
 
-	while ((entity = media_graph_walk_next(&graph))) {
-		if (!entity) {
-			dev_dbg(dev, "entity is NULL\n");
-			continue;
-		}
-
-		if (!is_media_entity_v4l2_subdev(entity)) {
-			dev_dbg(dev, "%s is no v4l2 subdev\n", entity->name);
-			continue;
-		}
-
-		subdev = media_entity_to_v4l2_subdev(entity);
-		if (!subdev) {
-			dev_dbg(dev, "%s subdev is NULL\n", entity->name);
-			continue;
-		}
-
-		ret = v4l2_subdev_call(subdev, video, s_stream, enable);
-		if (ret < 0 && ret != -ENOIOCTLCMD) {
-			dev_err(dev, "subdev %s s_stream failed\n", subdev->name);
-			break;
-		}
-	}
-	mutex_unlock(&mdev->graph_mutex);
-	media_graph_walk_cleanup(&graph);
-
-	return ret;
+	return 0;
 }
 
 static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
@@ -717,48 +731,6 @@ void mxc_isi_ctrls_delete(struct mxc_isi_cap_dev *isi_cap)
 		ctrls->ready = false;
 		ctrls->alpha = NULL;
 	}
-}
-
-static struct media_pad
-*mxc_isi_get_remote_source_pad(struct v4l2_subdev *subdev)
-{
-	unsigned int i;
-
-	for (i = 0; i < subdev->entity.num_pads; i++) {
-		struct media_pad *pad = &subdev->entity.pads[i];
-
-		if (!(pad->flags & MEDIA_PAD_FL_SINK))
-			continue;
-
-		pad = media_entity_remote_pad(pad);
-		if (pad)
-			return pad;
-	}
-
-	return NULL;
-}
-
-static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
-						 const char * const label)
-{
-	struct media_pad *source_pad;
-	struct v4l2_subdev *sen_sd;
-
-	/* Get remote source pad */
-	source_pad = mxc_isi_get_remote_source_pad(subdev);
-	if (!source_pad) {
-		v4l2_err(subdev, "%s, No remote pad found!\n", label);
-		return NULL;
-	}
-
-	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
-	if (!sen_sd) {
-		v4l2_err(subdev, "%s, No remote subdev found!\n", label);
-		return NULL;
-	}
-
-	return sen_sd;
 }
 
 static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
