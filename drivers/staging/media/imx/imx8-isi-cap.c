@@ -255,8 +255,7 @@ struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
 /*
  * lookup mxc_isi color format by fourcc or media bus format
  */
-struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat,
-					const u32 *mbus_code, int index)
+struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat, int index)
 {
 	struct mxc_isi_fmt *fmt, *def_fmt = NULL;
 	unsigned int i;
@@ -268,8 +267,6 @@ struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat,
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
 		fmt = &mxc_isi_out_formats[i];
 		if (pixelformat && fmt->fourcc == *pixelformat)
-			return fmt;
-		if (mbus_code && fmt->mbus_code == *mbus_code)
 			return fmt;
 		if (index == id)
 			def_fmt = fmt;
@@ -859,7 +856,7 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
 
-	fmt = mxc_isi_find_format(NULL, NULL, f->index);
+	fmt = mxc_isi_find_format(NULL, f->index);
 	if (!fmt)
 		return -EINVAL;
 
@@ -1215,7 +1212,7 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	struct device_node *parent;
 	struct mxc_isi_fmt *fmt;
 
-	fmt = mxc_isi_find_format(&fsize->pixel_format, NULL, 0);
+	fmt = mxc_isi_find_format(&fsize->pixel_format, 0);
 	if (!fmt || fmt->fourcc != fsize->pixel_format)
 		return -EINVAL;
 
