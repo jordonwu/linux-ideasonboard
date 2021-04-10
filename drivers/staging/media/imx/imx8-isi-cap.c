@@ -1587,6 +1587,14 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 	if (ret)
 		goto err_ctrl_free;
 
+	ret = media_create_pad_link(&isi_cap->sd.entity,
+				    MXC_ISI_SD_PAD_SOURCE_MEM,
+				    &vdev->entity, 0,
+				    MEDIA_LNK_FL_IMMUTABLE |
+				    MEDIA_LNK_FL_ENABLED);
+	if (ret < 0)
+		goto err_ctrl_free;
+
 	vdev->ctrl_handler = &isi_cap->ctrls.handler;
 	v4l2_dev->ctrl_handler = &isi_cap->ctrls.handler;
 	v4l2_info(v4l2_dev, "Registered %s as /dev/%s\n",
