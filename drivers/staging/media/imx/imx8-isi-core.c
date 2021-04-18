@@ -4,6 +4,27 @@
  *
  */
 
+#include <linux/device.h>
+#include <linux/errno.h>
+#include <linux/kernel.h>
+#include <linux/list.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_graph.h>
+#include <linux/of_platform.h>
+#include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
+#include <linux/slab.h>
+
+#include <media/media-device.h>
+#include <media/v4l2-async.h>
+#include <media/v4l2-device.h>
+#include <media/v4l2-fwnode.h>
+#include <media/v4l2-mc.h>
+#include <media/v4l2-subdev.h>
+
+#include "imx8-common.h"
 #include "imx8-isi-hw.h"
 
 static const struct soc_device_attribute imx8_soc[] = {
@@ -423,6 +444,159 @@ static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
 	return 0;
 }
 
+/* -----------------------------------------------------------------------------
+ * V4L2 async subdevs
+ */
+
+struct mxc_isi_async_subdev {
+	struct v4l2_async_subdev asd;
+	unsigned int port;
+};
+
+static inline struct mxc_isi_async_subdev *
+asd_to_mxc_isi_async_subdev(struct v4l2_async_subdev *asd)
+{
+	return container_of(asd, struct mxc_isi_async_subdev, asd);
+};
+
+static inline struct mxc_isi_dev *
+notifier_to_mxc_isi_dev(struct v4l2_async_notifier *n)
+{
+	return container_of(n, struct mxc_isi_dev, notifier);
+};
+
+static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
+					struct v4l2_subdev *sd,
+					struct v4l2_async_subdev *asd)
+{
+	const unsigned int link_flags = MEDIA_LNK_FL_IMMUTABLE
+				      | MEDIA_LNK_FL_ENABLED;
+	struct mxc_isi_dev *mxc_isi = notifier_to_mxc_isi_dev(notifier);
+	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
+	struct media_pad *pad = &mxc_isi->isi_cap.sd_pads[masd->port];
+
+	dev_dbg(&mxc_isi->pdev->dev, "Bound subdev %s\n", sd->name);
+	dev_info(&mxc_isi->pdev->dev, "Creating links %s -> ISI:%u\n",
+		 sd->name, masd->port);
+
+	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
+}
+
+static int mxc_isi_async_notifier_complete(struct v4l2_async_notifier *notifier)
+{
+	struct mxc_isi_dev *mxc_isi = notifier_to_mxc_isi_dev(notifier);
+	int ret;
+
+	dev_dbg(&mxc_isi->pdev->dev, "%s\n", __func__);
+
+	ret = v4l2_device_register_subdev_nodes(&mxc_isi->v4l2_dev);
+	if (ret < 0) {
+		dev_err(&mxc_isi->pdev->dev,
+			"Failed to register subdev nodes: %d\n", ret);
+		return ret;
+	}
+
+	return media_device_register(&mxc_isi->media_dev);
+}
+
+static const struct v4l2_async_notifier_operations mxc_isi_async_notifier_ops = {
+	.bound = mxc_isi_async_notifier_bound,
+	.complete = mxc_isi_async_notifier_complete,
+};
+
+static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
+{
+	struct fwnode_handle *node = dev_fwnode(&mxc_isi->pdev->dev);
+	struct media_device *media_dev = &mxc_isi->media_dev;
+	struct v4l2_device *v4l2_dev = &mxc_isi->v4l2_dev;
+	unsigned int i;
+	int ret;
+
+	/* Initialize the media device. */
+	strlcpy(media_dev->model, "FSL Capture Media Device",
+		sizeof(media_dev->model));
+	media_dev->dev = &mxc_isi->pdev->dev;
+
+	media_device_init(media_dev);
+
+	/* Initialize and register the V4L2 device. */
+	v4l2_dev->mdev = media_dev;
+	strlcpy(v4l2_dev->name, "mx8-img-md", sizeof(v4l2_dev->name));
+
+	ret = v4l2_device_register(&mxc_isi->pdev->dev, v4l2_dev);
+	if (ret < 0) {
+		dev_err(&mxc_isi->pdev->dev,
+			"Failed to register V4L2 device: %d\n", ret);
+		goto err_media;
+	}
+
+	/* Register the ISI subdev. */
+	ret = v4l2_device_register_subdev(v4l2_dev, &mxc_isi->isi_cap.sd);
+	if (ret < 0) {
+		dev_err(&mxc_isi->pdev->dev,
+			"Failed to register ISI subdev: %d\n", ret);
+		goto err_v4l2;
+	}
+
+	/* Initialize, fill and register the async notifier. */
+	v4l2_async_notifier_init(&mxc_isi->notifier);
+	mxc_isi->notifier.ops = &mxc_isi_async_notifier_ops;
+
+	for (i = 0; i < MXC_ISI_NUM_PORTS; ++i) {
+		struct mxc_isi_async_subdev *masd;
+		struct fwnode_handle *ep;
+
+		ep = fwnode_graph_get_endpoint_by_id(node, i, 0,
+						     FWNODE_GRAPH_ENDPOINT_NEXT);
+
+		if (!ep)
+			continue;
+
+		masd = v4l2_async_notifier_add_fwnode_remote_subdev(
+				&mxc_isi->notifier, ep,
+				struct mxc_isi_async_subdev);
+		fwnode_handle_put(ep);
+
+		if (IS_ERR(masd)) {
+			ret = PTR_ERR(masd);
+			goto err_notifier;
+		}
+
+		masd->port = i;
+	}
+
+	ret = v4l2_async_notifier_register(v4l2_dev, &mxc_isi->notifier);
+	if (ret < 0) {
+		dev_err(&mxc_isi->pdev->dev,
+			"Failed to register async notifier: %d\n", ret);
+		goto err_notifier;
+	}
+
+	return 0;
+
+err_notifier:
+	v4l2_async_notifier_cleanup(&mxc_isi->notifier);
+err_v4l2:
+	v4l2_device_unregister(v4l2_dev);
+err_media:
+	media_device_cleanup(media_dev);
+	return ret;
+}
+
+static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *mxc_isi)
+{
+	v4l2_async_notifier_unregister(&mxc_isi->notifier);
+	v4l2_async_notifier_cleanup(&mxc_isi->notifier);
+
+	v4l2_device_unregister(&mxc_isi->v4l2_dev);
+	media_device_unregister(&mxc_isi->media_dev);
+	media_device_cleanup(&mxc_isi->media_dev);
+}
+
+/* -----------------------------------------------------------------------------
+ * Probe, remove & driver
+ */
+
 static int mxc_isi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -527,6 +701,12 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	ret = mxc_isi_v4l2_init(mxc_isi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to initialize V4L2: %d\n", ret);
+		goto err;
+	}
+
 	dev_info(dev, "mxc_isi.%d registered successfully\n", mxc_isi->id);
 	return 0;
 
@@ -543,6 +723,8 @@ static int mxc_isi_remove(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 
 	isi_cap_remove(mxc_isi);
+	mxc_isi_v4l2_cleanup(mxc_isi);
+
 	pm_runtime_disable(dev);
 
 	return 0;

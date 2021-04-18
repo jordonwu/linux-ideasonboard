@@ -53,13 +53,5 @@ config IMX8_ISI_CORE
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
 	default y
 
-config IMX8_MEDIA_DEVICE
-	tristate "IMX8 Media Device Driver"
-	select V4L2_FWNODE
-	default y
-	help
-	  This media device is a virtual device which used to manage
-	  all modules in image subsystem of imx8qxp/qm platform.
-
 endmenu
 endif  #VIDEO_IMX_CAPTURE
