@@ -403,13 +403,6 @@ static struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
 };
 
-static const struct of_device_id mxc_isi_of_match[] = {
-	{.compatible = "fsl,imx8-isi", .data = &mxc_imx8_data },
-	{.compatible = "fsl,imx8mn-isi", .data = &mxc_imx8mn_data },
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(of, mxc_isi_of_match);
-
 static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
 			     const struct soc_device_attribute *data)
 {
@@ -567,7 +560,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct mxc_isi_dev *mxc_isi;
 	struct resource *res;
-	const struct of_device_id *of_id;
 	int ret = 0;
 
 	mxc_isi = devm_kzalloc(dev, sizeof(*mxc_isi), GFP_KERNEL);
@@ -575,11 +567,8 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	mxc_isi->pdev = pdev;
-	of_id = of_match_node(mxc_isi_of_match, dev->of_node);
-	if (!of_id)
-		return -EINVAL;
 
-	mxc_isi->pdata = of_id->data;
+	mxc_isi->pdata = of_device_get_match_data(&pdev->dev);
 	if (!mxc_isi->pdata) {
 		dev_err(dev, "Can't get platform device data\n");
 		return -EINVAL;
@@ -693,6 +682,13 @@ static int mxc_isi_remove(struct platform_device *pdev)
 
 	return 0;
 }
+
+static const struct of_device_id mxc_isi_of_match[] = {
+	{.compatible = "fsl,imx8-isi", .data = &mxc_imx8_data },
+	{.compatible = "fsl,imx8mn-isi", .data = &mxc_imx8mn_data },
+	{ /* sentinel */ },
+};
+MODULE_DEVICE_TABLE(of, mxc_isi_of_match);
 
 static struct platform_driver mxc_isi_driver = {
 	.probe		= mxc_isi_probe,
