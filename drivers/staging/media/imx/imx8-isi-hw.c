@@ -326,8 +326,8 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 			     struct mxc_isi_frame *src_f,
 			     struct mxc_isi_frame *dst_f)
 {
-	struct mxc_isi_fmt *src_fmt = src_f->fmt;
-	struct mxc_isi_fmt *dst_fmt = dst_f->fmt;
+	const struct mxc_isi_fmt *src_fmt = src_f->fmt;
+	const struct mxc_isi_fmt *dst_fmt = dst_f->fmt;
 	u32 val, csc = 0;
 
 	val = readl(mxc_isi->regs + CHNL_IMG_CTRL);
