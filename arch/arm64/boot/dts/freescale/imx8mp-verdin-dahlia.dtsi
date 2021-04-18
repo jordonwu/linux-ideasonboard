@@ -123,15 +123,14 @@
 };
 
 &mipi_csi_0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
 	status = "okay";
 
-	port@0 {
-		reg = <0>;
-		mipi_csi0_ep: endpoint {
-			remote-endpoint = <&imx327_out>;
-			data-lanes = <1 2 3 4>;
+	ports {
+		port@0 {
+			mipi_csi0_ep: endpoint {
+				remote-endpoint = <&imx327_out>;
+				data-lanes = <1 2 3 4>;
+			};
 		};
 	};
 };
