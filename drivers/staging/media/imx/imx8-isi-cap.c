@@ -246,11 +246,6 @@ const struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	}
 };
 
-const struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
-{
-	return &mxc_isi_out_formats[index];
-}
-
 /*
  * lookup mxc_isi color format by fourcc or media bus format
  */
