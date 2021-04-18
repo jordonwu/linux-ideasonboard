@@ -30,7 +30,7 @@
 static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 {
 	struct mxc_isi_dev *mxc_isi = priv;
-	struct device *dev = &mxc_isi->pdev->dev;
+	struct device *dev = mxc_isi->dev;
 	const struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
 	unsigned long flags;
 	u32 status;
@@ -102,16 +102,16 @@ static int mxc_isi_clk_get(struct mxc_isi_dev *mxc_isi)
 			  * sizeof(*mxc_isi->clks);
 	int ret;
 
-	mxc_isi->clks = devm_kmalloc(&mxc_isi->pdev->dev, size, GFP_KERNEL);
+	mxc_isi->clks = devm_kmalloc(mxc_isi->dev, size, GFP_KERNEL);
 	if (!mxc_isi->clks)
 		return -ENOMEM;
 
 	memcpy(mxc_isi->clks, mxc_isi->pdata->clks, size);
 
-	ret = devm_clk_bulk_get(&mxc_isi->pdev->dev, mxc_isi->pdata->num_clks,
+	ret = devm_clk_bulk_get(mxc_isi->dev, mxc_isi->pdata->num_clks,
 				mxc_isi->clks);
 	if (ret < 0) {
-		dev_err(&mxc_isi->pdev->dev, "Failed to acquire clocks: %d\n",
+		dev_err(mxc_isi->dev, "Failed to acquire clocks: %d\n",
 			ret);
 		return ret;
 	}
@@ -160,8 +160,8 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
 	struct media_pad *pad = &mxc_isi->isi_cap.sd_pads[masd->port];
 
-	dev_dbg(&mxc_isi->pdev->dev, "Bound subdev %s\n", sd->name);
-	dev_info(&mxc_isi->pdev->dev, "Creating links %s -> ISI:%u\n",
+	dev_dbg(mxc_isi->dev, "Bound subdev %s\n", sd->name);
+	dev_info(mxc_isi->dev, "Creating links %s -> ISI:%u\n",
 		 sd->name, masd->port);
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
@@ -172,11 +172,11 @@ static int mxc_isi_async_notifier_complete(struct v4l2_async_notifier *notifier)
 	struct mxc_isi_dev *mxc_isi = notifier_to_mxc_isi_dev(notifier);
 	int ret;
 
-	dev_dbg(&mxc_isi->pdev->dev, "%s\n", __func__);
+	dev_dbg(mxc_isi->dev, "%s\n", __func__);
 
 	ret = v4l2_device_register_subdev_nodes(&mxc_isi->v4l2_dev);
 	if (ret < 0) {
-		dev_err(&mxc_isi->pdev->dev,
+		dev_err(mxc_isi->dev,
 			"Failed to register subdev nodes: %d\n", ret);
 		return ret;
 	}
@@ -191,7 +191,7 @@ static const struct v4l2_async_notifier_operations mxc_isi_async_notifier_ops = 
 
 static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 {
-	struct fwnode_handle *node = dev_fwnode(&mxc_isi->pdev->dev);
+	struct fwnode_handle *node = dev_fwnode(mxc_isi->dev);
 	struct media_device *media_dev = &mxc_isi->media_dev;
 	struct v4l2_device *v4l2_dev = &mxc_isi->v4l2_dev;
 	unsigned int i;
@@ -200,7 +200,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 	/* Initialize the media device. */
 	strlcpy(media_dev->model, "FSL Capture Media Device",
 		sizeof(media_dev->model));
-	media_dev->dev = &mxc_isi->pdev->dev;
+	media_dev->dev = mxc_isi->dev;
 
 	media_device_init(media_dev);
 
@@ -208,9 +208,9 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 	v4l2_dev->mdev = media_dev;
 	strlcpy(v4l2_dev->name, "mx8-img-md", sizeof(v4l2_dev->name));
 
-	ret = v4l2_device_register(&mxc_isi->pdev->dev, v4l2_dev);
+	ret = v4l2_device_register(mxc_isi->dev, v4l2_dev);
 	if (ret < 0) {
-		dev_err(&mxc_isi->pdev->dev,
+		dev_err(mxc_isi->dev,
 			"Failed to register V4L2 device: %d\n", ret);
 		goto err_media;
 	}
@@ -218,7 +218,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 	/* Register the ISI subdev. */
 	ret = v4l2_device_register_subdev(v4l2_dev, &mxc_isi->isi_cap.sd);
 	if (ret < 0) {
-		dev_err(&mxc_isi->pdev->dev,
+		dev_err(mxc_isi->dev,
 			"Failed to register ISI subdev: %d\n", ret);
 		goto err_v4l2;
 	}
@@ -252,7 +252,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 
 	ret = v4l2_async_notifier_register(v4l2_dev, &mxc_isi->notifier);
 	if (ret < 0) {
-		dev_err(&mxc_isi->pdev->dev,
+		dev_err(mxc_isi->dev,
 			"Failed to register async notifier: %d\n", ret);
 		goto err_notifier;
 	}
@@ -433,7 +433,7 @@ static int mxc_isi_get_platform_data(struct mxc_isi_dev *mxc_isi)
 {
 	const struct soc_device_attribute *match;
 
-	mxc_isi->pdata = of_device_get_match_data(&mxc_isi->pdev->dev);
+	mxc_isi->pdata = of_device_get_match_data(mxc_isi->dev);
 
 	match = soc_device_match(imx8_soc);
 	if (!match)
@@ -503,7 +503,7 @@ static const struct dev_pm_ops mxc_isi_pm_ops = {
 
 static int mxc_isi_parse_dt(struct mxc_isi_dev *mxc_isi)
 {
-	struct device *dev = &mxc_isi->pdev->dev;
+	struct device *dev = mxc_isi->dev;
 	struct device_node *node = dev->of_node;
 	int ret = 0;
 
@@ -524,7 +524,7 @@ static int mxc_isi_parse_dt(struct mxc_isi_dev *mxc_isi)
 static int mxc_isi_of_parse_resets(struct mxc_isi_dev *mxc_isi)
 {
 	int ret;
-	struct device *dev = &mxc_isi->pdev->dev;
+	struct device *dev = mxc_isi->dev;
 	struct device_node *np = dev->of_node;
 	struct device_node *parent, *child;
 	struct of_phandle_args args;
@@ -579,7 +579,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	if (!mxc_isi)
 		return -ENOMEM;
 
-	mxc_isi->pdev = pdev;
+	mxc_isi->dev = dev;
 
 	ret = mxc_isi_get_platform_data(mxc_isi);
 	if (ret < 0) {
@@ -680,12 +680,11 @@ err:
 static int mxc_isi_remove(struct platform_device *pdev)
 {
 	struct mxc_isi_dev *mxc_isi = platform_get_drvdata(pdev);
-	struct device *dev = &pdev->dev;
 
 	isi_cap_remove(mxc_isi);
 	mxc_isi_v4l2_cleanup(mxc_isi);
 
-	pm_runtime_disable(dev);
+	pm_runtime_disable(mxc_isi->dev);
 
 	return 0;
 }
