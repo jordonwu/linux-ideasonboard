@@ -303,9 +303,7 @@ struct mxc_isi_pipe {
 
 	struct v4l2_subdev		sd;
 	struct media_pad		pads[MXC_ISI_SD_PADS_NUM];
-
-	struct mxc_isi_frame		src_f;
-	struct mxc_isi_frame		dst_f;
+	struct mxc_isi_frame		formats[MXC_ISI_SD_PADS_NUM];
 
 	struct mxc_isi_video		video;
 

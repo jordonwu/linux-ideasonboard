@@ -400,7 +400,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 			       struct device *alloc_devs[])
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_fmt *fmt = dst_f->fmt;
 	unsigned long wh;
 	int i;
@@ -432,10 +432,10 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *q = vb2->vb2_queue;
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	int i;
 
-	if (!pipe->dst_f.fmt)
+	if (!dst_f->fmt)
 		return -EINVAL;
 
 	for (i = 0; i < dst_f->fmt->memplanes; i++) {
@@ -463,7 +463,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
-	mxc_isi_update_buf_paddr(buf, pipe->dst_f.fmt->mdataplanes);
+	mxc_isi_update_buf_paddr(buf, pipe->formats[MXC_ISI_SD_PAD_SOURCE].fmt->mdataplanes);
 	list_add_tail(&buf->list, &pipe->video.out_pending);
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
@@ -486,7 +486,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Create a buffer for discard operation */
 	for (i = 0; i < pipe->video.pix.num_planes; i++) {
-		pipe->video.discard_size[i] = pipe->dst_f.sizeimage[i];
+		pipe->video.discard_size[i] = pipe->formats[MXC_ISI_SD_PAD_SOURCE].sizeimage[i];
 		pipe->video.discard_buffer[i] =
 			dma_alloc_coherent(pipe->isi->dev,
 					   PAGE_ALIGN(pipe->video.discard_size[i]),
@@ -713,7 +713,7 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	int i;
 
 	pix->width = dst_f->o_width;
@@ -754,8 +754,8 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 /* Update input frame size and formate  */
 static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_frame *src_f = &pipe->src_f;
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *src_f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	struct v4l2_subdev_format src_fmt;
 	struct media_pad *source_pad;
 	struct v4l2_subdev *src_sd;
@@ -814,7 +814,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_fmt *fmt;
 	int bpl;
 	int i;
@@ -889,7 +889,8 @@ static int mxc_isi_config_parm(struct mxc_isi_pipe *pipe)
 		return -EINVAL;
 
 	mxc_isi_channel_init(isi);
-	mxc_isi_channel_config(isi, &pipe->src_f, &pipe->dst_f);
+	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
+			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE]);
 
 	return 0;
 }
@@ -936,7 +937,7 @@ static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 				   struct v4l2_selection *s)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_frame *f = &pipe->src_f;
+	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 
 	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
@@ -944,7 +945,7 @@ static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 	switch (s->target) {
 	case V4L2_SEL_TGT_COMPOSE_DEFAULT:
 	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 		/* fall through */
 	case V4L2_SEL_TGT_CROP_BOUNDS:
 	case V4L2_SEL_TGT_CROP_DEFAULT:
@@ -955,7 +956,7 @@ static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 		return 0;
 
 	case V4L2_SEL_TGT_COMPOSE:
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 		/* fall through */
 	case V4L2_SEL_TGT_CROP:
 		s->r.left = f->h_off;
@@ -994,9 +995,9 @@ static int mxc_isi_cap_s_selection(struct file *file, void *fh,
 		return -EINVAL;
 
 	if (s->target == V4L2_SEL_TGT_COMPOSE)
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	else if (s->target == V4L2_SEL_TGT_CROP)
-		f = &pipe->src_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	else
 		return -EINVAL;
 
@@ -1283,10 +1284,8 @@ static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
 
 	switch (fmt->pad) {
 	case MXC_ISI_SD_PAD_SOURCE:
-		f = &pipe->dst_f;
-		break;
 	case MXC_ISI_SD_PAD_SINK:
-		f = &pipe->src_f;
+		f = &pipe->formats[fmt->pad];
 		break;
 	default:
 		mutex_unlock(&pipe->lock);
@@ -1314,7 +1313,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
-	struct mxc_isi_frame *dst_f = &pipe->dst_f;
+	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_fmt *out_fmt;
 	int i;
 
@@ -1366,7 +1365,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct mxc_isi_frame *f = &pipe->src_f;
+	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	struct v4l2_rect *r = &sel->r;
 	struct v4l2_rect *try_sel;
 
@@ -1374,7 +1373,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 		/* fall through */
 	case V4L2_SEL_TGT_CROP_BOUNDS:
 		r->width = f->o_width;
@@ -1389,7 +1388,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 		break;
 	case V4L2_SEL_TGT_COMPOSE:
 		try_sel = v4l2_subdev_get_try_compose(sd, cfg, sel->pad);
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 		break;
 	default:
 		mutex_unlock(&pipe->lock);
@@ -1419,7 +1418,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct mxc_isi_frame *f = &pipe->src_f;
+	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	struct v4l2_rect *r = &sel->r;
 	struct v4l2_rect *try_sel;
 	unsigned long flags;
@@ -1432,7 +1431,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		break;
 	case V4L2_SEL_TGT_COMPOSE:
 		try_sel = v4l2_subdev_get_try_compose(sd, cfg, sel->pad);
-		f = &pipe->dst_f;
+		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 		break;
 	default:
 		mutex_unlock(&pipe->lock);
@@ -1534,10 +1533,10 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	sd->fwnode = of_fwnode_handle(pipe->isi->dev->of_node);
 
 	/* Default configuration  */
-	pipe->dst_f.width = 1280;
-	pipe->dst_f.height = 800;
-	pipe->dst_f.fmt = &mxc_isi_out_formats[0];
-	pipe->src_f.fmt = pipe->dst_f.fmt;
+	pipe->formats[MXC_ISI_SD_PAD_SOURCE].width = 1280;
+	pipe->formats[MXC_ISI_SD_PAD_SOURCE].height = 800;
+	pipe->formats[MXC_ISI_SD_PAD_SOURCE].fmt = &mxc_isi_out_formats[0];
+	pipe->formats[MXC_ISI_SD_PAD_SINK].fmt = &mxc_isi_out_formats[0];
 
 	return 0;
 }
