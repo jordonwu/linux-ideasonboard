@@ -348,6 +348,7 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 
 /* Chip C0 */
 static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
+	.model    = MXC_ISI_IMX8,
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
@@ -357,6 +358,7 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 };
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
+	.model    = MXC_ISI_IMX8,
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -380,6 +382,7 @@ static const struct clk_bulk_data mxc_imx8mn_clks[] = {
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mn_data = {
+	.model    = MXC_ISI_IMX8MN,
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -389,6 +392,7 @@ static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
+	.model    = MXC_ISI_IMX8MP,
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v2,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
