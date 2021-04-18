@@ -377,8 +377,8 @@ struct mxc_isi_dev {
 	unsigned int is_streaming:1;
 };
 
-int isi_cap_probe(struct mxc_isi_dev *isi);
-void isi_cap_remove(struct mxc_isi_dev *isi);
+int mxc_isi_pipe_init(struct mxc_isi_dev *isi);
+void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi);
 
 static inline void set_frame_bounds(struct mxc_isi_frame *f,
 				    u32 width, u32 height)

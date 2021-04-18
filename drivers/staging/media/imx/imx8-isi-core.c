@@ -654,9 +654,9 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
-	ret = isi_cap_probe(isi);
+	ret = mxc_isi_pipe_init(isi);
 	if (ret < 0) {
-		dev_err(dev, "Failed to probe capture device: %d\n", ret);
+		dev_err(dev, "Failed to initialize pipeline: %d\n", ret);
 		goto err;
 	}
 
@@ -680,7 +680,7 @@ static int mxc_isi_remove(struct platform_device *pdev)
 {
 	struct mxc_isi_dev *isi = platform_get_drvdata(pdev);
 
-	isi_cap_remove(isi);
+	mxc_isi_pipe_cleanup(isi);
 	mxc_isi_v4l2_cleanup(isi);
 
 	pm_runtime_disable(isi->dev);

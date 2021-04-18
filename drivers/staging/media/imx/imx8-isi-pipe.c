@@ -1542,7 +1542,7 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 	.unregistered = mxc_isi_subdev_unregistered,
 };
 
-int isi_cap_probe(struct mxc_isi_dev *isi)
+int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct v4l2_subdev *sd;
@@ -1588,7 +1588,7 @@ int isi_cap_probe(struct mxc_isi_dev *isi)
 	return 0;
 }
 
-void isi_cap_remove(struct mxc_isi_dev *isi)
+void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct v4l2_subdev *sd = &pipe->sd;
