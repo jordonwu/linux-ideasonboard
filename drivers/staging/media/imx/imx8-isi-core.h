@@ -226,6 +226,7 @@ struct mxc_isi_plat_data {
 	struct mxc_isi_set_thd *set_thd;
 	const struct clk_bulk_data *clks;
 	unsigned int num_clks;
+	bool buf_active_reverse;
 };
 
 struct mxc_isi_cap_dev {

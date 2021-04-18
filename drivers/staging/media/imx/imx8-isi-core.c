@@ -379,6 +379,7 @@ static struct mxc_isi_plat_data mxc_imx8_data = {
 	.set_thd  = &mxc_imx8_isi_thd_v0,
 	.clks     = mxc_imx8_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
+	.buf_active_reverse = false,
 };
 
 static struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
@@ -401,6 +402,7 @@ static struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.set_thd  = &mxc_imx8_isi_thd_v1,
 	.clks     = mxc_imx8mn_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
+	.buf_active_reverse = false,
 };
 
 static struct mxc_isi_plat_data mxc_imx8mp_data = {
@@ -409,6 +411,7 @@ static struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.set_thd  = &mxc_imx8_isi_thd_v1,
 	.clks     = mxc_imx8mn_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
+	.buf_active_reverse = true,
 };
 
 static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
@@ -422,7 +425,7 @@ static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
 	if (!match)
 		return -EINVAL;
 
-	mxc_isi->buf_active_reverse = false;
+	mxc_isi->buf_active_reverse = mxc_isi->pdata->buf_active_reverse;
 
 	if (!strcmp(match->soc_id, "i.MX8QXP") ||
 	    !strcmp(match->soc_id, "i.MX8QM")) {
@@ -432,8 +435,6 @@ static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
 			memcpy(set_thd, &mxc_imx8_isi_thd_v1, sizeof(*set_thd));
 			mxc_isi->buf_active_reverse = true;
 		}
-	} else if (!strcmp(match->soc_id, "i.MX8MP")) {
-		mxc_isi->buf_active_reverse = true;
 	}
 
 	return 0;
