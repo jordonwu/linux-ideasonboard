@@ -103,35 +103,6 @@ static void printk_pixelformat(char *prefix, int val)
 		(val >> 24) & 0xff);
 }
 
-static bool is_rgb(u32 pix_fmt)
-{
-	if ((pix_fmt == V4L2_PIX_FMT_RGB565) ||
-	    (pix_fmt == V4L2_PIX_FMT_RGB24)  ||
-	    (pix_fmt == V4L2_PIX_FMT_RGB32)  ||
-	    (pix_fmt == V4L2_PIX_FMT_BGR32)  ||
-	    (pix_fmt == V4L2_PIX_FMT_XRGB32) ||
-	    (pix_fmt == V4L2_PIX_FMT_XBGR32) ||
-	    (pix_fmt == V4L2_PIX_FMT_BGR24)  ||
-	    (pix_fmt == V4L2_PIX_FMT_RGBA32) ||
-	    (pix_fmt == V4L2_PIX_FMT_ABGR32) ||
-	    (pix_fmt == V4L2_PIX_FMT_ARGB32))
-		return true;
-	else
-		return false;
-}
-
-static bool is_yuv(u32 pix_fmt)
-{
-	if ((pix_fmt == V4L2_PIX_FMT_YUYV)  ||
-	    (pix_fmt == V4L2_PIX_FMT_YUV32) ||
-	    (pix_fmt == V4L2_PIX_FMT_YUV444M) ||
-	    (pix_fmt == V4L2_PIX_FMT_YUV24) ||
-	    (pix_fmt == V4L2_PIX_FMT_NV12))
-		return true;
-	else
-		return false;
-}
-
 bool is_buf_active(struct mxc_isi_dev *isi, int buf_id)
 {
 	u32 status = isi->status;
@@ -297,13 +268,15 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
 
 	isi->cscen = 1;
 
-	if (is_yuv(src_fmt->fourcc) && is_rgb(dst_fmt->fourcc)) {
+	if (src_fmt->colorspace == MXC_ISI_CS_YUV &&
+	    dst_fmt->colorspace == MXC_ISI_CS_RGB) {
 		/* YUV2RGB */
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
 		val |= (CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB << CHNL_IMG_CTRL_CSC_MODE_OFFSET);
 		val |= (CHNL_IMG_CTRL_YCBCR_MODE_ENABLE << CHNL_IMG_CTRL_YCBCR_MODE_OFFSET);
-	} else if (is_rgb(src_fmt->fourcc) && is_yuv(dst_fmt->fourcc)) {
+	} else if (src_fmt->colorspace == MXC_ISI_CS_RGB &&
+		   dst_fmt->colorspace == MXC_ISI_CS_YUV) {
 		/* RGB2YUV */
 		csc = RGB2YUV;
 		val |= (CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR << CHNL_IMG_CTRL_CSC_MODE_OFFSET);
