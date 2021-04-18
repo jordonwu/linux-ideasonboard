@@ -467,7 +467,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
 	unsigned long flags;
@@ -542,7 +542,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 static void cap_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 	int i;
@@ -610,7 +610,7 @@ static inline struct mxc_isi_cap_dev *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_cap_dev *isi_cap = ctrl_to_isi_cap(ctrl);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	unsigned long flags;
 
 	dev_dbg(isi_cap->dev, "%s\n", __func__);
@@ -695,7 +695,7 @@ static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
 static int mxc_isi_capture_open(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	struct device *dev = isi_cap->dev;
 	int ret = -EBUSY;
 
@@ -734,7 +734,7 @@ static int mxc_isi_capture_open(struct file *file)
 static int mxc_isi_capture_release(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	struct device *dev = isi_cap->dev;
 	int ret = -1;
 
@@ -1003,7 +1003,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 
 static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
 {
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	int ret;
 
 	ret = mxc_isi_source_fmt_init(isi_cap);
@@ -1020,7 +1020,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type type)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	int ret;
 
 	dev_dbg(isi_cap->dev, "%s\n", __func__);
@@ -1044,7 +1044,7 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 				 enum v4l2_buf_type type)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
+	struct mxc_isi_dev *mxc_isi = isi_cap->isi;
 	int ret;
 
 	dev_dbg(isi_cap->dev, "%s\n", __func__);
@@ -1551,7 +1551,7 @@ int isi_cap_probe(struct mxc_isi_dev *mxc_isi)
 
 	isi_cap->dev = mxc_isi->dev;
 	isi_cap->id = mxc_isi->id;
-	isi_cap->mxc_isi = mxc_isi;
+	isi_cap->isi = mxc_isi;
 
 	spin_lock_init(&isi_cap->slock);
 	mutex_init(&isi_cap->lock);
