@@ -32,196 +32,148 @@
 
 static const struct mxc_isi_fmt mxc_isi_out_formats[] = {
 	{
-		.name		= "Y8-RAW",
 		.fourcc		= V4L2_PIX_FMT_GREY,
 		.depth		= { 8 },
 		.color		= MXC_ISI_OUT_FMT_RAW8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_Y8_1X8,
 	}, {
-		.name		= "Y10-RAW",
 		.fourcc		= V4L2_PIX_FMT_Y10,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW10,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_Y10_1X10,
 	}, {
-		.name		= "Y12-RAW",
 		.fourcc		= V4L2_PIX_FMT_Y12,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW12,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_Y12_1X12,
 	}, {
-		.name		= "SBGGR8-RAW",
 		.fourcc		= V4L2_PIX_FMT_SBGGR8,
 		.depth		= { 8 },
 		.color		= MXC_ISI_OUT_FMT_RAW8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SBGGR8_1X8,
 	}, {
-		.name		= "SGBRG8-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGBRG8,
 		.depth		= { 8 },
 		.color		= MXC_ISI_OUT_FMT_RAW8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGBRG8_1X8,
 	}, {
-		.name		= "SGRBG8-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGRBG8,
 		.depth		= { 8 },
 		.color		= MXC_ISI_OUT_FMT_RAW8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGRBG8_1X8,
 	}, {
-		.name		= "SRGGB8-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB8,
 		.depth		= { 8 },
 		.color		= MXC_ISI_OUT_FMT_RAW8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SRGGB8_1X8,
 	}, {
-		.name		= "SBGGR10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SBGGR10,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW10,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SBGGR10_1X10,
 	}, {
-		.name		= "SGBRG10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGBRG10,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW10,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGBRG10_1X10,
 	}, {
-		.name		= "SGRBG10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGRBG10,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW10,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGRBG10_1X10,
 	}, {
-		.name		= "SRGGB10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB10,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW10,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SRGGB10_1X10,
 	}, {
-		.name		= "SBGGR12-RAW",
 		.fourcc		= V4L2_PIX_FMT_SBGGR12,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW12,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SBGGR12_1X12,
 	}, {
-		.name		= "SGBRG12-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGBRG12,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW12,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGBRG12_1X12,
 	}, {
-		.name		= "SGRBG12-RAW",
 		.fourcc		= V4L2_PIX_FMT_SGRBG12,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW12,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SGRBG12_1X12,
 	}, {
-		.name		= "SRGGB12-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB12,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RAW12,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_SRGGB12_1X12,
 	}, {
-		.name		= "RGB565",
 		.fourcc		= V4L2_PIX_FMT_RGB565,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_RGB565,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_RGB565_1X16,
 	}, {
-		.name		= "RGB24",
 		.fourcc		= V4L2_PIX_FMT_RGB24,
 		.depth		= { 24 },
 		.color		= MXC_ISI_OUT_FMT_BGR32P,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_RGB888_1X24,
 	}, {
-		.name		= "BGR24",
 		.fourcc		= V4L2_PIX_FMT_BGR24,
 		.depth		= { 24 },
 		.color		= MXC_ISI_OUT_FMT_RGB32P,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code  = MEDIA_BUS_FMT_BGR888_1X24,
 	}, {
-		.name		= "YUYV-16",
 		.fourcc		= V4L2_PIX_FMT_YUYV,
 		.depth		= { 16 },
 		.color		= MXC_ISI_OUT_FMT_YUV422_1P8P,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
 	}, {
-		.name		= "YUV32 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUV32,
 		.depth		= { 32 },
 		.color		= MXC_ISI_OUT_FMT_YUV444_1P8,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_AYUV8_1X32,
 	}, {
-		.name		= "NV12 (YUYV)",
 		.fourcc		= V4L2_PIX_FMT_NV12,
 		.depth		= { 8, 8 },
 		.color		= MXC_ISI_OUT_FMT_YUV420_2P8P,
 		.memplanes	= 2,
-		.colplanes	= 2,
 		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
 	}, {
-		.name		= "YUV444M (Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUV444M,
 		.depth		= { 8, 8, 8 },
 		.color		= MXC_ISI_OUT_FMT_YUV444_3P8P,
 		.memplanes	= 3,
-		.colplanes	= 3,
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 	}, {
-		.name		= "xBGR32",
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
 		.depth		= { 32 },
 		.color		= MXC_ISI_OUT_FMT_XRGB32,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 	}, {
-		.name		= "ABGR32",
 		.fourcc		= V4L2_PIX_FMT_ABGR32,
 		.depth		= { 32 },
 		.color		= MXC_ISI_OUT_FMT_ARGB32,
 		.memplanes	= 1,
-		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 	}
 };
@@ -231,17 +183,13 @@ static const struct mxc_isi_fmt mxc_isi_out_formats[] = {
  */
 static const struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	{
-		.name		= "RGB32",
 		.fourcc		= V4L2_PIX_FMT_RGB32,
 		.depth		= { 32 },
 		.memplanes	= 1,
-		.colplanes	= 1,
 	}, {
-		.name		= "YUV32 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUV32,
 		.depth		= { 32 },
 		.memplanes	= 1,
-		.colplanes	= 1,
 	}
 };
 
@@ -854,8 +802,6 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 	fmt = mxc_isi_find_format(NULL, f->index);
 	if (!fmt)
 		return -EINVAL;
-
-	strncpy(f->description, fmt->name, sizeof(f->description) - 1);
 
 	f->pixelformat = fmt->fourcc;
 
