@@ -1248,12 +1248,6 @@ static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	if (ret)
 		goto err_free_ctx;
 
-	/* Default configuration  */
-	pipe->dst_f.width = 1280;
-	pipe->dst_f.height = 800;
-	pipe->dst_f.fmt = &mxc_isi_out_formats[0];
-	pipe->src_f.fmt = pipe->dst_f.fmt;
-
 	pipe->video.pad.flags = MEDIA_PAD_FL_SINK;
 	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
 	ret = media_entity_pads_init(&vdev->entity, 1, &pipe->video.pad);
@@ -1610,6 +1604,12 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	v4l2_set_subdevdata(sd, pipe);
 
 	sd->fwnode = of_fwnode_handle(pipe->isi->dev->of_node);
+
+	/* Default configuration  */
+	pipe->dst_f.width = 1280;
+	pipe->dst_f.height = 800;
+	pipe->dst_f.fmt = &mxc_isi_out_formats[0];
+	pipe->src_f.fmt = pipe->dst_f.fmt;
 
 	return 0;
 }
