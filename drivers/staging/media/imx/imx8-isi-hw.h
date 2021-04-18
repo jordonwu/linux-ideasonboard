@@ -1,17 +1,16 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright 2019-2020 NXP
- *
  */
 
 #ifndef __MXC_ISI_HW_H__
 #define __MXC_ISI_HW_H__
 
-#include <linux/delay.h>
-#include <linux/types.h>
-#include <linux/errno.h>
 #include <linux/bug.h>
+#include <linux/delay.h>
+#include <linux/errno.h>
 #include <linux/platform_device.h>
+#include <linux/types.h>
 #include <linux/videodev2.h>
 
 #include "imx8-isi-core.h"
