@@ -1223,7 +1223,7 @@ static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 		goto err_ctrl_free;
 
 	ret = media_create_pad_link(&pipe->sd.entity,
-				    MXC_ISI_SD_PAD_SOURCE_MEM,
+				    MXC_ISI_SD_PAD_SOURCE,
 				    &vdev->entity, 0,
 				    MEDIA_LNK_FL_IMMUTABLE |
 				    MEDIA_LNK_FL_ENABLED);
@@ -1282,17 +1282,10 @@ static int mxc_isi_subdev_get_fmt(struct v4l2_subdev *sd,
 	mutex_lock(&pipe->lock);
 
 	switch (fmt->pad) {
-	case MXC_ISI_SD_PAD_SOURCE_MEM:
-	case MXC_ISI_SD_PAD_SOURCE_DC0:
-	case MXC_ISI_SD_PAD_SOURCE_DC1:
+	case MXC_ISI_SD_PAD_SOURCE:
 		f = &pipe->dst_f;
 		break;
-	case MXC_ISI_SD_PAD_SINK_MIPI0:
-	case MXC_ISI_SD_PAD_SINK_MIPI1:
-	case MXC_ISI_SD_PAD_SINK_HDMI:
-	case MXC_ISI_SD_PAD_SINK_DC0:
-	case MXC_ISI_SD_PAD_SINK_DC1:
-	case MXC_ISI_SD_PAD_SINK_MEM:
+	case MXC_ISI_SD_PAD_SINK:
 		f = &pipe->src_f;
 		break;
 	default:
@@ -1325,7 +1318,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	const struct mxc_isi_fmt *out_fmt;
 	int i;
 
-	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE_MEM &&
+	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE &&
 	    vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
@@ -1527,19 +1520,8 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 
-	/* ISI Sink pads */
-	pipe->pads[MXC_ISI_SD_PAD_SINK_MIPI0].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_MIPI1].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_DC0].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_DC1].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_HDMI].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_MEM].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SINK_PARALLEL_CSI].flags = MEDIA_PAD_FL_SINK;
-
-	/* ISI source pads */
-	pipe->pads[MXC_ISI_SD_PAD_SOURCE_MEM].flags = MEDIA_PAD_FL_SOURCE;
-	pipe->pads[MXC_ISI_SD_PAD_SOURCE_DC0].flags = MEDIA_PAD_FL_SOURCE;
-	pipe->pads[MXC_ISI_SD_PAD_SOURCE_DC1].flags = MEDIA_PAD_FL_SOURCE;
+	pipe->pads[MXC_ISI_SD_PAD_SINK].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
 
 	ret = media_entity_pads_init(&sd->entity, MXC_ISI_SD_PADS_NUM, pipe->pads);
 	if (ret)
