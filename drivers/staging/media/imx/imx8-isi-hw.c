@@ -6,8 +6,9 @@
 #include <dt-bindings/pinctrl/pads-imx8qxp.h>
 
 #include <linux/module.h>
-#include "imx8-isi-hw.h"
+
 #include "imx8-common.h"
+#include "imx8-isi-hw.h"
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");
 MODULE_DESCRIPTION("IMX8 Image Sensor Interface Hardware driver");
