@@ -30,7 +30,7 @@
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
 
-static const struct mxc_isi_fmt mxc_isi_out_formats[] = {
+static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	{
 		.fourcc		= V4L2_PIX_FMT_GREY,
 		.depth		= { 8 },
@@ -181,7 +181,7 @@ static const struct mxc_isi_fmt mxc_isi_out_formats[] = {
 /*
  * Pixel link input format
  */
-static const struct mxc_isi_fmt mxc_isi_src_formats[] = {
+static const struct mxc_isi_format_info mxc_isi_src_formats[] = {
 	{
 		.fourcc		= V4L2_PIX_FMT_RGB32,
 		.depth		= { 32 },
@@ -193,12 +193,12 @@ static const struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	}
 };
 
-static const struct mxc_isi_fmt *mxc_isi_format_by_code(u32 code)
+static const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		const struct mxc_isi_fmt *fmt = &mxc_isi_out_formats[i];
+		const struct mxc_isi_format_info *fmt = &mxc_isi_out_formats[i];
 
 		if (fmt->mbus_code == code)
 			return fmt;
@@ -207,12 +207,12 @@ static const struct mxc_isi_fmt *mxc_isi_format_by_code(u32 code)
 	return NULL;
 }
 
-static const struct mxc_isi_fmt *mxc_isi_format_by_fourcc(u32 fourcc)
+static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		const struct mxc_isi_fmt *fmt = &mxc_isi_out_formats[i];
+		const struct mxc_isi_format_info *fmt = &mxc_isi_out_formats[i];
 
 		if (fmt->fourcc == fourcc)
 			return fmt;
@@ -221,7 +221,7 @@ static const struct mxc_isi_fmt *mxc_isi_format_by_fourcc(u32 fourcc)
 	return NULL;
 }
 
-static const struct mxc_isi_fmt *mxc_isi_get_src_fmt(u32 code)
+static const struct mxc_isi_format_info *mxc_isi_get_src_fmt(u32 code)
 {
 	/* two fmt RGB32 and YUV444 from pixellink */
 	switch (code) {
@@ -401,7 +401,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	const struct mxc_isi_fmt *fmt = dst_f->fmt;
+	const struct mxc_isi_format_info *fmt = dst_f->info;
 	unsigned long wh;
 	int i;
 
@@ -435,10 +435,10 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	int i;
 
-	if (!dst_f->fmt)
+	if (!dst_f->info)
 		return -EINVAL;
 
-	for (i = 0; i < dst_f->fmt->memplanes; i++) {
+	for (i = 0; i < dst_f->info->memplanes; i++) {
 		unsigned long size = dst_f->sizeimage[i];
 
 		if (vb2_plane_size(vb2, i) < size) {
@@ -463,7 +463,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
-	mxc_isi_update_buf_paddr(buf, pipe->formats[MXC_ISI_SD_PAD_SOURCE].fmt->mdataplanes);
+	mxc_isi_update_buf_paddr(buf, pipe->formats[MXC_ISI_SD_PAD_SOURCE].info->mdataplanes);
 	list_add_tail(&buf->list, &pipe->video.out_pending);
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
@@ -697,7 +697,7 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 				struct v4l2_fmtdesc *f)
 {
-	const struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_format_info *fmt;
 
 	if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
 		return -EINVAL;
@@ -719,9 +719,9 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 	pix->width = dst_f->o_width;
 	pix->height = dst_f->o_height;
 	pix->field = V4L2_FIELD_NONE;
-	pix->pixelformat = dst_f->fmt->fourcc;
+	pix->pixelformat = dst_f->info->fourcc;
 	pix->colorspace = V4L2_COLORSPACE_JPEG;
-	pix->num_planes = dst_f->fmt->memplanes;
+	pix->num_planes = dst_f->info->memplanes;
 
 	for (i = 0; i < pix->num_planes; ++i) {
 		pix->plane_fmt[i].bytesperline = dst_f->bytesperline[i];
@@ -736,7 +736,7 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	const struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_format_info *fmt;
 
 	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
 	if (!fmt)
@@ -774,7 +774,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 
 	src_fmt.pad = source_pad->index;
 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
-	src_fmt.format.code = dst_f->fmt->mbus_code;
+	src_fmt.format.code = dst_f->info->mbus_code;
 	src_fmt.format.width = dst_f->width;
 	src_fmt.format.height = dst_f->height;
 	ret = v4l2_subdev_call(src_sd, pad, set_fmt, NULL, &src_fmt);
@@ -793,7 +793,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 	}
 
 	/* Pixel link master will transfer format to RGB32 or YUV32 */
-	src_f->fmt = mxc_isi_get_src_fmt(src_fmt.format.code);
+	src_f->info = mxc_isi_get_src_fmt(src_fmt.format.code);
 
 	set_frame_bounds(src_f, src_fmt.format.width, src_fmt.format.height);
 
@@ -815,7 +815,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	const struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_format_info *fmt;
 	int bpl;
 	int i;
 
@@ -840,7 +840,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	if (pix->height <= 0 || pix->width <= 0)
 		return -EINVAL;
 
-	dst_f->fmt = fmt;
+	dst_f->info = fmt;
 	dst_f->height = pix->height;
 	dst_f->width = pix->width;
 
@@ -869,7 +869,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 			dst_f->sizeimage[i]    = pix->plane_fmt[i].sizeimage;
 		}
 	} else {
-		dst_f->bytesperline[0] = dst_f->width * dst_f->fmt->depth[0] / 8;
+		dst_f->bytesperline[0] = dst_f->width * dst_f->info->depth[0] / 8;
 		dst_f->sizeimage[0]    = dst_f->height * dst_f->bytesperline[0];
 	}
 
@@ -1022,7 +1022,7 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 				       struct v4l2_frmsizeenum *fsize)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	const struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_format_info *fmt;
 
 	fmt = mxc_isi_format_by_fourcc(fsize->pixel_format);
 	if (!fmt)
@@ -1294,8 +1294,8 @@ static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
 		return -1;
 	}
 
-	if (!WARN_ON(!f->fmt))
-		mf->code = f->fmt->mbus_code;
+	if (!WARN_ON(!f->info))
+		mf->code = f->info->mbus_code;
 
 	/* Source/Sink pads crop rectangle size */
 	mf->width = f->width;
@@ -1314,7 +1314,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	const struct mxc_isi_fmt *out_fmt;
+	const struct mxc_isi_format_info *out_fmt;
 	int i;
 
 	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE &&
@@ -1330,24 +1330,24 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 	mutex_lock(&pipe->lock);
 	/* update out put frame size and formate */
-	dst_f->fmt = out_fmt;
+	dst_f->info = out_fmt;
 
-	if (dst_f->fmt->memplanes > 1) {
-		for (i = 0; i < dst_f->fmt->memplanes; i++) {
+	if (dst_f->info->memplanes > 1) {
+		for (i = 0; i < dst_f->info->memplanes; i++) {
 			if ((i == 1) &&
-			    (dst_f->fmt->fourcc == V4L2_PIX_FMT_NV12))
+			    (dst_f->info->fourcc == V4L2_PIX_FMT_NV12))
 				dst_f->sizeimage[i] = (mf->width *
 						      (mf->height >> 1) *
-						      dst_f->fmt->depth[i] >> 3);
+						      dst_f->info->depth[i] >> 3);
 			else
 				dst_f->sizeimage[i] = (mf->width *
 						      mf->height *
-						      dst_f->fmt->depth[i] >> 3);
+						      dst_f->info->depth[i] >> 3);
 		}
 		dst_f->bytesperline[i] = (mf->width *
-					 dst_f->fmt->depth[i] >> 3);
+					 dst_f->info->depth[i] >> 3);
 	} else {
-		dst_f->bytesperline[0] = mf->width * dst_f->fmt->depth[0] / 8;
+		dst_f->bytesperline[0] = mf->width * dst_f->info->depth[0] / 8;
 		dst_f->sizeimage[0]    = mf->height * dst_f->bytesperline[0];
 	}
 
@@ -1535,8 +1535,8 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	/* Default configuration  */
 	pipe->formats[MXC_ISI_SD_PAD_SOURCE].width = 1280;
 	pipe->formats[MXC_ISI_SD_PAD_SOURCE].height = 800;
-	pipe->formats[MXC_ISI_SD_PAD_SOURCE].fmt = &mxc_isi_out_formats[0];
-	pipe->formats[MXC_ISI_SD_PAD_SINK].fmt = &mxc_isi_out_formats[0];
+	pipe->formats[MXC_ISI_SD_PAD_SOURCE].info = &mxc_isi_out_formats[0];
+	pipe->formats[MXC_ISI_SD_PAD_SINK].info = &mxc_isi_out_formats[0];
 
 	return 0;
 }
