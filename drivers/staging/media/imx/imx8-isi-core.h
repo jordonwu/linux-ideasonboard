@@ -346,7 +346,7 @@ struct mxc_isi_dev {
 	u8 chain_buf;
 	u8 alpha;
 
-	void (*frame_write_done)(struct mxc_isi_dev *mxc_isi);
+	void (*frame_write_done)(struct mxc_isi_dev *isi);
 
 	/* manage share ISI channel resource */
 	atomic_t usage_count;
@@ -377,8 +377,8 @@ struct mxc_isi_dev {
 	unsigned int is_streaming:1;
 };
 
-int isi_cap_probe(struct mxc_isi_dev *mxc_isi);
-void isi_cap_remove(struct mxc_isi_dev *mxc_isi);
+int isi_cap_probe(struct mxc_isi_dev *isi);
+void isi_cap_remove(struct mxc_isi_dev *isi);
 
 static inline void set_frame_bounds(struct mxc_isi_frame *f,
 				    u32 width, u32 height)
