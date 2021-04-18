@@ -165,12 +165,10 @@ enum mxc_isi_in_fmt {
 };
 
 struct mxc_isi_fmt {
-	const char	*name;
 	u32	mbus_code;
 	u32	fourcc;
 	u32	color;
 	u16	memplanes;
-	u16	colplanes;
 	u8	colorspace;
 	u8	depth[MXC_MAX_PLANES];
 	u16	mdataplanes;
