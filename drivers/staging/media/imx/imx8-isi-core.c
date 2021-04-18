@@ -28,20 +28,20 @@
 
 static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 {
-	struct mxc_isi_dev *mxc_isi = priv;
-	struct device *dev = mxc_isi->dev;
-	const struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
+	struct mxc_isi_dev *isi = priv;
+	struct device *dev = isi->dev;
+	const struct mxc_isi_ier_reg *ier_reg = isi->pdata->ier_reg;
 	unsigned long flags;
 	u32 status;
 
-	spin_lock_irqsave(&mxc_isi->slock, flags);
+	spin_lock_irqsave(&isi->slock, flags);
 
-	status = mxc_isi_get_irq_status(mxc_isi);
-	mxc_isi->status = status;
-	mxc_isi_clean_irq_status(mxc_isi, status);
+	status = mxc_isi_get_irq_status(isi);
+	isi->status = status;
+	mxc_isi_clean_irq_status(isi, status);
 
-	if (status & CHNL_STS_FRM_STRD_MASK && mxc_isi->frame_write_done)
-		mxc_isi->frame_write_done(mxc_isi);
+	if (status & CHNL_STS_FRM_STRD_MASK && isi->frame_write_done)
+		isi->frame_write_done(isi);
 
 	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
 		      CHNL_STS_AXI_WR_ERR_U_MASK |
@@ -63,7 +63,7 @@ static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 		      ier_reg->excs_oflw_v_buf_en.mask))
 		dev_dbg(dev, "%s, IRQ EXCS OFLW Error stat=0x%X\n", __func__, status);
 
-	spin_unlock_irqrestore(&mxc_isi->slock, flags);
+	spin_unlock_irqrestore(&isi->slock, flags);
 	return IRQ_HANDLED;
 }
 
@@ -95,22 +95,22 @@ static int disp_mix_clks_enable(struct reset_control *reset, bool enable)
  * Clocks
  */
 
-static int mxc_isi_clk_get(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_clk_get(struct mxc_isi_dev *isi)
 {
-	unsigned int size = mxc_isi->pdata->num_clks
-			  * sizeof(*mxc_isi->clks);
+	unsigned int size = isi->pdata->num_clks
+			  * sizeof(*isi->clks);
 	int ret;
 
-	mxc_isi->clks = devm_kmalloc(mxc_isi->dev, size, GFP_KERNEL);
-	if (!mxc_isi->clks)
+	isi->clks = devm_kmalloc(isi->dev, size, GFP_KERNEL);
+	if (!isi->clks)
 		return -ENOMEM;
 
-	memcpy(mxc_isi->clks, mxc_isi->pdata->clks, size);
+	memcpy(isi->clks, isi->pdata->clks, size);
 
-	ret = devm_clk_bulk_get(mxc_isi->dev, mxc_isi->pdata->num_clks,
-				mxc_isi->clks);
+	ret = devm_clk_bulk_get(isi->dev, isi->pdata->num_clks,
+				isi->clks);
 	if (ret < 0) {
-		dev_err(mxc_isi->dev, "Failed to acquire clocks: %d\n",
+		dev_err(isi->dev, "Failed to acquire clocks: %d\n",
 			ret);
 		return ret;
 	}
@@ -118,14 +118,14 @@ static int mxc_isi_clk_get(struct mxc_isi_dev *mxc_isi)
 	return 0;
 }
 
-static int mxc_isi_clk_enable(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_clk_enable(struct mxc_isi_dev *isi)
 {
-	return clk_bulk_prepare_enable(mxc_isi->pdata->num_clks, mxc_isi->clks);
+	return clk_bulk_prepare_enable(isi->pdata->num_clks, isi->clks);
 }
 
-static void mxc_isi_clk_disable(struct mxc_isi_dev *mxc_isi)
+static void mxc_isi_clk_disable(struct mxc_isi_dev *isi)
 {
-	clk_bulk_disable_unprepare(mxc_isi->pdata->num_clks, mxc_isi->clks);
+	clk_bulk_disable_unprepare(isi->pdata->num_clks, isi->clks);
 }
 
 /* -----------------------------------------------------------------------------
@@ -155,12 +155,12 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 {
 	const unsigned int link_flags = MEDIA_LNK_FL_IMMUTABLE
 				      | MEDIA_LNK_FL_ENABLED;
-	struct mxc_isi_dev *mxc_isi = notifier_to_mxc_isi_dev(notifier);
+	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
-	struct media_pad *pad = &mxc_isi->isi_cap.sd_pads[masd->port];
+	struct media_pad *pad = &isi->isi_cap.sd_pads[masd->port];
 
-	dev_dbg(mxc_isi->dev, "Bound subdev %s\n", sd->name);
-	dev_info(mxc_isi->dev, "Creating links %s -> ISI:%u\n",
+	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
+	dev_info(isi->dev, "Creating links %s -> ISI:%u\n",
 		 sd->name, masd->port);
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
@@ -168,19 +168,19 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 
 static int mxc_isi_async_notifier_complete(struct v4l2_async_notifier *notifier)
 {
-	struct mxc_isi_dev *mxc_isi = notifier_to_mxc_isi_dev(notifier);
+	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	int ret;
 
-	dev_dbg(mxc_isi->dev, "%s\n", __func__);
+	dev_dbg(isi->dev, "%s\n", __func__);
 
-	ret = v4l2_device_register_subdev_nodes(&mxc_isi->v4l2_dev);
+	ret = v4l2_device_register_subdev_nodes(&isi->v4l2_dev);
 	if (ret < 0) {
-		dev_err(mxc_isi->dev,
+		dev_err(isi->dev,
 			"Failed to register subdev nodes: %d\n", ret);
 		return ret;
 	}
 
-	return media_device_register(&mxc_isi->media_dev);
+	return media_device_register(&isi->media_dev);
 }
 
 static const struct v4l2_async_notifier_operations mxc_isi_async_notifier_ops = {
@@ -188,18 +188,18 @@ static const struct v4l2_async_notifier_operations mxc_isi_async_notifier_ops = 
 	.complete = mxc_isi_async_notifier_complete,
 };
 
-static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 {
-	struct fwnode_handle *node = dev_fwnode(mxc_isi->dev);
-	struct media_device *media_dev = &mxc_isi->media_dev;
-	struct v4l2_device *v4l2_dev = &mxc_isi->v4l2_dev;
+	struct fwnode_handle *node = dev_fwnode(isi->dev);
+	struct media_device *media_dev = &isi->media_dev;
+	struct v4l2_device *v4l2_dev = &isi->v4l2_dev;
 	unsigned int i;
 	int ret;
 
 	/* Initialize the media device. */
 	strlcpy(media_dev->model, "FSL Capture Media Device",
 		sizeof(media_dev->model));
-	media_dev->dev = mxc_isi->dev;
+	media_dev->dev = isi->dev;
 
 	media_device_init(media_dev);
 
@@ -207,24 +207,24 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 	v4l2_dev->mdev = media_dev;
 	strlcpy(v4l2_dev->name, "mx8-img-md", sizeof(v4l2_dev->name));
 
-	ret = v4l2_device_register(mxc_isi->dev, v4l2_dev);
+	ret = v4l2_device_register(isi->dev, v4l2_dev);
 	if (ret < 0) {
-		dev_err(mxc_isi->dev,
+		dev_err(isi->dev,
 			"Failed to register V4L2 device: %d\n", ret);
 		goto err_media;
 	}
 
 	/* Register the ISI subdev. */
-	ret = v4l2_device_register_subdev(v4l2_dev, &mxc_isi->isi_cap.sd);
+	ret = v4l2_device_register_subdev(v4l2_dev, &isi->isi_cap.sd);
 	if (ret < 0) {
-		dev_err(mxc_isi->dev,
+		dev_err(isi->dev,
 			"Failed to register ISI subdev: %d\n", ret);
 		goto err_v4l2;
 	}
 
 	/* Initialize, fill and register the async notifier. */
-	v4l2_async_notifier_init(&mxc_isi->notifier);
-	mxc_isi->notifier.ops = &mxc_isi_async_notifier_ops;
+	v4l2_async_notifier_init(&isi->notifier);
+	isi->notifier.ops = &mxc_isi_async_notifier_ops;
 
 	for (i = 0; i < MXC_ISI_NUM_PORTS; ++i) {
 		struct mxc_isi_async_subdev *masd;
@@ -237,7 +237,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 			continue;
 
 		masd = v4l2_async_notifier_add_fwnode_remote_subdev(
-				&mxc_isi->notifier, ep,
+				&isi->notifier, ep,
 				struct mxc_isi_async_subdev);
 		fwnode_handle_put(ep);
 
@@ -249,9 +249,9 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 		masd->port = i;
 	}
 
-	ret = v4l2_async_notifier_register(v4l2_dev, &mxc_isi->notifier);
+	ret = v4l2_async_notifier_register(v4l2_dev, &isi->notifier);
 	if (ret < 0) {
-		dev_err(mxc_isi->dev,
+		dev_err(isi->dev,
 			"Failed to register async notifier: %d\n", ret);
 		goto err_notifier;
 	}
@@ -259,7 +259,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *mxc_isi)
 	return 0;
 
 err_notifier:
-	v4l2_async_notifier_cleanup(&mxc_isi->notifier);
+	v4l2_async_notifier_cleanup(&isi->notifier);
 err_v4l2:
 	v4l2_device_unregister(v4l2_dev);
 err_media:
@@ -267,14 +267,14 @@ err_media:
 	return ret;
 }
 
-static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *mxc_isi)
+static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *isi)
 {
-	v4l2_async_notifier_unregister(&mxc_isi->notifier);
-	v4l2_async_notifier_cleanup(&mxc_isi->notifier);
+	v4l2_async_notifier_unregister(&isi->notifier);
+	v4l2_async_notifier_cleanup(&isi->notifier);
 
-	v4l2_device_unregister(&mxc_isi->v4l2_dev);
-	media_device_unregister(&mxc_isi->media_dev);
-	media_device_cleanup(&mxc_isi->media_dev);
+	v4l2_device_unregister(&isi->v4l2_dev);
+	media_device_unregister(&isi->media_dev);
+	media_device_cleanup(&isi->media_dev);
 }
 
 /* -----------------------------------------------------------------------------
@@ -427,19 +427,19 @@ static const struct soc_device_attribute imx8_soc[] = {
 	}
 };
 
-static int mxc_isi_get_platform_data(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_get_platform_data(struct mxc_isi_dev *isi)
 
 {
 	const struct soc_device_attribute *match;
 
-	mxc_isi->pdata = of_device_get_match_data(mxc_isi->dev);
+	isi->pdata = of_device_get_match_data(isi->dev);
 
 	match = soc_device_match(imx8_soc);
 	if (!match)
 		return -EINVAL;
 
 	if (match->data)
-		mxc_isi->pdata = match->data;
+		isi->pdata = match->data;
 
 	return 0;
 }
@@ -450,9 +450,9 @@ static int mxc_isi_get_platform_data(struct mxc_isi_dev *mxc_isi)
 
 static int mxc_isi_pm_suspend(struct device *dev)
 {
-	struct mxc_isi_dev *mxc_isi = dev_get_drvdata(dev);
+	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 
-	if (mxc_isi->is_streaming) {
+	if (isi->is_streaming) {
 		dev_warn(dev, "running, prevent entering suspend.\n");
 		return -EAGAIN;
 	}
@@ -467,26 +467,26 @@ static int mxc_isi_pm_resume(struct device *dev)
 
 static int mxc_isi_runtime_suspend(struct device *dev)
 {
-	struct mxc_isi_dev *mxc_isi = dev_get_drvdata(dev);
+	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 
-	disp_mix_clks_enable(mxc_isi->clk_enable, false);
-	mxc_isi_clk_disable(mxc_isi);
+	disp_mix_clks_enable(isi->clk_enable, false);
+	mxc_isi_clk_disable(isi);
 
 	return 0;
 }
 
 static int mxc_isi_runtime_resume(struct device *dev)
 {
-	struct mxc_isi_dev *mxc_isi = dev_get_drvdata(dev);
+	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 	int ret;
 
-	ret = mxc_isi_clk_enable(mxc_isi);
+	ret = mxc_isi_clk_enable(isi);
 	if (ret) {
 		dev_err(dev, "%s clk enable fail\n", __func__);
 		return ret;
 	}
-	disp_mix_sft_rstn(mxc_isi->soft_resetn, false);
-	disp_mix_clks_enable(mxc_isi->clk_enable, true);
+	disp_mix_sft_rstn(isi->soft_resetn, false);
+	disp_mix_clks_enable(isi->clk_enable, true);
 
 	return 0;
 }
@@ -500,30 +500,30 @@ static const struct dev_pm_ops mxc_isi_pm_ops = {
  * Probe, remove & driver
  */
 
-static int mxc_isi_parse_dt(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_parse_dt(struct mxc_isi_dev *isi)
 {
-	struct device *dev = mxc_isi->dev;
+	struct device *dev = isi->dev;
 	struct device_node *node = dev->of_node;
 	int ret = 0;
 
-	mxc_isi->id = of_alias_get_id(node, "isi");
+	isi->id = of_alias_get_id(node, "isi");
 
-	ret = of_property_read_u32_array(node, "interface", mxc_isi->interface, 2);
+	ret = of_property_read_u32_array(node, "interface", isi->interface, 2);
 	if (ret < 0)
 		return ret;
 
 	dev_dbg(dev, "%s, isi_%d,interface(%d, %d, %d)\n", __func__,
-		mxc_isi->id,
-		mxc_isi->interface[0],
-		mxc_isi->interface[1],
-		mxc_isi->interface[2]);
+		isi->id,
+		isi->interface[0],
+		isi->interface[1],
+		isi->interface[2]);
 	return 0;
 }
 
-static int mxc_isi_of_parse_resets(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_of_parse_resets(struct mxc_isi_dev *isi)
 {
 	int ret;
-	struct device *dev = mxc_isi->dev;
+	struct device *dev = isi->dev;
 	struct device_node *np = dev->of_node;
 	struct device_node *parent, *child;
 	struct of_phandle_args args;
@@ -548,10 +548,10 @@ static int mxc_isi_of_parse_resets(struct mxc_isi_dev *mxc_isi)
 
 		len = strlen(compat);
 		if (!of_compat_cmp("isi,soft-resetn", compat, len)) {
-			mxc_isi->soft_resetn = rstc;
+			isi->soft_resetn = rstc;
 			rstc_num++;
 		} else if (!of_compat_cmp("isi,clk-enable", compat, len)) {
-			mxc_isi->clk_enable = rstc;
+			isi->clk_enable = rstc;
 			rstc_num++;
 		} else {
 			dev_warn(dev, "invalid isi reset node: %s\n", compat);
@@ -570,70 +570,70 @@ static int mxc_isi_of_parse_resets(struct mxc_isi_dev *mxc_isi)
 static int mxc_isi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct mxc_isi_dev *mxc_isi;
+	struct mxc_isi_dev *isi;
 	struct resource *res;
 	int ret = 0;
 
-	mxc_isi = devm_kzalloc(dev, sizeof(*mxc_isi), GFP_KERNEL);
-	if (!mxc_isi)
+	isi = devm_kzalloc(dev, sizeof(*isi), GFP_KERNEL);
+	if (!isi)
 		return -ENOMEM;
 
-	mxc_isi->dev = dev;
+	isi->dev = dev;
 
-	ret = mxc_isi_get_platform_data(mxc_isi);
+	ret = mxc_isi_get_platform_data(isi);
 	if (ret < 0) {
 		dev_err(dev, "Can't get platform device data\n");
 		return ret;
 	}
 
-	ret = mxc_isi_parse_dt(mxc_isi);
+	ret = mxc_isi_parse_dt(isi);
 	if (ret < 0)
 		return ret;
 
-	if (mxc_isi->id >= MXC_ISI_MAX_DEVS || mxc_isi->id < 0) {
+	if (isi->id >= MXC_ISI_MAX_DEVS || isi->id < 0) {
 		dev_err(dev, "Invalid driver data or device id (%d)\n",
-			mxc_isi->id);
+			isi->id);
 		return -EINVAL;
 	}
 
-	mxc_isi->chain = syscon_regmap_lookup_by_phandle(dev->of_node, "isi_chain");
-	if (IS_ERR(mxc_isi->chain))
-		mxc_isi->chain = NULL;
+	isi->chain = syscon_regmap_lookup_by_phandle(dev->of_node, "isi_chain");
+	if (IS_ERR(isi->chain))
+		isi->chain = NULL;
 
-	spin_lock_init(&mxc_isi->slock);
-	mutex_init(&mxc_isi->lock);
-	atomic_set(&mxc_isi->usage_count, 0);
+	spin_lock_init(&isi->slock);
+	mutex_init(&isi->lock);
+	atomic_set(&isi->usage_count, 0);
 
 	if (!of_property_read_bool(dev->of_node, "no-reset-control")) {
-		ret = mxc_isi_of_parse_resets(mxc_isi);
+		ret = mxc_isi_of_parse_resets(isi);
 		if (ret) {
 			dev_warn(dev, "Can not parse reset control\n");
 			return ret;
 		}
 	}
 
-	ret = mxc_isi_clk_get(mxc_isi);
+	ret = mxc_isi_clk_get(isi);
 	if (ret < 0) {
-		dev_err(dev, "ISI_%d get clocks fail\n", mxc_isi->id);
+		dev_err(dev, "ISI_%d get clocks fail\n", isi->id);
 		return ret;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	mxc_isi->regs = devm_ioremap_resource(dev, res);
-	if (IS_ERR(mxc_isi->regs)) {
+	isi->regs = devm_ioremap_resource(dev, res);
+	if (IS_ERR(isi->regs)) {
 		dev_err(dev, "Failed to get ISI register map\n");
-		return PTR_ERR(mxc_isi->regs);
+		return PTR_ERR(isi->regs);
 	}
 
-	ret = mxc_isi_clk_enable(mxc_isi);
+	ret = mxc_isi_clk_enable(isi);
 	if (ret < 0) {
-		dev_err(dev, "ISI_%d enable clocks fail\n", mxc_isi->id);
+		dev_err(dev, "ISI_%d enable clocks fail\n", isi->id);
 		return ret;
 	}
-	disp_mix_sft_rstn(mxc_isi->soft_resetn, false);
-	disp_mix_clks_enable(mxc_isi->clk_enable, true);
+	disp_mix_sft_rstn(isi->soft_resetn, false);
+	disp_mix_clks_enable(isi->clk_enable, true);
 
-	mxc_isi_clean_registers(mxc_isi);
+	mxc_isi_clean_registers(isi);
 
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (!res) {
@@ -641,49 +641,49 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		goto err;
 	}
 	ret = devm_request_irq(dev, res->start, mxc_isi_irq_handler,
-			       0, dev_name(dev), mxc_isi);
+			       0, dev_name(dev), isi);
 	if (ret < 0) {
 		dev_err(dev, "failed to install irq (%d)\n", ret);
 		goto err;
 	}
 
-	mxc_isi_channel_set_chain_buf(mxc_isi);
+	mxc_isi_channel_set_chain_buf(isi);
 
-	mxc_isi_clk_disable(mxc_isi);
+	mxc_isi_clk_disable(isi);
 
-	platform_set_drvdata(pdev, mxc_isi);
+	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
-	ret = isi_cap_probe(mxc_isi);
+	ret = isi_cap_probe(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to probe capture device: %d\n", ret);
 		goto err;
 	}
 
-	ret = mxc_isi_v4l2_init(mxc_isi);
+	ret = mxc_isi_v4l2_init(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize V4L2: %d\n", ret);
 		goto err;
 	}
 
-	dev_info(dev, "mxc_isi.%d registered successfully\n", mxc_isi->id);
+	dev_info(dev, "mxc_isi.%d registered successfully\n", isi->id);
 	return 0;
 
 err:
-	disp_mix_clks_enable(mxc_isi->clk_enable, false);
-	disp_mix_sft_rstn(mxc_isi->soft_resetn, true);
-	mxc_isi_clk_disable(mxc_isi);
+	disp_mix_clks_enable(isi->clk_enable, false);
+	disp_mix_sft_rstn(isi->soft_resetn, true);
+	mxc_isi_clk_disable(isi);
 	return -ENXIO;
 }
 
 static int mxc_isi_remove(struct platform_device *pdev)
 {
-	struct mxc_isi_dev *mxc_isi = platform_get_drvdata(pdev);
+	struct mxc_isi_dev *isi = platform_get_drvdata(pdev);
 
-	isi_cap_remove(mxc_isi);
-	mxc_isi_v4l2_cleanup(mxc_isi);
+	isi_cap_remove(isi);
+	mxc_isi_v4l2_cleanup(isi);
 
-	pm_runtime_disable(mxc_isi->dev);
+	pm_runtime_disable(isi->dev);
 
 	return 0;
 }
