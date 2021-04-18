@@ -167,19 +167,19 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
 	u32 framecount = buf->v4l2_buf.sequence;
 	struct frame_addr *paddr = &buf->paddr;
-	struct mxc_isi_pipe *isi_cap;
+	struct mxc_isi_pipe *pipe;
 	struct v4l2_pix_format_mplane *pix;
 	int val = 0;
 
 	if (buf->discard) {
-		isi_cap = &isi->isi_cap;
-		pix = &isi_cap->pix;
-		paddr->y = isi_cap->discard_buffer_dma[0];
+		pipe = &isi->pipe;
+		pix = &pipe->pix;
+		paddr->y = pipe->discard_buffer_dma[0];
 		if (pix->num_planes == 2)
-			paddr->cb = isi_cap->discard_buffer_dma[1];
+			paddr->cb = pipe->discard_buffer_dma[1];
 		if (pix->num_planes == 3) {
-			paddr->cb = isi_cap->discard_buffer_dma[1];
-			paddr->cr = isi_cap->discard_buffer_dma[2];
+			paddr->cb = pipe->discard_buffer_dma[1];
+			paddr->cr = pipe->discard_buffer_dma[2];
 		}
 	} else {
 		paddr->y = vb2_dma_contig_plane_dma_addr(vb2_buf, 0);
@@ -413,7 +413,7 @@ void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi)
 
 void mxc_isi_channel_set_crop(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_frame *src_f = &isi->isi_cap.src_f;
+	struct mxc_isi_frame *src_f = &isi->pipe.src_f;
 	struct v4l2_rect crop;
 	u32 val, val0, val1, temp;
 

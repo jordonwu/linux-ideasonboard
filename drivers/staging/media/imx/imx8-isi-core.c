@@ -157,7 +157,7 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 				      | MEDIA_LNK_FL_ENABLED;
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
-	struct media_pad *pad = &isi->isi_cap.sd_pads[masd->port];
+	struct media_pad *pad = &isi->pipe.sd_pads[masd->port];
 
 	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
 	dev_info(isi->dev, "Creating links %s -> ISI:%u\n",
@@ -215,7 +215,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	}
 
 	/* Register the ISI subdev. */
-	ret = v4l2_device_register_subdev(v4l2_dev, &isi->isi_cap.sd);
+	ret = v4l2_device_register_subdev(v4l2_dev, &isi->pipe.sd);
 	if (ret < 0) {
 		dev_err(isi->dev,
 			"Failed to register ISI subdev: %d\n", ret);
