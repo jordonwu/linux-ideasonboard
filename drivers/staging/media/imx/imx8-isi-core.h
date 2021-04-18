@@ -142,10 +142,6 @@ enum mxc_isi_out_fmt {
 	MXC_ISI_OUT_FMT_YUV420_3P12,
 };
 
-enum mxc_isi_in_fmt {
-	MXC_ISI_IN_FMT_BGR8P	= 0x0,
-};
-
 enum mxc_isi_colorspace {
 	MXC_ISI_CS_NONE,
 	MXC_ISI_CS_RGB,
@@ -159,8 +155,6 @@ struct mxc_isi_format_info {
 	u16	memplanes;
 	enum mxc_isi_colorspace colorspace;
 	u8	depth[MXC_MAX_PLANES];
-	u16	mdataplanes;
-	u16	flags;
 };
 
 struct mxc_isi_ctrls {
