@@ -136,7 +136,7 @@ static bool is_yuv(u32 pix_fmt)
 bool is_buf_active(struct mxc_isi_dev *mxc_isi, int buf_id)
 {
 	u32 status = mxc_isi->status;
-	bool reverse = mxc_isi->buf_active_reverse;
+	bool reverse = mxc_isi->pdata->buf_active_reverse;
 
 	return (buf_id == 1) ? ((reverse) ? (status & 0x100) : (status & 0x200)) :
 			       ((reverse) ? (status & 0x200) : (status & 0x100));
