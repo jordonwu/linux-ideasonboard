@@ -207,14 +207,8 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
  */
 static const struct mxc_isi_format_info mxc_isi_src_formats[] = {
 	{
-		.fourcc		= V4L2_PIX_FMT_RGB32,
-		.depth		= { 32 },
-		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_RGB,
 	}, {
-		.fourcc		= V4L2_PIX_FMT_YUV32,
-		.depth		= { 32 },
-		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_YUV,
 	}
 };
