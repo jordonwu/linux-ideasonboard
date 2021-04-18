@@ -24,7 +24,6 @@
 #include <media/v4l2-mc.h>
 #include <media/v4l2-subdev.h>
 
-#include "imx8-common.h"
 #include "imx8-isi-hw.h"
 
 static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
