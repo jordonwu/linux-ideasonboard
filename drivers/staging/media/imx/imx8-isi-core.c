@@ -96,150 +96,37 @@ static int disp_mix_clks_enable(struct reset_control *reset, bool enable)
  * Clocks
  */
 
-static int mxc_imx8_clk_get(struct mxc_isi_dev *mxc_isi)
-{
-	struct device *dev = &mxc_isi->pdev->dev;
-
-	mxc_isi->clk = devm_clk_get(dev, NULL);
-
-	if (IS_ERR(mxc_isi->clk)) {
-		dev_err(dev, "failed to get isi clk\n");
-		return PTR_ERR(mxc_isi->clk);
-	}
-
-	return 0;
-}
-
-static int mxc_imx8_clk_enable(struct mxc_isi_dev *mxc_isi)
-{
-	struct device *dev = &mxc_isi->pdev->dev;
-	int ret;
-
-	ret = clk_prepare_enable(mxc_isi->clk);
-	if (ret < 0) {
-		dev_err(dev, "%s, enable clk error\n", __func__);
-		return ret;
-	}
-
-	return 0;
-}
-
-static void mxc_imx8_clk_disable(struct mxc_isi_dev *mxc_isi)
-{
-	clk_disable_unprepare(mxc_isi->clk);
-}
-
-static struct mxc_isi_dev_ops mxc_imx8_clk_ops = {
-	.clk_get     = mxc_imx8_clk_get,
-	.clk_enable  = mxc_imx8_clk_enable,
-	.clk_disable = mxc_imx8_clk_disable,
-};
-
-static int mxc_imx8mn_clk_get(struct mxc_isi_dev *mxc_isi)
-{
-	struct device *dev = &mxc_isi->pdev->dev;
-
-	mxc_isi->clk_disp_axi = devm_clk_get(dev, "disp_axi");
-	if (IS_ERR(mxc_isi->clk_disp_axi)) {
-		dev_err(dev, "failed to get disp_axi clk\n");
-		return PTR_ERR(mxc_isi->clk_disp_axi);
-	}
-
-	mxc_isi->clk_disp_apb = devm_clk_get(dev, "disp_apb");
-	if (IS_ERR(mxc_isi->clk_disp_apb)) {
-		dev_err(dev, "failed to get disp_apb clk\n");
-		return PTR_ERR(mxc_isi->clk_disp_apb);
-	}
-
-	mxc_isi->clk_root_disp_axi = devm_clk_get(dev, "disp_axi_root");
-	if (IS_ERR(mxc_isi->clk_root_disp_axi)) {
-		dev_err(dev, "failed to get disp axi root clk\n");
-		return PTR_ERR(mxc_isi->clk_root_disp_axi);
-	}
-
-	mxc_isi->clk_root_disp_apb = devm_clk_get(dev, "disp_apb_root");
-	if (IS_ERR(mxc_isi->clk_root_disp_apb)) {
-		dev_err(dev, "failed to get disp apb root clk\n");
-		return PTR_ERR(mxc_isi->clk_root_disp_apb);
-	}
-
-	return 0;
-}
-
-static int mxc_imx8mn_clk_enable(struct mxc_isi_dev *mxc_isi)
-{
-	struct device *dev = &mxc_isi->pdev->dev;
-	int ret;
-
-	ret = clk_prepare_enable(mxc_isi->clk_disp_axi);
-	if (ret < 0) {
-		dev_err(dev, "prepare and enable axi clk error\n");
-		return ret;
-	}
-
-	ret = clk_prepare_enable(mxc_isi->clk_disp_apb);
-	if (ret < 0) {
-		dev_err(dev, "prepare and enable abp clk error\n");
-		return ret;
-	}
-
-	ret = clk_prepare_enable(mxc_isi->clk_root_disp_axi);
-	if (ret < 0) {
-		dev_err(dev, "prepare and enable axi root clk error\n");
-		return ret;
-	}
-
-	ret = clk_prepare_enable(mxc_isi->clk_root_disp_apb);
-	if (ret < 0) {
-		dev_err(dev, "prepare and enable apb root clk error\n");
-		return ret;
-	}
-
-	return 0;
-}
-
-static void mxc_imx8mn_clk_disable(struct mxc_isi_dev *mxc_isi)
-{
-	clk_disable_unprepare(mxc_isi->clk_root_disp_axi);
-	clk_disable_unprepare(mxc_isi->clk_root_disp_apb);
-	clk_disable_unprepare(mxc_isi->clk_disp_axi);
-	clk_disable_unprepare(mxc_isi->clk_disp_apb);
-}
-
-static struct mxc_isi_dev_ops mxc_imx8mn_clk_ops = {
-	.clk_get     = mxc_imx8mn_clk_get,
-	.clk_enable  = mxc_imx8mn_clk_enable,
-	.clk_disable = mxc_imx8mn_clk_disable,
-};
-
 static int mxc_isi_clk_get(struct mxc_isi_dev *mxc_isi)
 {
-	const struct mxc_isi_dev_ops *ops = mxc_isi->pdata->ops;
+	unsigned int size = mxc_isi->pdata->num_clks
+			  * sizeof(*mxc_isi->clks);
+	int ret;
 
-	if (!ops && !ops->clk_get)
-		return -EINVAL;
+	mxc_isi->clks = devm_kmalloc(&mxc_isi->pdev->dev, size, GFP_KERNEL);
+	if (!mxc_isi->clks)
+		return -ENOMEM;
 
-	return ops->clk_get(mxc_isi);
+	memcpy(mxc_isi->clks, mxc_isi->pdata->clks, size);
+
+	ret = devm_clk_bulk_get(&mxc_isi->pdev->dev, mxc_isi->pdata->num_clks,
+				mxc_isi->clks);
+	if (ret < 0) {
+		dev_err(&mxc_isi->pdev->dev, "Failed to acquire clocks: %d\n",
+			ret);
+		return ret;
+	}
+
+	return 0;
 }
 
 static int mxc_isi_clk_enable(struct mxc_isi_dev *mxc_isi)
 {
-	const struct mxc_isi_dev_ops *ops = mxc_isi->pdata->ops;
-
-	if (!ops && !ops->clk_enable)
-		return -EINVAL;
-
-	return ops->clk_enable(mxc_isi);
+	return clk_bulk_prepare_enable(mxc_isi->pdata->num_clks, mxc_isi->clks);
 }
 
 static void mxc_isi_clk_disable(struct mxc_isi_dev *mxc_isi)
 {
-	const struct mxc_isi_dev_ops *ops = mxc_isi->pdata->ops;
-
-	if (!ops && !ops->clk_disable)
-		return;
-
-	ops->clk_disable(mxc_isi);
+	clk_bulk_disable_unprepare(mxc_isi->pdata->num_clks, mxc_isi->clks);
 }
 
 /* -----------------------------------------------------------------------------
@@ -482,11 +369,16 @@ static struct mxc_isi_chan_src mxc_imx8_chan_src = {
 	.src_mem   = 5,
 };
 
+static const struct clk_bulk_data mxc_imx8_clks[] = {
+	{ .id = NULL },
+};
+
 static struct mxc_isi_plat_data mxc_imx8_data = {
-	.ops      = &mxc_imx8_clk_ops,
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
+	.clks     = mxc_imx8_clks,
+	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
 };
 
 static struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
@@ -496,11 +388,19 @@ static struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
 	.src_mem = 2,
 };
 
+static const struct clk_bulk_data mxc_imx8mn_clks[] = {
+	{ .id = "disp_axi" },
+	{ .id = "disp_apb" },
+	{ .id = "disp_axi_root" },
+	{ .id = "disp_apb_root" },
+};
+
 static struct mxc_isi_plat_data mxc_imx8mn_data = {
-	.ops      = &mxc_imx8mn_clk_ops,
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
+	.clks     = mxc_imx8mn_clks,
+	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
 };
 
 static const struct of_device_id mxc_isi_of_match[] = {
