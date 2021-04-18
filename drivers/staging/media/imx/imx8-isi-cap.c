@@ -217,21 +217,20 @@ mxc_isi_find_format(const u32 *pixelformat, int index)
 	return def_fmt;
 }
 
-static const struct mxc_isi_fmt *
-mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
+static const struct mxc_isi_fmt *mxc_isi_get_src_fmt(u32 code)
 {
-	u32 index;
-
 	/* two fmt RGB32 and YUV444 from pixellink */
-	if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
-	    sd_fmt->format.code == MEDIA_BUS_FMT_YVYU8_2X8 ||
-	    sd_fmt->format.code == MEDIA_BUS_FMT_AYUV8_1X32 ||
-	    sd_fmt->format.code == MEDIA_BUS_FMT_UYVY8_2X8 ||
-	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8)
-		index = 1;
-	else
-		index = 0;
-	return &mxc_isi_src_formats[index];
+	switch (code) {
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+	case MEDIA_BUS_FMT_AYUV8_1X32:
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+		return &mxc_isi_src_formats[1];
+
+	default:
+		return &mxc_isi_src_formats[0];
+	}
 }
 
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
@@ -906,7 +905,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 	}
 
 	/* Pixel link master will transfer format to RGB32 or YUV32 */
-	src_f->fmt = mxc_isi_get_src_fmt(&src_fmt);
+	src_f->fmt = mxc_isi_get_src_fmt(src_fmt.format.code);
 
 	set_frame_bounds(src_f, src_fmt.format.width, src_fmt.format.height);
 
