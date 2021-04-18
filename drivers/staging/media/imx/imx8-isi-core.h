@@ -177,11 +177,7 @@ struct mxc_isi_fmt {
 
 struct mxc_isi_ctrls {
 	struct v4l2_ctrl_handler handler;
-	struct v4l2_ctrl *hflip;
-	struct v4l2_ctrl *vflip;
 	struct v4l2_ctrl *alpha;
-	struct v4l2_ctrl *num_cap_buf;
-	struct v4l2_ctrl *num_out_buf;
 	bool ready;
 };
 

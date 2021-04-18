@@ -659,7 +659,7 @@ static int mxc_isi_ctrls_create(struct mxc_isi_pipe *pipe)
 	if (pipe->video.ctrls.ready)
 		return 0;
 
-	v4l2_ctrl_handler_init(handler, 4);
+	v4l2_ctrl_handler_init(handler, 1);
 
 	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_ctrl_ops,
 					 V4L2_CID_ALPHA_COMPONENT,
