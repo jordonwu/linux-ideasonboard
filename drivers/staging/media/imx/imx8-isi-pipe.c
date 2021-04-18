@@ -1317,8 +1317,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	const struct mxc_isi_format_info *out_fmt;
 	int i;
 
-	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE &&
-	    vb2_is_busy(&pipe->video.vb2_q))
+	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
 	out_fmt = mxc_isi_format_by_code(mf->code);
