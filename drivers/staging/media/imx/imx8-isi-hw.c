@@ -357,7 +357,7 @@ void mxc_isi_channel_set_alpha(struct mxc_isi_dev *mxc_isi)
 
 void mxc_isi_channel_set_panic_threshold(struct mxc_isi_dev *mxc_isi)
 {
-	struct mxc_isi_set_thd *set_thd = mxc_isi->pdata->set_thd;
+	const struct mxc_isi_set_thd *set_thd = mxc_isi->pdata->set_thd;
 	u32 val;
 
 	val = readl(mxc_isi->regs + CHNL_OUT_BUF_CTRL);
@@ -676,7 +676,7 @@ void mxc_isi_channel_disable(struct mxc_isi_dev *mxc_isi)
 
 void  mxc_isi_enable_irq(struct mxc_isi_dev *mxc_isi)
 {
-	struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
+	const struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
 	u32 val;
 
 	val = CHNL_IER_FRM_RCVD_EN_MASK |
