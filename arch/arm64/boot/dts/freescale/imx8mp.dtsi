@@ -1122,16 +1122,6 @@
 					power-domains = <&mediamix_pd>;
 					isi_chain = <&isi_chain_buf>;
 					status = "disabled";
-
-					cap_device {
-						compatible = "imx-isi-capture";
-						status = "disabled";
-					};
-
-					m2m_device{
-						compatible = "imx-isi-m2m";
-						status = "disabled";
-					};
 				};
 
 				isi_1: isi@32e02000 {
@@ -1150,11 +1140,6 @@
 					no-reset-control;
 					power-domains = <&mediamix_pd>;
 					status = "disabled";
-
-					cap_device {
-						compatible = "imx-isi-capture";
-						status = "disabled";
-					};
 				};
 
 				mipi_csi_0: csi@32e40000 {
