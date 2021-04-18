@@ -18,7 +18,6 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
@@ -237,7 +236,7 @@ struct mxc_isi_cap_dev {
 	struct v4l2_pix_format_mplane pix;
 
 	struct mxc_isi_dev     *mxc_isi;
-	struct platform_device *pdev;
+	struct device          *dev;
 	struct mxc_isi_ctrls   ctrls;
 	struct mxc_isi_buffer  buf_discard[2];
 
@@ -267,7 +266,7 @@ struct mxc_isi_cap_dev {
 struct mxc_isi_dev {
 	struct mxc_isi_cap_dev isi_cap;
 
-	struct platform_device *pdev;
+	struct device *dev;
 
 	const struct mxc_isi_plat_data *pdata;
 
