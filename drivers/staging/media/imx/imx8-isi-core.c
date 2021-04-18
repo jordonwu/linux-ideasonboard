@@ -282,32 +282,6 @@ static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *mxc_isi)
  * Device information
  */
 
-static const struct soc_device_attribute imx8_soc[] = {
-	{
-		.soc_id   = "i.MX8QXP",
-		.revision = "1.0",
-	}, {
-		.soc_id   = "i.MX8QXP",
-		.revision = "1.1",
-	}, {
-		.soc_id   = "i.MX8QXP",
-		.revision = "1.2",
-	}, {
-		.soc_id   = "i.MX8QM",
-		.revision = "1.0",
-	}, {
-		.soc_id   = "i.MX8QM",
-		.revision = "1.1",
-	}, {
-		.soc_id   = "i.MX8MN",
-		.revision = "1.0",
-	}, {
-		.soc_id   = "i.MX8MP",
-	}, {
-		/* sentinel */
-	}
-};
-
 /* For i.MX8QM/QXP B0 ISI IER version */
 static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v0 = {
 	.oflw_y_buf_en = { .offset = 16, .mask = 0x10000  },
@@ -373,6 +347,7 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 	{ .id = NULL },
 };
 
+/* Chip C0 */
 static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
@@ -423,21 +398,46 @@ static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.buf_active_reverse = true,
 };
 
-static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
-			     const struct soc_device_attribute *data)
+static const struct soc_device_attribute imx8_soc[] = {
+	{
+		.soc_id   = "i.MX8QXP",
+		.revision = "1.0",
+		.data     = &mxc_imx8_data_v0,
+	}, {
+		.soc_id   = "i.MX8QXP",
+		.revision = "1.1",
+		.data     = &mxc_imx8_data_v0,
+	}, {
+		.soc_id   = "i.MX8QXP",
+		.revision = "1.2",
+	}, {
+		.soc_id   = "i.MX8QM",
+		.revision = "1.0",
+		.data     = &mxc_imx8_data_v0,
+	}, {
+		.soc_id   = "i.MX8QM",
+		.revision = "1.1",
+		.data     = &mxc_imx8_data_v0,
+	}, {
+		.soc_id   = "i.MX8MN",
+		.revision = "1.0",
+	}, {
+		.soc_id   = "i.MX8MP",
+	}, {
+		/* sentinel */
+	}
+};
+
+static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi)
 {
 	const struct soc_device_attribute *match;
 
-	match = soc_device_match(data);
+	match = soc_device_match(imx8_soc);
 	if (!match)
 		return -EINVAL;
 
-	if (!strcmp(match->soc_id, "i.MX8QXP") ||
-	    !strcmp(match->soc_id, "i.MX8QM")) {
-		/* Chip C0 */
-		if (strcmp(match->revision, "1.1") <= 0)
-			mxc_isi->pdata = &mxc_imx8_data_v0;
-	}
+	if (match->data)
+		mxc_isi->pdata = match->data;
 
 	return 0;
 }
@@ -584,7 +584,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	ret = mxc_isi_soc_match(mxc_isi, imx8_soc);
+	ret = mxc_isi_soc_match(mxc_isi);
 	if (ret < 0) {
 		dev_err(dev, "Can't match soc version\n");
 		return ret;
