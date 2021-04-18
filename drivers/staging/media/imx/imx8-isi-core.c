@@ -516,14 +516,16 @@ static int mxc_isi_probe(struct platform_device *pdev)
 
 	mxc_isi_channel_set_chain_buf(mxc_isi);
 
-	ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
-	if (ret < 0)
-		dev_warn(dev, "Populate child platform device fail\n");
-
 	mxc_isi_clk_disable(mxc_isi);
 
 	platform_set_drvdata(pdev, mxc_isi);
 	pm_runtime_enable(dev);
+
+	ret = isi_cap_probe(mxc_isi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to probe capture device: %d\n", ret);
+		goto err;
+	}
 
 	dev_info(dev, "mxc_isi.%d registered successfully\n", mxc_isi->id);
 	return 0;
@@ -537,9 +539,10 @@ err:
 
 static int mxc_isi_remove(struct platform_device *pdev)
 {
+	struct mxc_isi_dev *mxc_isi = platform_get_drvdata(pdev);
 	struct device *dev = &pdev->dev;
 
-	of_platform_depopulate(dev);
+	isi_cap_remove(mxc_isi);
 	pm_runtime_disable(dev);
 
 	return 0;
