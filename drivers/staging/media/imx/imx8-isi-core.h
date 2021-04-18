@@ -294,7 +294,6 @@ struct mxc_isi_plat_data {
 struct mxc_isi_cap_dev {
 	struct v4l2_subdev  sd;
 	struct video_device vdev;
-	struct v4l2_fh      fh;
 	struct vb2_queue    vb2_q;
 	struct v4l2_pix_format_mplane pix;
 
