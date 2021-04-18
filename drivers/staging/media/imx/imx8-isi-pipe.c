@@ -1264,16 +1264,16 @@ static void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
  * V4L2 subdev operations
  */
 
-static int mxc_isi_subdev_enum_mbus_code(struct v4l2_subdev *sd,
-					 struct v4l2_subdev_pad_config *cfg,
-					 struct v4l2_subdev_mbus_code_enum *code)
+static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
+				       struct v4l2_subdev_pad_config *cfg,
+				       struct v4l2_subdev_mbus_code_enum *code)
 {
 	return 0;
 }
 
-static int mxc_isi_subdev_get_fmt(struct v4l2_subdev *sd,
-				  struct v4l2_subdev_pad_config *cfg,
-				  struct v4l2_subdev_format *fmt)
+static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
+				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f;
@@ -1308,9 +1308,9 @@ static int mxc_isi_subdev_get_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
-				  struct v4l2_subdev_pad_config *cfg,
-				  struct v4l2_subdev_format *fmt)
+static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
+				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
@@ -1361,9 +1361,9 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int mxc_isi_subdev_get_selection(struct v4l2_subdev *sd,
-					struct v4l2_subdev_pad_config *cfg,
-					struct v4l2_subdev_selection *sel)
+static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
+				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f = &pipe->src_f;
@@ -1414,9 +1414,9 @@ static int mxc_isi_subdev_get_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int mxc_isi_subdev_set_selection(struct v4l2_subdev *sd,
-					struct v4l2_subdev_pad_config *cfg,
-					struct v4l2_subdev_selection *sel)
+static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
+				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f = &pipe->src_f;
@@ -1456,11 +1456,11 @@ static int mxc_isi_subdev_set_selection(struct v4l2_subdev *sd,
 }
 
 static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
-	.enum_mbus_code = mxc_isi_subdev_enum_mbus_code,
-	.get_selection  = mxc_isi_subdev_get_selection,
-	.set_selection  = mxc_isi_subdev_set_selection,
-	.get_fmt = mxc_isi_subdev_get_fmt,
-	.set_fmt = mxc_isi_subdev_set_fmt,
+	.enum_mbus_code = mxc_isi_pipe_enum_mbus_code,
+	.get_fmt = mxc_isi_pipe_get_fmt,
+	.set_fmt = mxc_isi_pipe_set_fmt,
+	.get_selection = mxc_isi_pipe_get_selection,
+	.set_selection = mxc_isi_pipe_set_selection,
 };
 
 static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
