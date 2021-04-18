@@ -287,7 +287,7 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
 		val |= CHNL_IMG_CTRL_CSC_BYPASS_ENABLE;
 	}
 
-	printk_pixelformat("input fmt", src_fmt->fourcc);
+	pr_info("input colorspace %u", src_fmt->colorspace);
 	printk_pixelformat("output fmt", dst_fmt->fourcc);
 
 	if (isi->cscen) {
