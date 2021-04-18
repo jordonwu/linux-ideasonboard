@@ -27,7 +27,6 @@
 #include <media/videobuf2-dma-contig.h>
 
 #include "imx8-isi-hw.h"
-#include "imx8-common.h"
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_cap_dev, sd)
 
