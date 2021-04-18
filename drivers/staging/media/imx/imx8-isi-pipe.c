@@ -327,31 +327,6 @@ static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 	return 0;
 }
 
-static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
-{
-	struct frame_addr *paddr = &buf->paddr;
-	struct vb2_buffer *vb2 = &buf->v4l2_buf.vb2_buf;
-
-	paddr->cb = 0;
-	paddr->cr = 0;
-
-	switch (memplanes) {
-	case 3:
-		paddr->cr = vb2_dma_contig_plane_dma_addr(vb2, 2);
-		/* fall through */
-	case 2:
-		paddr->cb = vb2_dma_contig_plane_dma_addr(vb2, 1);
-		/* fall through */
-	case 1:
-		paddr->y = vb2_dma_contig_plane_dma_addr(vb2, 0);
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipe;
@@ -488,10 +463,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 	unsigned long flags;
 
 	spin_lock_irqsave(&pipe->slock, flags);
-
-	mxc_isi_update_buf_paddr(buf, pipe->formats[MXC_ISI_SD_PAD_SOURCE].info->mdataplanes);
 	list_add_tail(&buf->list, &pipe->video.out_pending);
-
 	spin_unlock_irqrestore(&pipe->slock, flags);
 }
 
