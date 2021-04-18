@@ -298,7 +298,6 @@ struct mxc_isi_cap_dev {
 	struct v4l2_pix_format_mplane pix;
 
 	struct mxc_isi_dev     *isi;
-	struct device          *dev;
 	struct mxc_isi_ctrls   ctrls;
 	struct mxc_isi_buffer  buf_discard[2];
 
