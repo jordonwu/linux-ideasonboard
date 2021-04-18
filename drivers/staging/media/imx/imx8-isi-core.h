@@ -269,8 +269,7 @@ struct mxc_isi_cap_dev {
 };
 
 struct mxc_isi_dev {
-	/* Pointer to isi capture child device driver data */
-	struct mxc_isi_cap_dev *isi_cap;
+	struct mxc_isi_cap_dev isi_cap;
 
 	struct platform_device *pdev;
 
@@ -324,6 +323,9 @@ struct mxc_isi_dev {
 	unsigned int deinterlace:1;
 	unsigned int is_streaming:1;
 };
+
+int isi_cap_probe(struct mxc_isi_dev *mxc_isi);
+void isi_cap_remove(struct mxc_isi_dev *mxc_isi);
 
 static inline void set_frame_bounds(struct mxc_isi_frame *f,
 				    u32 width, u32 height)
