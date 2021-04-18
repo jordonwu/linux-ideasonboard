@@ -334,12 +334,12 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
 
-	if (list_empty(&pipe->out_active)) {
+	if (list_empty(&pipe->video.out_active)) {
 		dev_warn(dev, "trying to access empty active list\n");
 		return;
 	}
 
-	buf = list_first_entry(&pipe->out_active, struct mxc_isi_buffer, list);
+	buf = list_first_entry(&pipe->video.out_active, struct mxc_isi_buffer, list);
 
 	/*
 	 * Skip frame when buffer number is not match ISI trigger
@@ -352,7 +352,7 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 	}
 
 	if (buf->discard) {
-		list_move_tail(pipe->out_active.next, &pipe->out_discard);
+		list_move_tail(pipe->video.out_active.next, &pipe->video.out_discard);
 	} else {
 		vb2 = &buf->v4l2_buf.vb2_buf;
 		list_del_init(&buf->list);
@@ -360,29 +360,29 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_DONE);
 	}
 
-	pipe->frame_count++;
+	pipe->video.frame_count++;
 
-	if (list_empty(&pipe->out_pending)) {
-		if (list_empty(&pipe->out_discard)) {
+	if (list_empty(&pipe->video.out_pending)) {
+		if (list_empty(&pipe->video.out_discard)) {
 			dev_warn(dev, "trying to access empty discard list\n");
 			return;
 		}
 
-		buf = list_first_entry(&pipe->out_discard,
+		buf = list_first_entry(&pipe->video.out_discard,
 				       struct mxc_isi_buffer, list);
-		buf->v4l2_buf.sequence = pipe->frame_count;
+		buf->v4l2_buf.sequence = pipe->video.frame_count;
 		mxc_isi_channel_set_outbuf(isi, buf);
-		list_move_tail(pipe->out_discard.next, &pipe->out_active);
+		list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
 		return;
 	}
 
 	/* ISI channel output buffer */
-	buf = list_first_entry(&pipe->out_pending, struct mxc_isi_buffer, list);
-	buf->v4l2_buf.sequence = pipe->frame_count;
+	buf = list_first_entry(&pipe->video.out_pending, struct mxc_isi_buffer, list);
+	buf->v4l2_buf.sequence = pipe->video.frame_count;
 	mxc_isi_channel_set_outbuf(isi, buf);
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
-	list_move_tail(pipe->out_pending.next, &pipe->out_active);
+	list_move_tail(pipe->video.out_pending.next, &pipe->video.out_active);
 }
 
 static int cap_vb2_queue_setup(struct vb2_queue *q,
@@ -436,7 +436,7 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 		unsigned long size = dst_f->sizeimage[i];
 
 		if (vb2_plane_size(vb2, i) < size) {
-			v4l2_err(&pipe->vdev,
+			v4l2_err(&pipe->video.vdev,
 				 "User buffer too small (%ld < %ld)\n",
 				 vb2_plane_size(vb2, i), size);
 			return -EINVAL;
@@ -458,7 +458,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 	spin_lock_irqsave(&pipe->slock, flags);
 
 	mxc_isi_update_buf_paddr(buf, pipe->dst_f.fmt->mdataplanes);
-	list_add_tail(&buf->list, &pipe->out_pending);
+	list_add_tail(&buf->list, &pipe->video.out_pending);
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
 }
@@ -481,19 +481,19 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		return -EINVAL;
 
 	/* Create a buffer for discard operation */
-	for (i = 0; i < pipe->pix.num_planes; i++) {
-		pipe->discard_size[i] = pipe->dst_f.sizeimage[i];
-		pipe->discard_buffer[i] =
+	for (i = 0; i < pipe->video.pix.num_planes; i++) {
+		pipe->video.discard_size[i] = pipe->dst_f.sizeimage[i];
+		pipe->video.discard_buffer[i] =
 			dma_alloc_coherent(pipe->isi->dev,
-					   PAGE_ALIGN(pipe->discard_size[i]),
-					   &pipe->discard_buffer_dma[i],
+					   PAGE_ALIGN(pipe->video.discard_size[i]),
+					   &pipe->video.discard_buffer_dma[i],
 					   GFP_DMA | GFP_KERNEL);
-		if (!pipe->discard_buffer[i]) {
+		if (!pipe->video.discard_buffer[i]) {
 			for (j = 0; j < i; j++) {
 				dma_free_coherent(pipe->isi->dev,
-						  PAGE_ALIGN(pipe->discard_size[j]),
-						  pipe->discard_buffer[j],
-						  pipe->discard_buffer_dma[j]);
+						  PAGE_ALIGN(pipe->video.discard_size[j]),
+						  pipe->video.discard_buffer[j],
+						  pipe->video.discard_buffer_dma[j]);
 				dev_err(pipe->isi->dev,
 					"alloc dma buffer(%d) fail\n", j);
 			}
@@ -502,37 +502,37 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		dev_dbg(pipe->isi->dev,
 			"%s: num_plane=%d discard_size=%d discard_buffer=%p\n"
 			, __func__, i,
-			PAGE_ALIGN((int)pipe->discard_size[i]),
-			pipe->discard_buffer[i]);
+			PAGE_ALIGN((int)pipe->video.discard_size[i]),
+			pipe->video.discard_buffer[i]);
 	}
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
 	/* add two list member to out_discard list head */
-	pipe->buf_discard[0].discard = true;
-	list_add_tail(&pipe->buf_discard[0].list, &pipe->out_discard);
+	pipe->video.buf_discard[0].discard = true;
+	list_add_tail(&pipe->video.buf_discard[0].list, &pipe->video.out_discard);
 
-	pipe->buf_discard[1].discard = true;
-	list_add_tail(&pipe->buf_discard[1].list, &pipe->out_discard);
+	pipe->video.buf_discard[1].discard = true;
+	list_add_tail(&pipe->video.buf_discard[1].list, &pipe->video.out_discard);
 
 	/* ISI channel output buffer 1 */
-	buf = list_first_entry(&pipe->out_discard, struct mxc_isi_buffer, list);
+	buf = list_first_entry(&pipe->video.out_discard, struct mxc_isi_buffer, list);
 	buf->v4l2_buf.sequence = 0;
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
 	mxc_isi_channel_set_outbuf(isi, buf);
-	list_move_tail(pipe->out_discard.next, &pipe->out_active);
+	list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
 
 	/* ISI channel output buffer 2 */
-	buf = list_first_entry(&pipe->out_pending, struct mxc_isi_buffer, list);
+	buf = list_first_entry(&pipe->video.out_pending, struct mxc_isi_buffer, list);
 	buf->v4l2_buf.sequence = 1;
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
 	mxc_isi_channel_set_outbuf(isi, buf);
-	list_move_tail(pipe->out_pending.next, &pipe->out_active);
+	list_move_tail(pipe->video.out_pending.next, &pipe->video.out_active);
 
 	/* Clear frame count */
-	pipe->frame_count = 1;
+	pipe->video.frame_count = 1;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
 	return 0;
@@ -552,8 +552,8 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
-	while (!list_empty(&pipe->out_active)) {
-		buf = list_entry(pipe->out_active.next,
+	while (!list_empty(&pipe->video.out_active)) {
+		buf = list_entry(pipe->video.out_active.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		if (buf->discard)
@@ -562,30 +562,30 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_ERROR);
 	}
 
-	while (!list_empty(&pipe->out_pending)) {
-		buf = list_entry(pipe->out_pending.next,
+	while (!list_empty(&pipe->video.out_pending)) {
+		buf = list_entry(pipe->video.out_pending.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_ERROR);
 	}
 
-	while (!list_empty(&pipe->out_discard)) {
-		buf = list_entry(pipe->out_discard.next,
+	while (!list_empty(&pipe->video.out_discard)) {
+		buf = list_entry(pipe->video.out_discard.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 	}
 
-	INIT_LIST_HEAD(&pipe->out_active);
-	INIT_LIST_HEAD(&pipe->out_pending);
-	INIT_LIST_HEAD(&pipe->out_discard);
+	INIT_LIST_HEAD(&pipe->video.out_active);
+	INIT_LIST_HEAD(&pipe->video.out_pending);
+	INIT_LIST_HEAD(&pipe->video.out_discard);
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	for (i = 0; i < pipe->pix.num_planes; i++)
+	for (i = 0; i < pipe->video.pix.num_planes; i++)
 		dma_free_coherent(pipe->isi->dev,
-				  PAGE_ALIGN(pipe->discard_size[i]),
-				  pipe->discard_buffer[i],
-				  pipe->discard_buffer_dma[i]);
+				  PAGE_ALIGN(pipe->video.discard_size[i]),
+				  pipe->video.discard_buffer[i],
+				  pipe->video.discard_buffer_dma[i]);
 }
 
 static const struct vb2_ops mxc_cap_vb2_qops = {
@@ -603,7 +603,8 @@ static const struct vb2_ops mxc_cap_vb2_qops = {
  */
 static inline struct mxc_isi_pipe *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct mxc_isi_pipe, ctrls.handler);
+	return container_of(ctrl->handler, struct mxc_isi_pipe,
+			    video.ctrls.handler);
 }
 
 static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
@@ -643,10 +644,10 @@ static const struct v4l2_ctrl_ops mxc_isi_ctrl_ops = {
 
 static int mxc_isi_ctrls_create(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_ctrls *ctrls = &pipe->ctrls;
+	struct mxc_isi_ctrls *ctrls = &pipe->video.ctrls;
 	struct v4l2_ctrl_handler *handler = &ctrls->handler;
 
-	if (pipe->ctrls.ready)
+	if (pipe->video.ctrls.ready)
 		return 0;
 
 	v4l2_ctrl_handler_init(handler, 4);
@@ -663,7 +664,7 @@ static int mxc_isi_ctrls_create(struct mxc_isi_pipe *pipe)
 
 static void mxc_isi_ctrls_delete(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_ctrls *ctrls = &pipe->ctrls;
+	struct mxc_isi_ctrls *ctrls = &pipe->video.ctrls;
 
 	if (ctrls->ready) {
 		v4l2_ctrl_handler_free(&ctrls->handler);
@@ -674,7 +675,7 @@ static void mxc_isi_ctrls_delete(struct mxc_isi_pipe *pipe)
 
 static bool is_entity_link_setup(struct mxc_isi_pipe *pipe)
 {
-	struct video_device *vdev = &pipe->vdev;
+	struct video_device *vdev = &pipe->video.vdev;
 	struct v4l2_subdev *csi_sd, *sen_sd;
 
 	if (!vdev->entity.num_links || !pipe->sd.entity.num_links)
@@ -699,8 +700,8 @@ static int mxc_isi_capture_open(struct file *file)
 	int ret = -EBUSY;
 
 	mutex_lock(&pipe->lock);
-	pipe->is_link_setup = is_entity_link_setup(pipe);
-	if (!pipe->is_link_setup) {
+	pipe->video.is_link_setup = is_entity_link_setup(pipe);
+	if (!pipe->video.is_link_setup) {
 		mutex_unlock(&pipe->lock);
 		return 0;
 	}
@@ -737,7 +738,7 @@ static int mxc_isi_capture_release(struct file *file)
 	struct device *dev = pipe->isi->dev;
 	int ret = -1;
 
-	if (!pipe->is_link_setup)
+	if (!pipe->video.is_link_setup)
 		return 0;
 
 	mutex_lock(&pipe->lock);
@@ -941,7 +942,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	 */
 
 	dev_dbg(pipe->isi->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
-	if (vb2_is_busy(&pipe->vb2_q))
+	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
 	/* Check out put format */
@@ -994,7 +995,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 		dst_f->sizeimage[0]    = dst_f->height * dst_f->bytesperline[0];
 	}
 
-	memcpy(&pipe->pix, pix, sizeof(*pix));
+	memcpy(&pipe->video.pix, pix, sizeof(*pix));
 	set_frame_bounds(dst_f, pix->width, pix->height);
 
 	return 0;
@@ -1260,7 +1261,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	int i;
 
 	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE_MEM &&
-	    vb2_is_busy(&pipe->vb2_q))
+	    vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
@@ -1420,8 +1421,8 @@ static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
 static int mxc_isi_register_cap_device(struct mxc_isi_pipe *pipe,
 				       struct v4l2_device *v4l2_dev)
 {
-	struct video_device *vdev = &pipe->vdev;
-	struct vb2_queue *q = &pipe->vb2_q;
+	struct video_device *vdev = &pipe->video.vdev;
+	struct vb2_queue *q = &pipe->video.vb2_q;
 	int ret = -ENOMEM;
 
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
@@ -1439,9 +1440,9 @@ static int mxc_isi_register_cap_device(struct mxc_isi_pipe *pipe,
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE;
 	video_set_drvdata(vdev, pipe);
 
-	INIT_LIST_HEAD(&pipe->out_pending);
-	INIT_LIST_HEAD(&pipe->out_active);
-	INIT_LIST_HEAD(&pipe->out_discard);
+	INIT_LIST_HEAD(&pipe->video.out_pending);
+	INIT_LIST_HEAD(&pipe->video.out_active);
+	INIT_LIST_HEAD(&pipe->video.out_discard);
 
 	memset(q, 0, sizeof(*q));
 	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
@@ -1463,9 +1464,9 @@ static int mxc_isi_register_cap_device(struct mxc_isi_pipe *pipe,
 	pipe->dst_f.fmt = &mxc_isi_out_formats[0];
 	pipe->src_f.fmt = pipe->dst_f.fmt;
 
-	pipe->cap_pad.flags = MEDIA_PAD_FL_SINK;
+	pipe->video.pad.flags = MEDIA_PAD_FL_SINK;
 	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
-	ret = media_entity_pads_init(&vdev->entity, 1, &pipe->cap_pad);
+	ret = media_entity_pads_init(&vdev->entity, 1, &pipe->video.pad);
 	if (ret)
 		goto err_free_ctx;
 
@@ -1485,8 +1486,8 @@ static int mxc_isi_register_cap_device(struct mxc_isi_pipe *pipe,
 	if (ret < 0)
 		goto err_ctrl_free;
 
-	vdev->ctrl_handler = &pipe->ctrls.handler;
-	v4l2_dev->ctrl_handler = &pipe->ctrls.handler;
+	vdev->ctrl_handler = &pipe->video.ctrls.handler;
+	v4l2_dev->ctrl_handler = &pipe->video.ctrls.handler;
 	v4l2_info(v4l2_dev, "Registered %s as /dev/%s\n",
 		  vdev->name, video_device_node_name(vdev));
 
@@ -1528,7 +1529,7 @@ static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	mutex_lock(&pipe->lock);
-	vdev = &pipe->vdev;
+	vdev = &pipe->video.vdev;
 	if (video_is_registered(vdev)) {
 		video_unregister_device(vdev);
 		mxc_isi_ctrls_delete(pipe);
@@ -1562,20 +1563,20 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 
 	/* ISI Sink pads */
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI0].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_MIPI1].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_DC0].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_DC1].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_HDMI].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_MEM].flags = MEDIA_PAD_FL_SINK;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SINK_PARALLEL_CSI].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_MIPI0].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_MIPI1].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_DC0].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_DC1].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_HDMI].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_MEM].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_SD_PAD_SINK_PARALLEL_CSI].flags = MEDIA_PAD_FL_SINK;
 
 	/* ISI source pads */
-	pipe->sd_pads[MXC_ISI_SD_PAD_SOURCE_MEM].flags = MEDIA_PAD_FL_SOURCE;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SOURCE_DC0].flags = MEDIA_PAD_FL_SOURCE;
-	pipe->sd_pads[MXC_ISI_SD_PAD_SOURCE_DC1].flags = MEDIA_PAD_FL_SOURCE;
+	pipe->pads[MXC_ISI_SD_PAD_SOURCE_MEM].flags = MEDIA_PAD_FL_SOURCE;
+	pipe->pads[MXC_ISI_SD_PAD_SOURCE_DC0].flags = MEDIA_PAD_FL_SOURCE;
+	pipe->pads[MXC_ISI_SD_PAD_SOURCE_DC1].flags = MEDIA_PAD_FL_SOURCE;
 
-	ret = media_entity_pads_init(&sd->entity, MXC_ISI_SD_PADS_NUM, pipe->sd_pads);
+	ret = media_entity_pads_init(&sd->entity, MXC_ISI_SD_PADS_NUM, pipe->pads);
 	if (ret)
 		return ret;
 

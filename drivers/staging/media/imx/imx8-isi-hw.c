@@ -173,13 +173,13 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 
 	if (buf->discard) {
 		pipe = &isi->pipe;
-		pix = &pipe->pix;
-		paddr->y = pipe->discard_buffer_dma[0];
+		pix = &pipe->video.pix;
+		paddr->y = pipe->video.discard_buffer_dma[0];
 		if (pix->num_planes == 2)
-			paddr->cb = pipe->discard_buffer_dma[1];
+			paddr->cb = pipe->video.discard_buffer_dma[1];
 		if (pix->num_planes == 3) {
-			paddr->cb = pipe->discard_buffer_dma[1];
-			paddr->cr = pipe->discard_buffer_dma[2];
+			paddr->cb = pipe->video.discard_buffer_dma[1];
+			paddr->cr = pipe->video.discard_buffer_dma[2];
 		}
 	} else {
 		paddr->y = vb2_dma_contig_plane_dma_addr(vb2_buf, 0);
