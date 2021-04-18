@@ -1122,6 +1122,18 @@
 					power-domains = <&mediamix_pd>;
 					isi_chain = <&isi_chain_buf>;
 					status = "disabled";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+							isi_0_in: endpoint {
+								remote-endpoint = <&mipi_csi_0_out>;
+							};
+						};
+					};
 				};
 
 				isi_1: isi@32e02000 {
@@ -1140,6 +1152,18 @@
 					no-reset-control;
 					power-domains = <&mediamix_pd>;
 					status = "disabled";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+							isi_1_in: endpoint {
+								remote-endpoint = <&mipi_csi_1_out>;
+							};
+						};
+					};
 				};
 
 				mipi_csi_0: csi@32e40000 {
@@ -1159,6 +1183,22 @@
 					gpr = <&mediamix_blk_ctl>;
 					power-domains = <&mipi_phy1_pd>;
 					status = "disabled";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+						};
+
+						port@1 {
+							reg = <1>;
+							mipi_csi_0_out: endpoint {
+								remote-endpoint = <&isi_0_in>;
+							};
+						};
+					};
 				};
 
 				mipi_csi_1: csi@32e50000 {
@@ -1178,6 +1218,22 @@
 					gpr = <&mediamix_blk_ctl>;
 					power-domains = <&mipi_phy2_pd>;
 					status = "disabled";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+						};
+
+						port@1 {
+							reg = <1>;
+							mipi_csi_1_out: endpoint {
+								remote-endpoint = <&isi_1_in>;
+							};
+						};
+					};
 				};
 			};
 		};
