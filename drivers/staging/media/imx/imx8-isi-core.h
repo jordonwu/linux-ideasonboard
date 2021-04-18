@@ -325,7 +325,7 @@ struct mxc_isi_pipe {
 };
 
 struct mxc_isi_dev {
-	struct mxc_isi_pipe isi_cap;
+	struct mxc_isi_pipe pipe;
 
 	struct device *dev;
 
