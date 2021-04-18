@@ -7,7 +7,6 @@
 
 #include <linux/module.h>
 
-#include "imx8-common.h"
 #include "imx8-isi-hw.h"
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");
