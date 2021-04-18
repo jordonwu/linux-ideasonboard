@@ -1208,8 +1208,8 @@ static const struct v4l2_file_operations mxc_isi_capture_fops = {
 	.mmap		= vb2_fop_mmap,
 };
 
-static int mxc_isi_register_cap_device(struct mxc_isi_pipe *pipe,
-				       struct v4l2_device *v4l2_dev)
+static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
+				  struct v4l2_device *v4l2_dev)
 {
 	struct video_device *vdev = &pipe->video.vdev;
 	struct vb2_queue *q = &pipe->video.vb2_q;
@@ -1289,6 +1289,21 @@ err_me_cleanup:
 	media_entity_cleanup(&vdev->entity);
 err_free_ctx:
 	return ret;
+}
+
+static void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
+{
+	struct video_device *vdev = &pipe->video.vdev;
+
+	mutex_lock(&pipe->lock);
+
+	if (video_is_registered(vdev)) {
+		video_unregister_device(vdev);
+		mxc_isi_ctrls_delete(pipe);
+		media_entity_cleanup(&vdev->entity);
+	}
+
+	mutex_unlock(&pipe->lock);
 }
 
 /* -----------------------------------------------------------------------------
@@ -1525,7 +1540,7 @@ static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
-	ret = mxc_isi_register_cap_device(pipe, sd->v4l2_dev);
+	ret = mxc_isi_video_register(pipe, sd->v4l2_dev);
 	if (ret < 0)
 		return ret;
 
@@ -1535,21 +1550,13 @@ static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct video_device *vdev;
 
 	if (!pipe)
 		return;
 
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
-	mutex_lock(&pipe->lock);
-	vdev = &pipe->video.vdev;
-	if (video_is_registered(vdev)) {
-		video_unregister_device(vdev);
-		mxc_isi_ctrls_delete(pipe);
-		media_entity_cleanup(&vdev->entity);
-	}
-	mutex_unlock(&pipe->lock);
+	mxc_isi_video_unregister(pipe);
 }
 
 static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
