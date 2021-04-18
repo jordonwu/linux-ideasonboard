@@ -62,16 +62,7 @@
 #define MXC_ISI_SD_PAD_SINK_PARALLEL_CSI	9
 #define MXC_ISI_SD_PADS_NUM			10
 
-/* MIPI CSI PADS */
-#define MXC_MIPI_CSI2_PAD_SINK			0
-#define MXC_MIPI_CSI2_PAD_SOURCE		1
-
-/* Parallel CSI PADS */
-#define MXC_PARALLEL_CSI_PAD_SOURCE		0
-#define MXC_PARALLEL_CSI_PAD_SINK		1
-#define MXC_PARALLEL_CSI_PADS_NUM		2
-
-#define ISI_2K		2048
+#define ISI_2K			2048
 
 #define MXC_ISI_DRIVER_NAME	"mxc-isi"
 #define MXC_ISI_CAPTURE		"mxc-isi-cap"
