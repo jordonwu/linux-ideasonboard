@@ -146,7 +146,7 @@ enum mxc_isi_in_fmt {
 	MXC_ISI_IN_FMT_BGR8P	= 0x0,
 };
 
-struct mxc_isi_fmt {
+struct mxc_isi_format_info {
 	u32	mbus_code;
 	u32	fourcc;
 	u32	color;
@@ -200,7 +200,7 @@ struct mxc_isi_frame {
 	u32	height;
 	unsigned int	sizeimage[MXC_MAX_PLANES];
 	unsigned int	bytesperline[MXC_MAX_PLANES];
-	const struct mxc_isi_fmt	*fmt;
+	const struct mxc_isi_format_info *info;
 };
 
 struct mxc_isi_roi_alpha {
