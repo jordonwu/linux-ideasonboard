@@ -31,7 +31,7 @@ static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 {
 	struct mxc_isi_dev *mxc_isi = priv;
 	struct device *dev = &mxc_isi->pdev->dev;
-	struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
+	const struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
 	unsigned long flags;
 	u32 status;
 
@@ -309,7 +309,7 @@ static const struct soc_device_attribute imx8_soc[] = {
 };
 
 /* For i.MX8QM/QXP B0 ISI IER version */
-static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v0 = {
+static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v0 = {
 	.oflw_y_buf_en = { .offset = 16, .mask = 0x10000  },
 	.oflw_u_buf_en = { .offset = 19, .mask = 0x80000  },
 	.oflw_v_buf_en = { .offset = 22, .mask = 0x400000 },
@@ -324,14 +324,14 @@ static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v0 = {
 };
 
 /* Panic will assert when the buffers are 50% full */
-static struct mxc_isi_set_thd mxc_imx8_isi_thd_v0 = {
+static const struct mxc_isi_set_thd mxc_imx8_isi_thd_v0 = {
 	.panic_set_thd_y = { .mask = 0x03, .offset = 0, .threshold = 0x2 },
 	.panic_set_thd_u = { .mask = 0x18, .offset = 3, .threshold = 0x2 },
 	.panic_set_thd_v = { .mask = 0xC0, .offset = 6, .threshold = 0x2 },
 };
 
 /* For i.MX8QXP C0 and i.MX8MN ISI IER version */
-static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v1 = {
+static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v1 = {
 	.oflw_y_buf_en = { .offset = 19, .mask = 0x80000  },
 	.oflw_u_buf_en = { .offset = 21, .mask = 0x200000 },
 	.oflw_v_buf_en = { .offset = 23, .mask = 0x800000 },
@@ -342,7 +342,7 @@ static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v1 = {
 };
 
 /* For i.MX8MP ISI IER version */
-static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v2 = {
+static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v2 = {
 	.oflw_y_buf_en = { .offset = 18, .mask = 0x40000  },
 	.oflw_u_buf_en = { .offset = 20, .mask = 0x100000 },
 	.oflw_v_buf_en = { .offset = 22, .mask = 0x400000 },
@@ -353,13 +353,13 @@ static struct mxc_isi_ier_reg mxc_imx8_isi_ier_v2 = {
 };
 
 /* Panic will assert when the buffers are 50% full */
-static struct mxc_isi_set_thd mxc_imx8_isi_thd_v1 = {
+static const struct mxc_isi_set_thd mxc_imx8_isi_thd_v1 = {
 	.panic_set_thd_y = { .mask = 0x0000F, .offset = 0,  .threshold = 0x7 },
 	.panic_set_thd_u = { .mask = 0x00F00, .offset = 8,  .threshold = 0x7 },
 	.panic_set_thd_v = { .mask = 0xF0000, .offset = 16, .threshold = 0x7 },
 };
 
-static struct mxc_isi_chan_src mxc_imx8_chan_src = {
+static const struct mxc_isi_chan_src mxc_imx8_chan_src = {
 	.src_dc0   = 0,
 	.src_dc1   = 1,
 	.src_mipi0 = 2,
@@ -373,7 +373,7 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 	{ .id = NULL },
 };
 
-static struct mxc_isi_plat_data mxc_imx8_data_v0 = {
+static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
@@ -382,7 +382,7 @@ static struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.buf_active_reverse = false,
 };
 
-static struct mxc_isi_plat_data mxc_imx8_data_v1 = {
+static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -391,7 +391,7 @@ static struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.buf_active_reverse = true,
 };
 
-static struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
+static const struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
 	.src_mipi0 = 0,
 	.src_mipi1 = 1,
 	/* For i.MX8MP */
@@ -405,7 +405,7 @@ static const struct clk_bulk_data mxc_imx8mn_clks[] = {
 	{ .id = "disp_apb_root" },
 };
 
-static struct mxc_isi_plat_data mxc_imx8mn_data = {
+static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -414,7 +414,7 @@ static struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.buf_active_reverse = false,
 };
 
-static struct mxc_isi_plat_data mxc_imx8mp_data = {
+static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v2,
 	.set_thd  = &mxc_imx8_isi_thd_v1,

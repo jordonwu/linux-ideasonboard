@@ -221,9 +221,9 @@ struct mxc_isi_set_thd {
 };
 
 struct mxc_isi_plat_data {
-	struct mxc_isi_chan_src *chan_src;
-	struct mxc_isi_ier_reg  *ier_reg;
-	struct mxc_isi_set_thd *set_thd;
+	const struct mxc_isi_chan_src *chan_src;
+	const struct mxc_isi_ier_reg  *ier_reg;
+	const struct mxc_isi_set_thd *set_thd;
 	const struct clk_bulk_data *clks;
 	unsigned int num_clks;
 	bool buf_active_reverse;
