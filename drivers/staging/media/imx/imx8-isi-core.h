@@ -28,6 +28,7 @@
 
 #include <media/media-device.h>
 #include <media/media-entity.h>
+#include <media/v4l2-async.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-ioctl.h>
@@ -312,6 +313,11 @@ struct mxc_isi_dev {
 
 	u32 interface[MAX_PORTS];
 	int id;
+
+	struct media_device media_dev;
+	struct v4l2_device v4l2_dev;
+	struct v4l2_async_notifier notifier;
+	struct list_head asds;
 
 	unsigned int hflip:1;
 	unsigned int vflip:1;
