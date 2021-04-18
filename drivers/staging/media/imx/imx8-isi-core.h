@@ -101,7 +101,7 @@ enum mxc_isi_in_fmt {
 };
 
 struct mxc_isi_fmt {
-	char	*name;
+	const char	*name;
 	u32	mbus_code;
 	u32	fourcc;
 	u32	color;
@@ -160,7 +160,7 @@ struct mxc_isi_frame {
 	u32	height;
 	unsigned int	sizeimage[MXC_MAX_PLANES];
 	unsigned int	bytesperline[MXC_MAX_PLANES];
-	struct mxc_isi_fmt	*fmt;
+	const struct mxc_isi_fmt	*fmt;
 };
 
 struct mxc_isi_roi_alpha {
