@@ -146,12 +146,18 @@ enum mxc_isi_in_fmt {
 	MXC_ISI_IN_FMT_BGR8P	= 0x0,
 };
 
+enum mxc_isi_colorspace {
+	MXC_ISI_CS_NONE,
+	MXC_ISI_CS_RGB,
+	MXC_ISI_CS_YUV,
+};
+
 struct mxc_isi_format_info {
 	u32	mbus_code;
 	u32	fourcc;
 	u32	color;
 	u16	memplanes;
-	u8	colorspace;
+	enum mxc_isi_colorspace colorspace;
 	u8	depth[MXC_MAX_PLANES];
 	u16	mdataplanes;
 	u16	flags;
