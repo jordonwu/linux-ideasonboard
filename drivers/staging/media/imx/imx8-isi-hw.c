@@ -20,7 +20,7 @@ MODULE_VERSION("1.0");
 #ifdef DEBUG
 void dump_isi_regs(struct mxc_isi_dev *mxc_isi)
 {
-	struct device *dev = &mxc_isi->pdev->dev;
+	struct device *dev = mxc_isi->dev;
 	struct {
 		u32 offset;
 		const char *const name;
@@ -257,7 +257,7 @@ void mxc_isi_channel_source_config(struct mxc_isi_dev *mxc_isi)
 		val |= (CHNL_CTRL_SRC_TYPE_MEMORY << CHNL_CTRL_SRC_TYPE_OFFSET);
 		break;
 	default:
-		dev_err(&mxc_isi->pdev->dev, "invalid interface\n");
+		dev_err(mxc_isi->dev, "invalid interface\n");
 		break;
 	}
 
@@ -478,11 +478,11 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *mxc_isi,
 	    dst_f->width == src_f->width) {
 		mxc_isi->scale = 0;
 		mxc_isi_channel_clear_scaling(mxc_isi);
-		dev_dbg(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
+		dev_dbg(mxc_isi->dev, "%s: no scale\n", __func__);
 		return;
 	}
 
-	dev_info(&mxc_isi->pdev->dev, "input_size(%d,%d), output_size(%d,%d)\n",
+	dev_info(mxc_isi->dev, "input_size(%d,%d), output_size(%d,%d)\n",
 		 src_f->width, src_f->height, dst_f->width, dst_f->height);
 
 	mxc_isi->scale = 1;

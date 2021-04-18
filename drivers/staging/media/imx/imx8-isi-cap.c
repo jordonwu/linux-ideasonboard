@@ -339,7 +339,7 @@ static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
  */
 static int mxc_isi_pipeline_enable(struct mxc_isi_cap_dev *isi_cap, bool enable)
 {
-	struct device *dev = &isi_cap->pdev->dev;
+	struct device *dev = isi_cap->dev;
 	struct v4l2_subdev *src_sd;
 	int ret;
 
@@ -384,7 +384,7 @@ static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
-	struct device *dev = &isi_cap->pdev->dev;
+	struct device *dev = isi_cap->dev;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
 
@@ -455,7 +455,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 		return -EINVAL;
 
 	for (i = 0; i < fmt->memplanes; i++)
-		alloc_devs[i] = &isi_cap->pdev->dev;
+		alloc_devs[i] = isi_cap->dev;
 
 	wh = dst_f->width * dst_f->height;
 
@@ -468,7 +468,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 			size >>= 1;
 		sizes[i] = max_t(u32, size, dst_f->sizeimage[i]);
 	}
-	dev_dbg(&isi_cap->pdev->dev, "%s, buf_n=%d, size=%d\n",
+	dev_dbg(isi_cap->dev, "%s, buf_n=%d, size=%d\n",
 		__func__, *num_buffers, sizes[0]);
 
 	return 0;
@@ -481,7 +481,7 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	int i;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	if (!isi_cap->dst_f.fmt)
 		return -EINVAL;
@@ -526,7 +526,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	unsigned long flags;
 	int i, j;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	if (count < 2)
 		return -ENOBUFS;
@@ -538,22 +538,22 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	for (i = 0; i < isi_cap->pix.num_planes; i++) {
 		isi_cap->discard_size[i] = isi_cap->dst_f.sizeimage[i];
 		isi_cap->discard_buffer[i] =
-			dma_alloc_coherent(&isi_cap->pdev->dev,
+			dma_alloc_coherent(isi_cap->dev,
 					   PAGE_ALIGN(isi_cap->discard_size[i]),
 					   &isi_cap->discard_buffer_dma[i],
 					   GFP_DMA | GFP_KERNEL);
 		if (!isi_cap->discard_buffer[i]) {
 			for (j = 0; j < i; j++) {
-				dma_free_coherent(&isi_cap->pdev->dev,
+				dma_free_coherent(isi_cap->dev,
 						  PAGE_ALIGN(isi_cap->discard_size[j]),
 						  isi_cap->discard_buffer[j],
 						  isi_cap->discard_buffer_dma[j]);
-				dev_err(&isi_cap->pdev->dev,
+				dev_err(isi_cap->dev,
 					"alloc dma buffer(%d) fail\n", j);
 			}
 			return -ENOMEM;
 		}
-		dev_dbg(&isi_cap->pdev->dev,
+		dev_dbg(isi_cap->dev,
 			"%s: num_plane=%d discard_size=%d discard_buffer=%p\n"
 			, __func__, i,
 			PAGE_ALIGN((int)isi_cap->discard_size[i]),
@@ -600,7 +600,7 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 	unsigned long flags;
 	int i;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	mxc_isi_channel_disable(mxc_isi);
 
@@ -636,7 +636,7 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 	spin_unlock_irqrestore(&isi_cap->slock, flags);
 
 	for (i = 0; i < isi_cap->pix.num_planes; i++)
-		dma_free_coherent(&isi_cap->pdev->dev,
+		dma_free_coherent(isi_cap->dev,
 				  PAGE_ALIGN(isi_cap->discard_size[i]),
 				  isi_cap->discard_buffer[i],
 				  isi_cap->discard_buffer_dma[i]);
@@ -666,7 +666,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	unsigned long flags;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
@@ -682,7 +682,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 
 	default:
-		dev_err(&isi_cap->pdev->dev,
+		dev_err(isi_cap->dev,
 			"%s: Not support %d CID\n", __func__, ctrl->id);
 		return -EINVAL;
 	}
@@ -749,7 +749,7 @@ static int mxc_isi_capture_open(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
-	struct device *dev = &isi_cap->pdev->dev;
+	struct device *dev = isi_cap->dev;
 	int ret = -EBUSY;
 
 	mutex_lock(&isi_cap->lock);
@@ -788,7 +788,7 @@ static int mxc_isi_capture_release(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
-	struct device *dev = &isi_cap->pdev->dev;
+	struct device *dev = isi_cap->dev;
 	int ret = -1;
 
 	if (!isi_cap->is_link_setup)
@@ -836,7 +836,7 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 	strlcpy(cap->driver, MXC_ISI_CAPTURE, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_CAPTURE, sizeof(cap->card));
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%d",
-		 dev_name(&isi_cap->pdev->dev), isi_cap->id);
+		 dev_name(isi_cap->dev), isi_cap->id);
 
 	cap->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE;
 	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
@@ -850,7 +850,7 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	fmt = mxc_isi_find_format(NULL, f->index);
 	if (!fmt)
@@ -871,7 +871,7 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	int i;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	pix->width = dst_f->o_width;
 	pix->height = dst_f->o_height;
@@ -896,7 +896,7 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 	const struct mxc_isi_fmt *fmt;
 	int i;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
 		fmt = &mxc_isi_out_formats[i];
@@ -966,7 +966,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 	set_frame_bounds(src_f, src_fmt.format.width, src_fmt.format.height);
 
 	if (dst_f->width > src_f->width || dst_f->height > src_f->height) {
-		dev_err(&isi_cap->pdev->dev,
+		dev_err(isi_cap->dev,
 			"%s: src:(%d,%d), dst:(%d,%d) Not support upscale\n",
 			__func__,
 			src_f->width, src_f->height,
@@ -996,7 +996,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	 * Step5: Update mxc isi channel configuration.
 	 */
 
-	dev_dbg(&isi_cap->pdev->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
+	dev_dbg(isi_cap->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
 	if (vb2_is_busy(&isi_cap->vb2_q))
 		return -EBUSY;
 
@@ -1008,7 +1008,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	}
 
 	if (i >= ARRAY_SIZE(mxc_isi_out_formats)) {
-		dev_dbg(&isi_cap->pdev->dev,
+		dev_dbg(isi_cap->dev,
 			"format(%.4s) is not support!\n", (char *)&pix->pixelformat);
 		return -EINVAL;
 	}
@@ -1078,7 +1078,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	int ret;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	ret = mxc_isi_config_parm(isi_cap);
 	if (ret < 0)
@@ -1102,7 +1102,7 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	int ret;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	mxc_isi_pipeline_enable(isi_cap, 0);
 	mxc_isi_channel_disable(mxc_isi);
@@ -1119,7 +1119,7 @@ static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct mxc_isi_frame *f = &isi_cap->src_f;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
@@ -1173,7 +1173,7 @@ static int mxc_isi_cap_s_selection(struct file *file, void *fh,
 	struct v4l2_rect rect = s->r;
 	unsigned long flags;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
@@ -1220,7 +1220,7 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	fsize->stepwise.step_width = 1;
 	fsize->stepwise.step_height = 1;
 
-	parent = of_get_parent(isi_cap->pdev->dev.of_node);
+	parent = of_get_parent(isi_cap->dev->of_node);
 	if (of_device_is_compatible(parent, "fsl,imx8mp-isi") &&
 	    isi_cap->id == 1)
 		fsize->stepwise.min_height /= 2;
@@ -1330,7 +1330,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 
-	parent = of_get_parent(isi_cap->pdev->dev.of_node);
+	parent = of_get_parent(isi_cap->dev->of_node);
 	if (of_device_is_compatible(parent, "fsl,imx8mn-isi") &&
 	    mf->width > ISI_2K)
 		return -EINVAL;
@@ -1361,7 +1361,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	set_frame_bounds(dst_f, mf->width, mf->height);
 	mutex_unlock(&isi_cap->lock);
 
-	dev_dbg(&isi_cap->pdev->dev, "pad%d: code: 0x%x, %dx%d",
+	dev_dbg(isi_cap->dev, "pad%d: code: 0x%x, %dx%d",
 		fmt->pad, mf->code, mf->width, mf->height);
 
 	return 0;
@@ -1411,7 +1411,7 @@ static int mxc_isi_subdev_get_selection(struct v4l2_subdev *sd,
 		r->height = f->height;
 	}
 
-	dev_dbg(&isi_cap->pdev->dev,
+	dev_dbg(isi_cap->dev,
 		"%s, target %#x: l:%d, t:%d, %dx%d, f_w: %d, f_h: %d",
 		__func__, sel->pad, r->left, r->top, r->width, r->height,
 		f->c_width, f->c_height);
@@ -1453,7 +1453,7 @@ static int mxc_isi_subdev_set_selection(struct v4l2_subdev *sd,
 		spin_unlock_irqrestore(&isi_cap->slock, flags);
 	}
 
-	dev_dbg(&isi_cap->pdev->dev, "%s, target %#x: (%d,%d)/%dx%d", __func__,
+	dev_dbg(isi_cap->dev, "%s, target %#x: (%d,%d)/%dx%d", __func__,
 		sel->target, r->left, r->top, r->width, r->height);
 
 	mutex_unlock(&isi_cap->lock);
@@ -1480,7 +1480,7 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 	struct vb2_queue *q = &isi_cap->vb2_q;
 	int ret = -ENOMEM;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", isi_cap->id);
 
@@ -1564,7 +1564,7 @@ static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 	if (!isi_cap)
 		return -ENXIO;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	ret = mxc_isi_register_cap_device(isi_cap, sd->v4l2_dev);
 	if (ret < 0)
@@ -1581,7 +1581,7 @@ static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
 	if (!isi_cap)
 		return;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(isi_cap->dev, "%s\n", __func__);
 
 	mutex_lock(&isi_cap->lock);
 	vdev = &isi_cap->vdev;
@@ -1601,11 +1601,10 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 int isi_cap_probe(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
-	struct platform_device *pdev = mxc_isi->pdev;
 	struct v4l2_subdev *sd;
 	int ret;
 
-	isi_cap->pdev = pdev;
+	isi_cap->dev = mxc_isi->dev;
 	isi_cap->id = mxc_isi->id;
 	isi_cap->mxc_isi = mxc_isi;
 
@@ -1641,7 +1640,7 @@ int isi_cap_probe(struct mxc_isi_dev *mxc_isi)
 
 	v4l2_set_subdevdata(sd, isi_cap);
 
-	sd->fwnode = of_fwnode_handle(pdev->dev.of_node);
+	sd->fwnode = of_fwnode_handle(isi_cap->dev->of_node);
 
 	return 0;
 }
