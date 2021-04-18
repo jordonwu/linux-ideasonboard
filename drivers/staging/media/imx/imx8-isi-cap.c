@@ -640,7 +640,7 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 				  isi_cap->discard_buffer_dma[i]);
 }
 
-static struct vb2_ops mxc_cap_vb2_qops = {
+static const struct vb2_ops mxc_cap_vb2_qops = {
 	.queue_setup		= cap_vb2_queue_setup,
 	.buf_prepare		= cap_vb2_buffer_prepare,
 	.buf_queue		= cap_vb2_buffer_queue,
@@ -1509,7 +1509,7 @@ static int mxc_isi_subdev_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
+static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
 	.enum_mbus_code = mxc_isi_subdev_enum_mbus_code,
 	.get_selection  = mxc_isi_subdev_get_selection,
 	.set_selection  = mxc_isi_subdev_set_selection,
@@ -1517,7 +1517,7 @@ static struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
 	.set_fmt = mxc_isi_subdev_set_fmt,
 };
 
-static struct v4l2_subdev_ops mxc_isi_subdev_ops = {
+static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
 	.pad = &mxc_isi_subdev_pad_ops,
 };
 
