@@ -31,7 +31,7 @@
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_cap_dev, sd)
 
-struct mxc_isi_fmt mxc_isi_out_formats[] = {
+const struct mxc_isi_fmt mxc_isi_out_formats[] = {
 	{
 		.name		= "Y8-RAW",
 		.fourcc		= V4L2_PIX_FMT_GREY,
@@ -230,7 +230,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 /*
  * Pixel link input format
  */
-struct mxc_isi_fmt mxc_isi_src_formats[] = {
+const struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	{
 		.name		= "RGB32",
 		.fourcc		= V4L2_PIX_FMT_RGB32,
@@ -246,7 +246,7 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	}
 };
 
-struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
+const struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
 {
 	return &mxc_isi_out_formats[index];
 }
@@ -254,9 +254,9 @@ struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
 /*
  * lookup mxc_isi color format by fourcc or media bus format
  */
-struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat, int index)
+const struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat, int index)
 {
-	struct mxc_isi_fmt *fmt, *def_fmt = NULL;
+	const struct mxc_isi_fmt *fmt, *def_fmt = NULL;
 	unsigned int i;
 	int id = 0;
 
@@ -274,7 +274,7 @@ struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat, int index)
 	return def_fmt;
 }
 
-struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
+const struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
 {
 	u32 index;
 
@@ -450,7 +450,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 {
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
-	struct mxc_isi_fmt *fmt = dst_f->fmt;
+	const struct mxc_isi_fmt *fmt = dst_f->fmt;
 	unsigned long wh;
 	int i;
 
@@ -851,7 +851,7 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 				       struct v4l2_fmtdesc *f)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_fmt *fmt;
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
 
@@ -896,7 +896,7 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_fmt *fmt;
 	int i;
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
@@ -986,7 +986,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
-	struct mxc_isi_fmt *fmt;
+	const struct mxc_isi_fmt *fmt;
 	int bpl;
 	int i;
 
@@ -1208,8 +1208,8 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 				       struct v4l2_frmsizeenum *fsize)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	const struct mxc_isi_fmt *fmt;
 	struct device_node *parent;
-	struct mxc_isi_fmt *fmt;
 
 	fmt = mxc_isi_find_format(&fsize->pixel_format, 0);
 	if (!fmt || fmt->fourcc != fsize->pixel_format)
@@ -1365,7 +1365,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	struct device_node *parent;
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
-	struct mxc_isi_fmt *out_fmt;
+	const struct mxc_isi_fmt *out_fmt;
 	int i;
 
 	if (fmt->pad < MXC_ISI_SD_PAD_SOURCE_MEM &&
