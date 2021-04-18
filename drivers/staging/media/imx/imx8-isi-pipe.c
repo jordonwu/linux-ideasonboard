@@ -193,28 +193,32 @@ static const struct mxc_isi_fmt mxc_isi_src_formats[] = {
 	}
 };
 
-/*
- * lookup mxc_isi color format by fourcc or media bus format
- */
-static const struct mxc_isi_fmt *
-mxc_isi_find_format(const u32 *pixelformat, int index)
+static const struct mxc_isi_fmt *mxc_isi_format_by_code(u32 code)
 {
-	const struct mxc_isi_fmt *fmt, *def_fmt = NULL;
 	unsigned int i;
-	int id = 0;
-
-	if (index >= (int)ARRAY_SIZE(mxc_isi_out_formats))
-		return NULL;
 
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		fmt = &mxc_isi_out_formats[i];
-		if (pixelformat && fmt->fourcc == *pixelformat)
+		const struct mxc_isi_fmt *fmt = &mxc_isi_out_formats[i];
+
+		if (fmt->mbus_code == code)
 			return fmt;
-		if (index == id)
-			def_fmt = fmt;
-		id++;
 	}
-	return def_fmt;
+
+	return NULL;
+}
+
+static const struct mxc_isi_fmt *mxc_isi_format_by_fourcc(u32 fourcc)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
+		const struct mxc_isi_fmt *fmt = &mxc_isi_out_formats[i];
+
+		if (fmt->fourcc == fourcc)
+			return fmt;
+	}
+
+	return NULL;
 }
 
 static const struct mxc_isi_fmt *mxc_isi_get_src_fmt(u32 code)
@@ -699,17 +703,17 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 }
 
 static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
-				       struct v4l2_fmtdesc *f)
+				struct v4l2_fmtdesc *f)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
 
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
-	fmt = mxc_isi_find_format(NULL, f->index);
-	if (!fmt)
+	if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
 		return -EINVAL;
 
+	fmt = &mxc_isi_out_formats[f->index];
 	f->pixelformat = fmt->fourcc;
 
 	return 0;
@@ -746,21 +750,12 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_fmt *fmt;
-	int i;
 
 	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		fmt = &mxc_isi_out_formats[i];
-		if (fmt->fourcc == pix->pixelformat)
-			break;
-	}
-
-	if (i >= ARRAY_SIZE(mxc_isi_out_formats)) {
-		v4l2_err(&pipe->sd, "format(%.4s) is not support!\n",
-			 (char *)&pix->pixelformat);
+	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
+	if (!fmt)
 		return -EINVAL;
-	}
 
 	if (pix->width <= 0 || pix->height <= 0) {
 		v4l2_err(&pipe->sd, "%s, W/H=(%d, %d) is not valid\n"
@@ -853,17 +848,9 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 		return -EBUSY;
 
 	/* Check out put format */
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		fmt = &mxc_isi_out_formats[i];
-		if (pix && fmt->fourcc == pix->pixelformat)
-			break;
-	}
-
-	if (i >= ARRAY_SIZE(mxc_isi_out_formats)) {
-		dev_dbg(pipe->isi->dev,
-			"format(%.4s) is not support!\n", (char *)&pix->pixelformat);
+	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
+	if (!fmt)
 		return -EINVAL;
-	}
 
 	/* update out put frame size and formate */
 	if (pix->height <= 0 || pix->width <= 0)
@@ -1059,8 +1046,8 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
 
-	fmt = mxc_isi_find_format(&fsize->pixel_format, 0);
-	if (!fmt || fmt->fourcc != fsize->pixel_format)
+	fmt = mxc_isi_format_by_fourcc(fsize->pixel_format);
+	if (!fmt)
 		return -EINVAL;
 
 	fsize->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
@@ -1366,23 +1353,16 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 	    vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		out_fmt = &mxc_isi_out_formats[i];
-		if (mf->code == out_fmt->mbus_code)
-			break;
-	}
-	if (i >= ARRAY_SIZE(mxc_isi_out_formats)) {
-		v4l2_err(&pipe->sd,
-			 "%s, format is not support!\n", __func__);
+	out_fmt = mxc_isi_format_by_code(mf->code);
+	if (!out_fmt)
 		return -EINVAL;
-	}
 
 	if (pipe->isi->pdata->model == MXC_ISI_IMX8MN && mf->width > ISI_2K)
 		return -EINVAL;
 
 	mutex_lock(&pipe->lock);
 	/* update out put frame size and formate */
-	dst_f->fmt = &mxc_isi_out_formats[i];
+	dst_f->fmt = out_fmt;
 
 	if (dst_f->fmt->memplanes > 1) {
 		for (i = 0; i < dst_f->fmt->memplanes; i++) {
