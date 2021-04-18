@@ -383,7 +383,7 @@ static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
 
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
-	struct mxc_isi_cap_dev *isi_cap = mxc_isi->isi_cap;
+	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
 	struct device *dev = &isi_cap->pdev->dev;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
@@ -520,7 +520,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
 	unsigned long flags;
@@ -595,7 +595,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 static void cap_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 	int i;
@@ -663,7 +663,7 @@ static inline struct mxc_isi_cap_dev *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_cap_dev *isi_cap = ctrl_to_isi_cap(ctrl);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	unsigned long flags;
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
@@ -748,7 +748,7 @@ static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
 static int mxc_isi_capture_open(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	struct device *dev = &isi_cap->pdev->dev;
 	int ret = -EBUSY;
 
@@ -787,7 +787,7 @@ static int mxc_isi_capture_open(struct file *file)
 static int mxc_isi_capture_release(struct file *file)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	struct device *dev = &isi_cap->pdev->dev;
 	int ret = -1;
 
@@ -1058,7 +1058,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 
 static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
 {
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	int ret;
 
 	ret = mxc_isi_source_fmt_init(isi_cap);
@@ -1075,7 +1075,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type type)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	int ret;
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
@@ -1099,7 +1099,7 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 				 enum v4l2_buf_type type)
 {
 	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
+	struct mxc_isi_dev *mxc_isi = isi_cap->mxc_isi;
 	int ret;
 
 	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
@@ -1648,33 +1648,16 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 	.unregistered = mxc_isi_subdev_unregistered,
 };
 
-static int isi_cap_probe(struct platform_device *pdev)
+int isi_cap_probe(struct mxc_isi_dev *mxc_isi)
 {
-	struct device *dev = &pdev->dev;
-	struct mxc_isi_dev *mxc_isi;
-	struct mxc_isi_cap_dev *isi_cap;
+	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
+	struct platform_device *pdev = mxc_isi->pdev;
 	struct v4l2_subdev *sd;
 	int ret;
 
-	isi_cap = devm_kzalloc(dev, sizeof(*isi_cap), GFP_KERNEL);
-	if (!isi_cap)
-		return -ENOMEM;
-
-	dev->parent = mxc_isi_dev_get_parent(pdev);
-	if (!dev->parent) {
-		dev_info(dev, "deferring %s device registration\n", dev_name(dev));
-		return -EPROBE_DEFER;
-	}
-
-	mxc_isi = mxc_isi_get_hostdata(pdev);
-	if (!mxc_isi) {
-		dev_info(dev, "deferring %s device registration\n", dev_name(dev));
-		return -EPROBE_DEFER;
-	}
-
 	isi_cap->pdev = pdev;
 	isi_cap->id = mxc_isi->id;
-	mxc_isi->isi_cap = isi_cap;
+	isi_cap->mxc_isi = mxc_isi;
 
 	spin_lock_init(&isi_cap->slock);
 	mutex_init(&isi_cap->lock);
@@ -1708,47 +1691,19 @@ static int isi_cap_probe(struct platform_device *pdev)
 	sd->internal_ops = &mxc_isi_capture_sd_internal_ops;
 
 	v4l2_set_subdevdata(sd, isi_cap);
-	platform_set_drvdata(pdev, isi_cap);
 
-	pm_runtime_enable(dev);
-
-	sd->fwnode = of_fwnode_handle(dev->parent->of_node);
+	sd->fwnode = of_fwnode_handle(pdev->dev.of_node);
 	v4l2_async_register_subdev(sd);
 
 	return 0;
 }
 
-static int isi_cap_remove(struct platform_device *pdev)
+void isi_cap_remove(struct mxc_isi_dev *mxc_isi)
 {
-	struct mxc_isi_cap_dev *isi_cap = platform_get_drvdata(pdev);
+	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
 	struct v4l2_subdev *sd = &isi_cap->sd;
 
 	v4l2_async_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
 	v4l2_set_subdevdata(sd, NULL);
-	pm_runtime_disable(&pdev->dev);
-
-	return 0;
 }
-
-static const struct of_device_id isi_cap_of_match[] = {
-	{.compatible = "imx-isi-capture",},
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(of, isi_cap_of_match);
-
-static struct platform_driver isi_cap_driver = {
-	.probe  = isi_cap_probe,
-	.remove = isi_cap_remove,
-	.driver = {
-		.of_match_table = isi_cap_of_match,
-		.name		= "isi-capture",
-	},
-};
-module_platform_driver(isi_cap_driver);
-
-MODULE_AUTHOR("Freescale Semiconductor, Inc.");
-MODULE_DESCRIPTION("IMX8 Image Sensor Interface Capture driver");
-MODULE_LICENSE("GPL");
-MODULE_ALIAS("ISI Capture");
-MODULE_VERSION("1.0");
