@@ -413,7 +413,7 @@ void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi)
 
 void mxc_isi_channel_set_crop(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_frame *src_f = &isi->pipe.src_f;
+	struct mxc_isi_frame *src_f = &isi->pipe.formats[MXC_ISI_SD_PAD_SINK];
 	struct v4l2_rect crop;
 	u32 val, val0, val1, temp;
 
