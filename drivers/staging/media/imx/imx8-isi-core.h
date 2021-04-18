@@ -291,37 +291,41 @@ struct mxc_isi_plat_data {
 	bool buf_active_reverse;
 };
 
-struct mxc_isi_pipe {
-	struct v4l2_subdev  sd;
-	struct video_device vdev;
-	struct vb2_queue    vb2_q;
-	struct v4l2_pix_format_mplane pix;
+struct mxc_isi_video {
+	struct video_device		vdev;
+	struct media_pad		pad;
 
-	struct mxc_isi_dev     *isi;
-	struct mxc_isi_ctrls   ctrls;
-	struct mxc_isi_buffer  buf_discard[2];
+	bool				is_link_setup;
+	struct v4l2_pix_format_mplane	pix;
+	struct mxc_isi_ctrls		ctrls;
 
-	struct media_pad cap_pad;
-	struct media_pad sd_pads[MXC_ISI_SD_PADS_NUM];
-
-	struct list_head out_pending;
-	struct list_head out_active;
-	struct list_head out_discard;
-
-	struct mxc_isi_frame src_f;
-	struct mxc_isi_frame dst_f;
-
-	u32 frame_count;
-	u32 id;
-	bool is_link_setup;
-
-	struct mutex lock;
-	spinlock_t   slock;
+	struct vb2_queue		vb2_q;
+	struct mxc_isi_buffer		buf_discard[2];
+	struct list_head		out_pending;
+	struct list_head		out_active;
+	struct list_head		out_discard;
+	u32				frame_count;
 
 	/* dirty buffer */
-	size_t     discard_size[MXC_MAX_PLANES];
-	void       *discard_buffer[MXC_MAX_PLANES];
-	dma_addr_t discard_buffer_dma[MXC_MAX_PLANES];
+	size_t				discard_size[MXC_MAX_PLANES];
+	void				*discard_buffer[MXC_MAX_PLANES];
+	dma_addr_t			discard_buffer_dma[MXC_MAX_PLANES];
+};
+
+struct mxc_isi_pipe {
+	struct mxc_isi_dev		*isi;
+	u32				id;
+
+	struct v4l2_subdev		sd;
+	struct media_pad		pads[MXC_ISI_SD_PADS_NUM];
+
+	struct mxc_isi_frame		src_f;
+	struct mxc_isi_frame		dst_f;
+
+	struct mxc_isi_video		video;
+
+	struct mutex			lock;
+	spinlock_t			slock;
 };
 
 struct mxc_isi_dev {
