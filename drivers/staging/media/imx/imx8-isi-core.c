@@ -373,13 +373,22 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 	{ .id = NULL },
 };
 
-static struct mxc_isi_plat_data mxc_imx8_data = {
+static struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
 	.clks     = mxc_imx8_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse = false,
+};
+
+static struct mxc_isi_plat_data mxc_imx8_data_v1 = {
+	.chan_src = &mxc_imx8_chan_src,
+	.ier_reg  = &mxc_imx8_isi_ier_v1,
+	.set_thd  = &mxc_imx8_isi_thd_v1,
+	.clks     = mxc_imx8_clks,
+	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
+	.buf_active_reverse = true,
 };
 
 static struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
@@ -417,24 +426,17 @@ static struct mxc_isi_plat_data mxc_imx8mp_data = {
 static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi,
 			     const struct soc_device_attribute *data)
 {
-	struct mxc_isi_ier_reg *ier_reg = mxc_isi->pdata->ier_reg;
-	struct mxc_isi_set_thd *set_thd = mxc_isi->pdata->set_thd;
 	const struct soc_device_attribute *match;
 
 	match = soc_device_match(data);
 	if (!match)
 		return -EINVAL;
 
-	mxc_isi->buf_active_reverse = mxc_isi->pdata->buf_active_reverse;
-
 	if (!strcmp(match->soc_id, "i.MX8QXP") ||
 	    !strcmp(match->soc_id, "i.MX8QM")) {
 		/* Chip C0 */
-		if (strcmp(match->revision, "1.1") > 0) {
-			memcpy(ier_reg, &mxc_imx8_isi_ier_v1, sizeof(*ier_reg));
-			memcpy(set_thd, &mxc_imx8_isi_thd_v1, sizeof(*set_thd));
-			mxc_isi->buf_active_reverse = true;
-		}
+		if (strcmp(match->revision, "1.1") <= 0)
+			mxc_isi->pdata = &mxc_imx8_data_v0;
 	}
 
 	return 0;
@@ -692,7 +694,7 @@ static int mxc_isi_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id mxc_isi_of_match[] = {
-	{ .compatible = "fsl,imx8-isi", .data = &mxc_imx8_data },
+	{ .compatible = "fsl,imx8-isi", .data = &mxc_imx8_data_v1 },
 	{ .compatible = "fsl,imx8mn-isi", .data = &mxc_imx8mn_data },
 	{ .compatible = "fsl,imx8mp-isi", .data = &mxc_imx8mp_data },
 	{ /* sentinel */ },
