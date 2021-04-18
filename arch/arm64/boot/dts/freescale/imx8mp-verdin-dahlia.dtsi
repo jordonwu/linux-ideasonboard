@@ -31,10 +31,6 @@
 	power-supply = <&reg_3p3v>;
 };
 
-&cameradev {
-	status = "okay";
-};
-
 /* Verdin SPI_1 */
 &ecspi1 {
 	status = "okay";
@@ -124,10 +120,6 @@
 
 &isi_0 {
 	status = "okay";
-
-	cap_device {
-		status = "okay";
-	};
 };
 
 &mipi_csi_0 {
