@@ -282,7 +282,14 @@ struct mxc_isi_set_thd {
 	struct mxc_isi_panic_thd panic_set_thd_v;
 };
 
+enum model {
+	MXC_ISI_IMX8,
+	MXC_ISI_IMX8MN,
+	MXC_ISI_IMX8MP,
+};
+
 struct mxc_isi_plat_data {
+	enum model model;
 	const struct mxc_isi_chan_src *chan_src;
 	const struct mxc_isi_ier_reg  *ier_reg;
 	const struct mxc_isi_set_thd *set_thd;

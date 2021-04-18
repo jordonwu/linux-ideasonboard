@@ -1058,7 +1058,6 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
-	struct device_node *parent;
 
 	fmt = mxc_isi_find_format(&fsize->pixel_format, 0);
 	if (!fmt || fmt->fourcc != fsize->pixel_format)
@@ -1072,9 +1071,7 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	fsize->stepwise.step_width = 1;
 	fsize->stepwise.step_height = 1;
 
-	parent = of_get_parent(pipe->isi->dev->of_node);
-	if (of_device_is_compatible(parent, "fsl,imx8mp-isi") &&
-	    pipe->id == 1)
+	if (pipe->isi->pdata->model == MXC_ISI_IMX8MP && pipe->id == 1)
 		fsize->stepwise.min_height /= 2;
 
 	return 0;
@@ -1360,7 +1357,6 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct device_node *parent;
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &pipe->dst_f;
 	const struct mxc_isi_fmt *out_fmt;
@@ -1381,9 +1377,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 
-	parent = of_get_parent(pipe->isi->dev->of_node);
-	if (of_device_is_compatible(parent, "fsl,imx8mn-isi") &&
-	    mf->width > ISI_2K)
+	if (pipe->isi->pdata->model == MXC_ISI_IMX8MN && mf->width > ISI_2K)
 		return -EINVAL;
 
 	mutex_lock(&pipe->lock);
