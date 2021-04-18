@@ -435,8 +435,6 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 	struct mxc_isi_frame *dst_f = &pipe->dst_f;
 	int i;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
-
 	if (!pipe->dst_f.fmt)
 		return -EINVAL;
 
@@ -479,8 +477,6 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	struct vb2_buffer *vb2;
 	unsigned long flags;
 	int i, j;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	if (count < 2)
 		return -ENOBUFS;
@@ -554,8 +550,6 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 	unsigned long flags;
 	int i;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
-
 	mxc_isi_channel_disable(isi);
 
 	spin_lock_irqsave(&pipe->slock, flags);
@@ -621,8 +615,6 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct mxc_isi_pipe *pipe = ctrl_to_isi_cap(ctrl);
 	struct mxc_isi_dev *isi = pipe->isi;
 	unsigned long flags;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
@@ -705,10 +697,7 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 				struct v4l2_fmtdesc *f)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
 		return -EINVAL;
@@ -726,8 +715,6 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &pipe->dst_f;
 	int i;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	pix->width = dst_f->o_width;
 	pix->height = dst_f->o_height;
@@ -750,8 +737,6 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_fmt *fmt;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
 	if (!fmt)
@@ -843,7 +828,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	 * Step5: Update mxc isi channel configuration.
 	 */
 
-	dev_dbg(pipe->isi->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
@@ -917,8 +901,6 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *isi = pipe->isi;
 	int ret;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
-
 	ret = mxc_isi_config_parm(pipe);
 	if (ret < 0)
 		return ret;
@@ -941,8 +923,6 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 	struct mxc_isi_dev *isi = pipe->isi;
 	int ret;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
-
 	mxc_isi_pipeline_enable(pipe, 0);
 	mxc_isi_channel_disable(isi);
 	ret = vb2_ioctl_streamoff(file, priv, type);
@@ -957,8 +937,6 @@ static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct mxc_isi_frame *f = &pipe->src_f;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
@@ -1012,7 +990,6 @@ static int mxc_isi_cap_s_selection(struct file *file, void *fh,
 	struct v4l2_rect rect = s->r;
 	unsigned long flags;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
 		return -EINVAL;
 
@@ -1199,7 +1176,6 @@ static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	struct vb2_queue *q = &pipe->video.vb2_q;
 	int ret = -ENOMEM;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
 
@@ -1506,8 +1482,6 @@ static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 	if (!pipe)
 		return -ENXIO;
 
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
-
 	ret = mxc_isi_video_register(pipe, sd->v4l2_dev);
 	if (ret < 0)
 		return ret;
@@ -1521,8 +1495,6 @@ static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
 
 	if (!pipe)
 		return;
-
-	dev_dbg(pipe->isi->dev, "%s\n", __func__);
 
 	mxc_isi_video_unregister(pipe);
 }
