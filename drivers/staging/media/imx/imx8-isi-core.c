@@ -428,9 +428,12 @@ static const struct soc_device_attribute imx8_soc[] = {
 	}
 };
 
-static int mxc_isi_soc_match(struct mxc_isi_dev *mxc_isi)
+static int mxc_isi_get_platform_data(struct mxc_isi_dev *mxc_isi)
+
 {
 	const struct soc_device_attribute *match;
+
+	mxc_isi->pdata = of_device_get_match_data(&mxc_isi->pdev->dev);
 
 	match = soc_device_match(imx8_soc);
 	if (!match)
@@ -578,15 +581,9 @@ static int mxc_isi_probe(struct platform_device *pdev)
 
 	mxc_isi->pdev = pdev;
 
-	mxc_isi->pdata = of_device_get_match_data(&pdev->dev);
-	if (!mxc_isi->pdata) {
-		dev_err(dev, "Can't get platform device data\n");
-		return -EINVAL;
-	}
-
-	ret = mxc_isi_soc_match(mxc_isi);
+	ret = mxc_isi_get_platform_data(mxc_isi);
 	if (ret < 0) {
-		dev_err(dev, "Can't match soc version\n");
+		dev_err(dev, "Can't get platform device data\n");
 		return ret;
 	}
 
