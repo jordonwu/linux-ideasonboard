@@ -208,12 +208,6 @@ struct mxc_isi_ier_reg {
 	struct mxc_isi_reg panic_u_buf_en;
 };
 
-struct mxc_isi_dev_ops {
-	int (*clk_get)(struct mxc_isi_dev *mxc_isi);
-	int (*clk_enable)(struct mxc_isi_dev *mxc_isi);
-	void (*clk_disable)(struct mxc_isi_dev *mxc_isi);
-};
-
 struct mxc_isi_panic_thd {
 	u32 mask;
 	u32 offset;
@@ -227,10 +221,11 @@ struct mxc_isi_set_thd {
 };
 
 struct mxc_isi_plat_data {
-	struct mxc_isi_dev_ops *ops;
 	struct mxc_isi_chan_src *chan_src;
 	struct mxc_isi_ier_reg  *ier_reg;
 	struct mxc_isi_set_thd *set_thd;
+	const struct clk_bulk_data *clks;
+	unsigned int num_clks;
 };
 
 struct mxc_isi_cap_dev {
@@ -273,16 +268,9 @@ struct mxc_isi_dev {
 
 	struct platform_device *pdev;
 
-	/* clk for imx8qxp/qm platform */
-	struct clk *clk;
-
-	/* clks for imx8mn platform */
-	struct clk *clk_disp_axi;
-	struct clk *clk_disp_apb;
-	struct clk *clk_root_disp_axi;
-	struct clk *clk_root_disp_apb;
-
 	const struct mxc_isi_plat_data *pdata;
+
+	struct clk_bulk_data *clks;
 
 	struct reset_control *soft_resetn;
 	struct reset_control *clk_enable;
