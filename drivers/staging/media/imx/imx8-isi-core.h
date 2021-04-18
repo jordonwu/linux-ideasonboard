@@ -26,7 +26,6 @@
 #include <media/media-entity.h>
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-ioctl.h>
-#include <media/v4l2-mem2mem.h>
 #include <media/videobuf2-core.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
@@ -41,7 +40,6 @@
 
 #define MXC_ISI_DRIVER_NAME	"mxc-isi"
 #define MXC_ISI_CAPTURE		"mxc-isi-cap"
-#define MXC_ISI_M2M		"mxc-isi-m2m"
 #define MXC_MAX_PLANES		3
 
 struct mxc_isi_dev;
@@ -100,25 +98,6 @@ enum mxc_isi_out_fmt {
 
 enum mxc_isi_in_fmt {
 	MXC_ISI_IN_FMT_BGR8P	= 0x0,
-};
-
-enum mxc_isi_m2m_in_fmt {
-	MXC_ISI_M2M_IN_FMT_BGR8P	= 0x0,
-	MXC_ISI_M2M_IN_FMT_RGB8P,
-	MXC_ISI_M2M_IN_FMT_XRGB8,
-	MXC_ISI_M2M_IN_FMT_RGBX8,
-	MXC_ISI_M2M_IN_FMT_XBGR8,
-	MXC_ISI_M2M_IN_FMT_RGB565,
-	MXC_ISI_M2M_IN_FMT_A2BGR10,
-	MXC_ISI_M2M_IN_FMT_A2RGB10,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P8P,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P10,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P10P,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P12,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P8,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P8P,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P10,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P10P,
 };
 
 struct mxc_isi_fmt {
@@ -195,38 +174,6 @@ struct mxc_isi_buffer {
 	struct frame_addr	paddr;
 	enum mxc_isi_buf_id	id;
 	bool discard;
-};
-
-struct mxc_isi_m2m_dev {
-	struct platform_device	*pdev;
-
-	struct video_device vdev;
-	struct v4l2_device  v4l2_dev;
-	struct v4l2_m2m_dev *m2m_dev;
-	struct v4l2_fh      fh;
-	struct v4l2_pix_format_mplane pix;
-
-	struct list_head	out_active;
-	struct mxc_isi_ctrls	ctrls;
-
-	struct mxc_isi_frame src_f;
-	struct mxc_isi_frame dst_f;
-
-	struct mutex lock;
-	spinlock_t   slock;
-
-	unsigned int aborting;
-	unsigned int frame_count;
-
-	u32 req_cap_buf_num;
-	u32 req_out_buf_num;
-
-	u8 id;
-};
-
-struct mxc_isi_ctx {
-	struct mxc_isi_m2m_dev *isi_m2m;
-	struct v4l2_fh	    fh;
 };
 
 struct mxc_isi_chan_src {
@@ -324,9 +271,6 @@ struct mxc_isi_cap_dev {
 struct mxc_isi_dev {
 	/* Pointer to isi capture child device driver data */
 	struct mxc_isi_cap_dev *isi_cap;
-
-	/* Pointer to isi m2m child device driver data */
-	struct mxc_isi_m2m_dev *isi_m2m;
 
 	struct platform_device *pdev;
 
