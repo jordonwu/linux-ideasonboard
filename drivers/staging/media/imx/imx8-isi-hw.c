@@ -251,18 +251,6 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *mxc_isi,
 }
 EXPORT_SYMBOL_GPL(mxc_isi_channel_set_outbuf);
 
-void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *mxc_isi,
-			struct mxc_isi_buffer *buf)
-{
-	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
-	struct frame_addr *paddr = &buf->paddr;
-
-	/* Only support one plane */
-	paddr->y = vb2_dma_contig_plane_dma_addr(vb2_buf, 0);
-	writel(paddr->y, mxc_isi->regs + CHNL_IN_BUF_ADDR);
-}
-EXPORT_SYMBOL_GPL(mxc_isi_channel_set_m2m_src_addr);
-
 void mxc_isi_channel_sw_reset(struct mxc_isi_dev *mxc_isi)
 {
 	u32 val;
@@ -709,10 +697,12 @@ void mxc_isi_channel_enable(struct mxc_isi_dev *mxc_isi, bool m2m_enabled)
 	mxc_isi_clean_registers(mxc_isi);
 	mxc_isi_enable_irq(mxc_isi);
 
+#if 0
 	if (m2m_enabled) {
 		mxc_isi_m2m_start_read(mxc_isi);
 		return;
 	}
+#endif
 
 	dump_isi_regs(mxc_isi);
 	msleep(300);
@@ -779,58 +769,3 @@ void mxc_isi_clean_irq_status(struct mxc_isi_dev *mxc_isi, u32 val)
 	writel(val, mxc_isi->regs + CHNL_STS);
 }
 EXPORT_SYMBOL_GPL(mxc_isi_clean_irq_status);
-
-void mxc_isi_m2m_config_src(struct mxc_isi_dev *mxc_isi,
-			    struct mxc_isi_frame *src_f)
-{
-	u32 val;
-
-	/* source format */
-	val = readl(mxc_isi->regs + CHNL_MEM_RD_CTRL);
-	val &= ~CHNL_MEM_RD_CTRL_IMG_TYPE_MASK;
-	val |= src_f->fmt->color << CHNL_MEM_RD_CTRL_IMG_TYPE_OFFSET;
-	writel(val, mxc_isi->regs + CHNL_MEM_RD_CTRL);
-
-	/* source image width and height */
-	val = (src_f->width << CHNL_IMG_CFG_WIDTH_OFFSET |
-	       src_f->height << CHNL_IMG_CFG_HEIGHT_OFFSET);
-	writel(val, mxc_isi->regs + CHNL_IMG_CFG);
-
-	/* source pitch */
-	val = src_f->bytesperline[0] << CHNL_IN_BUF_PITCH_LINE_PITCH_OFFSET;
-	writel(val, mxc_isi->regs + CHNL_IN_BUF_PITCH);
-}
-EXPORT_SYMBOL_GPL(mxc_isi_m2m_config_src);
-
-void mxc_isi_m2m_config_dst(struct mxc_isi_dev *mxc_isi,
-			    struct mxc_isi_frame *dst_f)
-{
-	u32 val;
-
-	/* out format */
-	val = readl(mxc_isi->regs + CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
-	val |= dst_f->fmt->color << CHNL_IMG_CTRL_FORMAT_OFFSET;
-	writel(val, mxc_isi->regs + CHNL_IMG_CTRL);
-
-	/* out pitch */
-	val = readl(mxc_isi->regs + CHNL_OUT_BUF_PITCH);
-	val &= ~CHNL_IN_BUF_PITCH_LINE_PITCH_MASK;
-	val |= dst_f->bytesperline[0] << CHNL_OUT_BUF_PITCH_LINE_PITCH_OFFSET;
-	writel(val, mxc_isi->regs + CHNL_OUT_BUF_PITCH);
-}
-EXPORT_SYMBOL_GPL(mxc_isi_m2m_config_dst);
-
-void mxc_isi_m2m_start_read(struct mxc_isi_dev *mxc_isi)
-{
-	u32 val;
-
-	val = readl(mxc_isi->regs + CHNL_MEM_RD_CTRL);
-	val &= ~ CHNL_MEM_RD_CTRL_READ_MEM_MASK;
-	writel(val, mxc_isi->regs + CHNL_MEM_RD_CTRL);
-	udelay(300);
-
-	val |= CHNL_MEM_RD_CTRL_READ_MEM_ENABLE << CHNL_MEM_RD_CTRL_READ_MEM_OFFSET;
-	writel(val, mxc_isi->regs + CHNL_MEM_RD_CTRL);
-}
-EXPORT_SYMBOL_GPL(mxc_isi_m2m_start_read);
