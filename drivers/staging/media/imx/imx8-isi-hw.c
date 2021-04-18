@@ -167,7 +167,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
 	u32 framecount = buf->v4l2_buf.sequence;
 	struct frame_addr *paddr = &buf->paddr;
-	struct mxc_isi_cap_dev *isi_cap;
+	struct mxc_isi_pipe *isi_cap;
 	struct v4l2_pix_format_mplane *pix;
 	int val = 0;
 

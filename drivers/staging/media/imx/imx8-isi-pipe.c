@@ -28,7 +28,7 @@
 
 #include "imx8-isi-hw.h"
 
-#define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_cap_dev, sd)
+#define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
 
 static const struct mxc_isi_fmt mxc_isi_out_formats[] = {
 	{
@@ -283,7 +283,7 @@ static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
 /*
  * mxc_isi_pipeline_enable() - Enable streaming on a pipeline
  */
-static int mxc_isi_pipeline_enable(struct mxc_isi_cap_dev *isi_cap, bool enable)
+static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *isi_cap, bool enable)
 {
 	struct device *dev = isi_cap->isi->dev;
 	struct v4l2_subdev *src_sd;
@@ -329,7 +329,7 @@ static int mxc_isi_update_buf_paddr(struct mxc_isi_buffer *buf, int memplanes)
 
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_cap_dev *isi_cap = &isi->isi_cap;
+	struct mxc_isi_pipe *isi_cap = &isi->isi_cap;
 	struct device *dev = isi_cap->isi->dev;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
@@ -391,7 +391,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 			       unsigned int sizes[],
 			       struct device *alloc_devs[])
 {
-	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
+	struct mxc_isi_pipe *isi_cap = vb2_get_drv_priv(q);
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	const struct mxc_isi_fmt *fmt = dst_f->fmt;
 	unsigned long wh;
@@ -423,7 +423,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *q = vb2->vb2_queue;
-	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
+	struct mxc_isi_pipe *isi_cap = vb2_get_drv_priv(q);
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	int i;
 
@@ -452,7 +452,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 {
 	struct vb2_v4l2_buffer *v4l2_buf = to_vb2_v4l2_buffer(vb2);
 	struct mxc_isi_buffer *buf = to_isi_buffer(v4l2_buf);
-	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(vb2->vb2_queue);
+	struct mxc_isi_pipe *isi_cap = vb2_get_drv_priv(vb2->vb2_queue);
 	unsigned long flags;
 
 	spin_lock_irqsave(&isi_cap->slock, flags);
@@ -465,7 +465,7 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 
 static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
-	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
+	struct mxc_isi_pipe *isi_cap = vb2_get_drv_priv(q);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
@@ -540,7 +540,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 static void cap_vb2_stop_streaming(struct vb2_queue *q)
 {
-	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(q);
+	struct mxc_isi_pipe *isi_cap = vb2_get_drv_priv(q);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
@@ -601,14 +601,14 @@ static const struct vb2_ops mxc_cap_vb2_qops = {
 /*
  * V4L2 controls handling
  */
-static inline struct mxc_isi_cap_dev *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
+static inline struct mxc_isi_pipe *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct mxc_isi_cap_dev, ctrls.handler);
+	return container_of(ctrl->handler, struct mxc_isi_pipe, ctrls.handler);
 }
 
 static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct mxc_isi_cap_dev *isi_cap = ctrl_to_isi_cap(ctrl);
+	struct mxc_isi_pipe *isi_cap = ctrl_to_isi_cap(ctrl);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	unsigned long flags;
 
@@ -641,7 +641,7 @@ static const struct v4l2_ctrl_ops mxc_isi_ctrl_ops = {
 	.s_ctrl = mxc_isi_s_ctrl,
 };
 
-static int mxc_isi_ctrls_create(struct mxc_isi_cap_dev *isi_cap)
+static int mxc_isi_ctrls_create(struct mxc_isi_pipe *isi_cap)
 {
 	struct mxc_isi_ctrls *ctrls = &isi_cap->ctrls;
 	struct v4l2_ctrl_handler *handler = &ctrls->handler;
@@ -661,7 +661,7 @@ static int mxc_isi_ctrls_create(struct mxc_isi_cap_dev *isi_cap)
 	return handler->error;
 }
 
-static void mxc_isi_ctrls_delete(struct mxc_isi_cap_dev *isi_cap)
+static void mxc_isi_ctrls_delete(struct mxc_isi_pipe *isi_cap)
 {
 	struct mxc_isi_ctrls *ctrls = &isi_cap->ctrls;
 
@@ -672,7 +672,7 @@ static void mxc_isi_ctrls_delete(struct mxc_isi_cap_dev *isi_cap)
 	}
 }
 
-static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
+static bool is_entity_link_setup(struct mxc_isi_pipe *isi_cap)
 {
 	struct video_device *vdev = &isi_cap->vdev;
 	struct v4l2_subdev *csi_sd, *sen_sd;
@@ -693,7 +693,7 @@ static bool is_entity_link_setup(struct mxc_isi_cap_dev *isi_cap)
 
 static int mxc_isi_capture_open(struct file *file)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	struct device *dev = isi_cap->isi->dev;
 	int ret = -EBUSY;
@@ -732,7 +732,7 @@ static int mxc_isi_capture_open(struct file *file)
 
 static int mxc_isi_capture_release(struct file *file)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	struct device *dev = isi_cap->isi->dev;
 	int ret = -1;
@@ -777,7 +777,7 @@ static const struct v4l2_file_operations mxc_isi_capture_fops = {
 static int mxc_isi_cap_querycap(struct file *file, void *priv,
 				struct v4l2_capability *cap)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 
 	strlcpy(cap->driver, MXC_ISI_CAPTURE, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_CAPTURE, sizeof(cap->card));
@@ -793,7 +793,7 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 				       struct v4l2_fmtdesc *f)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
 
 	dev_dbg(isi_cap->isi->dev, "%s\n", __func__);
@@ -810,7 +810,7 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 				    struct v4l2_format *f)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	int i;
@@ -835,7 +835,7 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 				      struct v4l2_format *f)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_fmt *fmt;
 	int i;
@@ -864,7 +864,7 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 }
 
 /* Update input frame size and formate  */
-static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
+static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *isi_cap)
 {
 	struct mxc_isi_frame *src_f = &isi_cap->src_f;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
@@ -924,7 +924,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 				    struct v4l2_format *f)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
 	const struct mxc_isi_fmt *fmt;
@@ -1000,7 +1000,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
+static int mxc_isi_config_parm(struct mxc_isi_pipe *isi_cap)
 {
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	int ret;
@@ -1018,7 +1018,7 @@ static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
 static int mxc_isi_cap_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type type)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	int ret;
 
@@ -1042,7 +1042,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 				 enum v4l2_buf_type type)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_dev *isi = isi_cap->isi;
 	int ret;
 
@@ -1060,7 +1060,7 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 static int mxc_isi_cap_g_selection(struct file *file, void *fh,
 				   struct v4l2_selection *s)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_frame *f = &isi_cap->src_f;
 
 	dev_dbg(isi_cap->isi->dev, "%s\n", __func__);
@@ -1112,7 +1112,7 @@ static int enclosed_rectangle(struct v4l2_rect *a, struct v4l2_rect *b)
 static int mxc_isi_cap_s_selection(struct file *file, void *fh,
 				   struct v4l2_selection *s)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	struct mxc_isi_frame *f;
 	struct v4l2_rect rect = s->r;
 	unsigned long flags;
@@ -1148,7 +1148,7 @@ static int mxc_isi_cap_s_selection(struct file *file, void *fh,
 static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 				       struct v4l2_frmsizeenum *fsize)
 {
-	struct mxc_isi_cap_dev *isi_cap = video_drvdata(file);
+	struct mxc_isi_pipe *isi_cap = video_drvdata(file);
 	const struct mxc_isi_fmt *fmt;
 	struct device_node *parent;
 
@@ -1208,7 +1208,7 @@ static int mxc_isi_subdev_get_fmt(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
 				  struct v4l2_subdev_format *fmt)
 {
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *isi_cap = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f;
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 
@@ -1252,7 +1252,7 @@ static int mxc_isi_subdev_set_fmt(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
 				  struct v4l2_subdev_format *fmt)
 {
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *isi_cap = v4l2_get_subdevdata(sd);
 	struct device_node *parent;
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &isi_cap->dst_f;
@@ -1315,7 +1315,7 @@ static int mxc_isi_subdev_get_selection(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_selection *sel)
 {
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *isi_cap = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f = &isi_cap->src_f;
 	struct v4l2_rect *r = &sel->r;
 	struct v4l2_rect *try_sel;
@@ -1368,7 +1368,7 @@ static int mxc_isi_subdev_set_selection(struct v4l2_subdev *sd,
 					struct v4l2_subdev_pad_config *cfg,
 					struct v4l2_subdev_selection *sel)
 {
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *isi_cap = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f = &isi_cap->src_f;
 	struct v4l2_rect *r = &sel->r;
 	struct v4l2_rect *try_sel;
@@ -1417,7 +1417,7 @@ static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
 	.pad = &mxc_isi_subdev_pad_ops,
 };
 
-static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
+static int mxc_isi_register_cap_device(struct mxc_isi_pipe *isi_cap,
 				       struct v4l2_device *v4l2_dev)
 {
 	struct video_device *vdev = &isi_cap->vdev;
@@ -1502,7 +1502,7 @@ err_free_ctx:
 
 static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 {
-	struct mxc_isi_cap_dev *isi_cap = sd_to_cap_dev(sd);
+	struct mxc_isi_pipe *isi_cap = sd_to_cap_dev(sd);
 	int ret;
 
 	if (!isi_cap)
@@ -1519,7 +1519,7 @@ static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
 
 static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
 {
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *isi_cap = v4l2_get_subdevdata(sd);
 	struct video_device *vdev;
 
 	if (!isi_cap)
@@ -1544,7 +1544,7 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 
 int isi_cap_probe(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_cap_dev *isi_cap = &isi->isi_cap;
+	struct mxc_isi_pipe *isi_cap = &isi->isi_cap;
 	struct v4l2_subdev *sd;
 	int ret;
 
@@ -1590,7 +1590,7 @@ int isi_cap_probe(struct mxc_isi_dev *isi)
 
 void isi_cap_remove(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_cap_dev *isi_cap = &isi->isi_cap;
+	struct mxc_isi_pipe *isi_cap = &isi->isi_cap;
 	struct v4l2_subdev *sd = &isi_cap->sd;
 
 	media_entity_cleanup(&sd->entity);

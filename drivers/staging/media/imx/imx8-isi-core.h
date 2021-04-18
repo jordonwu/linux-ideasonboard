@@ -291,7 +291,7 @@ struct mxc_isi_plat_data {
 	bool buf_active_reverse;
 };
 
-struct mxc_isi_cap_dev {
+struct mxc_isi_pipe {
 	struct v4l2_subdev  sd;
 	struct video_device vdev;
 	struct vb2_queue    vb2_q;
@@ -325,7 +325,7 @@ struct mxc_isi_cap_dev {
 };
 
 struct mxc_isi_dev {
-	struct mxc_isi_cap_dev isi_cap;
+	struct mxc_isi_pipe isi_cap;
 
 	struct device *dev;
 
