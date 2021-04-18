@@ -1253,56 +1253,6 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_enum_framesizes		= mxc_isi_cap_enum_framesizes,
 };
 
-/* Capture subdev media entity operations */
-static int mxc_isi_link_setup(struct media_entity *entity,
-			      const struct media_pad *local,
-			      const struct media_pad *remote, u32 flags)
-{
-	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(entity);
-	struct mxc_isi_cap_dev *isi_cap = v4l2_get_subdevdata(sd);
-
-	if (WARN_ON(!isi_cap))
-		return 0;
-
-	if (!(flags & MEDIA_LNK_FL_ENABLED))
-		return 0;
-
-	/* Add ISI source and sink pad link configuration */
-	if (local->flags & MEDIA_PAD_FL_SOURCE) {
-		switch (local->index) {
-		case MXC_ISI_SD_PAD_SOURCE_DC0:
-		case MXC_ISI_SD_PAD_SOURCE_DC1:
-			break;
-		case MXC_ISI_SD_PAD_SOURCE_MEM:
-			break;
-		default:
-			dev_err(&isi_cap->pdev->dev, "invalid source pad\n");
-			return -EINVAL;
-		}
-	} else if (local->flags & MEDIA_PAD_FL_SINK) {
-		switch (local->index) {
-		case MXC_ISI_SD_PAD_SINK_MIPI0:
-		case MXC_ISI_SD_PAD_SINK_MIPI1:
-		case MXC_ISI_SD_PAD_SINK_HDMI:
-		case MXC_ISI_SD_PAD_SINK_DC0:
-		case MXC_ISI_SD_PAD_SINK_DC1:
-		case MXC_ISI_SD_PAD_SINK_MEM:
-		case MXC_ISI_SD_PAD_SINK_PARALLEL_CSI:
-			break;
-		default:
-			dev_err(&isi_cap->pdev->dev,
-				"%s invalid sink pad\n", __func__);
-			return -EINVAL;
-		}
-	}
-
-	return 0;
-}
-
-static const struct media_entity_operations mxc_isi_sd_media_ops = {
-	.link_setup = mxc_isi_link_setup,
-};
-
 static int mxc_isi_subdev_enum_mbus_code(struct v4l2_subdev *sd,
 					 struct v4l2_subdev_pad_config *cfg,
 					 struct v4l2_subdev_mbus_code_enum *code)
@@ -1687,13 +1637,11 @@ int isi_cap_probe(struct mxc_isi_dev *mxc_isi)
 	if (ret)
 		return ret;
 
-	sd->entity.ops   = &mxc_isi_sd_media_ops;
 	sd->internal_ops = &mxc_isi_capture_sd_internal_ops;
 
 	v4l2_set_subdevdata(sd, isi_cap);
 
 	sd->fwnode = of_fwnode_handle(pdev->dev.of_node);
-	v4l2_async_register_subdev(sd);
 
 	return 0;
 }
@@ -1703,7 +1651,6 @@ void isi_cap_remove(struct mxc_isi_dev *mxc_isi)
 	struct mxc_isi_cap_dev *isi_cap = &mxc_isi->isi_cap;
 	struct v4l2_subdev *sd = &isi_cap->sd;
 
-	v4l2_async_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
 	v4l2_set_subdevdata(sd, NULL);
 }
