@@ -1098,140 +1098,132 @@
 				reg = <0x32e02000 0x4>;
 			};
 
-			cameradev: camera {
-				compatible = "fsl,mxc-md", "simple-bus";
-				#address-cells = <1>;
-				#size-cells = <1>;
-				ranges;
+			isi_0: isi@32e00000 {
+				compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
+				reg = <0x32e00000 0x2000>;
+				interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+				interface = <2 2>;
+				clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
+					 <&clk IMX8MP_CLK_MEDIA_APB>,
+					 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
+					 <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
+				clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
+				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
+						  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
+				assigned-clock-rates = <500000000>, <200000000>;
+				no-reset-control;
+				power-domains = <&mediamix_pd>;
+				isi_chain = <&isi_chain_buf>;
 				status = "disabled";
 
-				isi_0: isi@32e00000 {
-					compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
-					reg = <0x32e00000 0x2000>;
-					interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
-					interface = <2 2>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
-						 <&clk IMX8MP_CLK_MEDIA_APB>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-						 <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-					clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
-					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-							  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-					assigned-clock-rates = <500000000>, <200000000>;
-					no-reset-control;
-					power-domains = <&mediamix_pd>;
-					isi_chain = <&isi_chain_buf>;
-					status = "disabled";
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
 
-					ports {
-						#address-cells = <1>;
-						#size-cells = <0>;
-
-						port@0 {
-							reg = <0>;
-							isi_0_in: endpoint {
-								remote-endpoint = <&mipi_csi_0_out>;
-							};
+					port@0 {
+						reg = <0>;
+						isi_0_in: endpoint {
+							remote-endpoint = <&mipi_csi_0_out>;
 						};
 					};
 				};
+			};
 
-				isi_1: isi@32e02000 {
-					compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
-					reg = <0x32e02000 0x2000>;
-					interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-					interface = <3 2>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
-						 <&clk IMX8MP_CLK_MEDIA_APB>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-						 <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-					clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
-					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-							  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-					assigned-clock-rates = <500000000>, <200000000>;
-					no-reset-control;
-					power-domains = <&mediamix_pd>;
-					status = "disabled";
+			isi_1: isi@32e02000 {
+				compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
+				reg = <0x32e02000 0x2000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+				interface = <3 2>;
+				clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
+					 <&clk IMX8MP_CLK_MEDIA_APB>,
+					 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
+					 <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
+				clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
+				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
+						  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
+				assigned-clock-rates = <500000000>, <200000000>;
+				no-reset-control;
+				power-domains = <&mediamix_pd>;
+				status = "disabled";
 
-					ports {
-						#address-cells = <1>;
-						#size-cells = <0>;
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
 
-						port@0 {
-							reg = <0>;
-							isi_1_in: endpoint {
-								remote-endpoint = <&mipi_csi_1_out>;
-							};
+					port@0 {
+						reg = <0>;
+						isi_1_in: endpoint {
+							remote-endpoint = <&mipi_csi_1_out>;
 						};
 					};
 				};
+			};
 
-				mipi_csi_0: csi@32e40000 {
-					compatible = "fsl,imx8mp-mipi-csi2";
-					reg = <0x32e40000 0x10000>;
-					interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
-					clock-frequency = <500000000>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
-						 <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
-						 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI>;
-					clock-names = "pclk", "wrap", "phy", "axi";
-					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>;
-					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
-					assigned-clock-rates = <500000000>;
-					csi-gpr = <&mediamix_gasket0>;
-					gpr = <&mediamix_blk_ctl>;
-					power-domains = <&mipi_phy1_pd>;
-					status = "disabled";
+			mipi_csi_0: csi@32e40000 {
+				compatible = "fsl,imx8mp-mipi-csi2";
+				reg = <0x32e40000 0x10000>;
+				interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <500000000>;
+				clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
+					 <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>,
+					 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
+					 <&clk IMX8MP_CLK_MEDIA_AXI>;
+				clock-names = "pclk", "wrap", "phy", "axi";
+				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM1_PIX>;
+				assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
+				assigned-clock-rates = <500000000>;
+				csi-gpr = <&mediamix_gasket0>;
+				gpr = <&mediamix_blk_ctl>;
+				power-domains = <&mipi_phy1_pd>;
+				status = "disabled";
 
-					ports {
-						#address-cells = <1>;
-						#size-cells = <0>;
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
 
-						port@0 {
-							reg = <0>;
-						};
+					port@0 {
+						reg = <0>;
+					};
 
-						port@1 {
-							reg = <1>;
-							mipi_csi_0_out: endpoint {
-								remote-endpoint = <&isi_0_in>;
-							};
+					port@1 {
+						reg = <1>;
+						mipi_csi_0_out: endpoint {
+							remote-endpoint = <&isi_0_in>;
 						};
 					};
 				};
+			};
 
-				mipi_csi_1: csi@32e50000 {
-					compatible = "fsl,imx8mp-mipi-csi2";
-					reg = <0x32e50000 0x10000>;
-					interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
-					clock-frequency = <266000000>;
-					clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
-						 <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
-						 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
-						 <&clk IMX8MP_CLK_MEDIA_AXI>;
-					clock-names = "pclk", "wrap", "phy", "axi";
-					assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>;
-					assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
-					assigned-clock-rates = <266000000>;
-					csi-gpr = <&mediamix_gasket1>;
-					gpr = <&mediamix_blk_ctl>;
-					power-domains = <&mipi_phy2_pd>;
-					status = "disabled";
+			mipi_csi_1: csi@32e50000 {
+				compatible = "fsl,imx8mp-mipi-csi2";
+				reg = <0x32e50000 0x10000>;
+				interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <266000000>;
+				clocks = <&clk IMX8MP_CLK_MEDIA_APB>,
+					 <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>,
+					 <&clk IMX8MP_CLK_MEDIA_MIPI_PHY1_REF>,
+					 <&clk IMX8MP_CLK_MEDIA_AXI>;
+				clock-names = "pclk", "wrap", "phy", "axi";
+				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_CAM2_PIX>;
+				assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_1000M>;
+				assigned-clock-rates = <266000000>;
+				csi-gpr = <&mediamix_gasket1>;
+				gpr = <&mediamix_blk_ctl>;
+				power-domains = <&mipi_phy2_pd>;
+				status = "disabled";
 
-					ports {
-						#address-cells = <1>;
-						#size-cells = <0>;
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
 
-						port@0 {
-							reg = <0>;
-						};
+					port@0 {
+						reg = <0>;
+					};
 
-						port@1 {
-							reg = <1>;
-							mipi_csi_1_out: endpoint {
-								remote-endpoint = <&isi_1_in>;
-							};
+					port@1 {
+						reg = <1>;
+						mipi_csi_1_out: endpoint {
+							remote-endpoint = <&isi_1_in>;
 						};
 					};
 				};
