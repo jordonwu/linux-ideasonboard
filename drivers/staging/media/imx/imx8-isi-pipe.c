@@ -415,7 +415,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 
 		if (i == 1 && fmt->fourcc == V4L2_PIX_FMT_NV12)
 			size >>= 1;
-		sizes[i] = max_t(u32, size, dst_f->sizeimage[i]);
+		sizes[i] = max_t(u32, size, pipe->video.pix.plane_fmt[i].sizeimage);
 	}
 	dev_dbg(pipe->isi->dev, "%s, buf_n=%d, size=%d\n",
 		__func__, *num_buffers, sizes[0]);
@@ -434,7 +434,7 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 		return -EINVAL;
 
 	for (i = 0; i < dst_f->info->memplanes; i++) {
-		unsigned long size = dst_f->sizeimage[i];
+		unsigned long size = pipe->video.pix.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
 			v4l2_err(&pipe->video.vdev,
@@ -478,7 +478,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Create a buffer for discard operation */
 	for (i = 0; i < pipe->video.pix.num_planes; i++) {
-		pipe->video.discard_size[i] = pipe->formats[MXC_ISI_SD_PAD_SOURCE].sizeimage[i];
+		pipe->video.discard_size[i] = pipe->video.pix.plane_fmt[i].sizeimage;
 		pipe->video.discard_buffer[i] =
 			dma_alloc_coherent(pipe->isi->dev,
 					   PAGE_ALIGN(pipe->video.discard_size[i]),
@@ -848,10 +848,8 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	dst_f->height = pix->height;
 	dst_f->width = pix->width;
 
-	for (i = 0; i < pix->num_planes; i++) {
+	for (i = 0; i < pix->num_planes; i++)
 		dst_f->bytesperline[i] = pix->plane_fmt[i].bytesperline;
-		dst_f->sizeimage[i] = pix->plane_fmt[i].sizeimage;
-	}
 
 	pipe->video.pix = *pix;
 	set_frame_bounds(dst_f, pix->width, pix->height);
@@ -1229,24 +1227,11 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	/* update out put frame size and formate */
 	dst_f->info = out_fmt;
 
-	if (dst_f->info->memplanes > 1) {
-		for (i = 0; i < dst_f->info->memplanes; i++) {
-			if ((i == 1) &&
-			    (dst_f->info->fourcc == V4L2_PIX_FMT_NV12))
-				dst_f->sizeimage[i] = (mf->width *
-						      (mf->height >> 1) *
-						      dst_f->info->depth[i] >> 3);
-			else
-				dst_f->sizeimage[i] = (mf->width *
-						      mf->height *
-						      dst_f->info->depth[i] >> 3);
-		}
+	if (dst_f->info->memplanes > 1)
 		dst_f->bytesperline[i] = (mf->width *
 					 dst_f->info->depth[i] >> 3);
-	} else {
+	else
 		dst_f->bytesperline[0] = mf->width * dst_f->info->depth[0] / 8;
-		dst_f->sizeimage[0]    = mf->height * dst_f->bytesperline[0];
-	}
 
 	set_frame_bounds(dst_f, mf->width, mf->height);
 	mutex_unlock(&pipe->lock);
