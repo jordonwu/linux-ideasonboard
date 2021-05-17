@@ -507,6 +507,8 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	if (ret < 0 && ret != -ENOIOCTLCMD)
 		return ret;
 
+	isi->is_streaming = 1;
+
 	return 0;
 }
 
@@ -557,6 +559,8 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 				  PAGE_ALIGN(pipe->video.discard_size[i]),
 				  pipe->video.discard_buffer[i],
 				  pipe->video.discard_buffer_dma[i]);
+
+	isi->is_streaming = 0;
 }
 
 static const struct vb2_ops mxc_cap_vb2_qops = {
@@ -757,35 +761,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_cap_streamon(struct file *file, void *priv,
-				enum v4l2_buf_type type)
-{
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	int ret;
-
-	ret = vb2_ioctl_streamon(file, priv, type);
-	if (ret < 0)
-		return ret;
-
-	pipe->isi->is_streaming = 1;
-
-	return 0;
-}
-
-static int mxc_isi_cap_streamoff(struct file *file, void *priv,
-				 enum v4l2_buf_type type)
-{
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_dev *isi = pipe->isi;
-	int ret;
-
-	ret = vb2_ioctl_streamoff(file, priv, type);
-
-	isi->is_streaming = 0;
-
-	return ret;
-}
-
 static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 				       struct v4l2_frmsizeenum *fsize)
 {
@@ -826,8 +801,8 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_prepare_buf		= vb2_ioctl_prepare_buf,
 	.vidioc_create_bufs		= vb2_ioctl_create_bufs,
 
-	.vidioc_streamon		= mxc_isi_cap_streamon,
-	.vidioc_streamoff		= mxc_isi_cap_streamoff,
+	.vidioc_streamon		= vb2_ioctl_streamon,
+	.vidioc_streamoff		= vb2_ioctl_streamoff,
 
 	.vidioc_enum_framesizes		= mxc_isi_cap_enum_framesizes,
 };
