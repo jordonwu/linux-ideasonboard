@@ -257,11 +257,15 @@ static const struct mxc_isi_format_info *mxc_isi_get_src_fmt(u32 code)
 	}
 }
 
-static struct media_pad
-*mxc_isi_get_remote_source_pad(struct v4l2_subdev *subdev)
+static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
+						 u32 *pad,
+						 const char * const label)
 {
+	struct media_pad *source_pad = NULL;
+	struct v4l2_subdev *sen_sd;
 	unsigned int i;
 
+	/* Get remote source pad */
 	for (i = 0; i < subdev->entity.num_pads; i++) {
 		struct media_pad *pad = &subdev->entity.pads[i];
 
@@ -269,21 +273,12 @@ static struct media_pad
 			continue;
 
 		pad = media_entity_remote_pad(pad);
-		if (pad)
-			return pad;
+		if (pad) {
+			source_pad = pad;
+			break;
+		}
 	}
 
-	return NULL;
-}
-
-static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
-						 const char * const label)
-{
-	struct media_pad *source_pad;
-	struct v4l2_subdev *sen_sd;
-
-	/* Get remote source pad */
-	source_pad = mxc_isi_get_remote_source_pad(subdev);
 	if (!source_pad) {
 		v4l2_err(subdev, "%s, No remote pad found!\n", label);
 		return NULL;
@@ -295,6 +290,9 @@ static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
 		v4l2_err(subdev, "%s, No remote subdev found!\n", label);
 		return NULL;
 	}
+
+	if (pad)
+		*pad = source_pad->index;
 
 	return sen_sd;
 }
@@ -308,7 +306,7 @@ static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 	struct v4l2_subdev *src_sd;
 	int ret;
 
-	src_sd = mxc_get_source_subdev(&pipe->sd, __func__);
+	src_sd = mxc_get_source_subdev(&pipe->sd, NULL, __func__);
 	if (!src_sd)
 		return -EPIPE;
 
@@ -777,22 +775,15 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 	struct mxc_isi_frame *src_f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	struct v4l2_subdev_format src_fmt;
-	struct media_pad *source_pad;
 	struct v4l2_subdev *src_sd;
+	u32 source_pad;
 	int ret;
 
-	source_pad = mxc_isi_get_remote_source_pad(&pipe->sd);
-	if (!source_pad) {
-		v4l2_err(&pipe->sd,
-			 "%s, No remote pad found!\n", __func__);
-		return -EINVAL;
-	}
-
-	src_sd = mxc_get_source_subdev(&pipe->sd, __func__);
+	src_sd = mxc_get_source_subdev(&pipe->sd, &source_pad, __func__);
 	if (!src_sd)
 		return -EINVAL;
 
-	src_fmt.pad = source_pad->index;
+	src_fmt.pad = source_pad;
 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	src_fmt.format.code = dst_f->info->mbus_code;
 	src_fmt.format.width = dst_f->width;
@@ -804,7 +795,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 	}
 
 	memset(&src_fmt, 0, sizeof(src_fmt));
-	src_fmt.pad = source_pad->index;
+	src_fmt.pad = source_pad;
 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	ret = v4l2_subdev_call(src_sd, pad, get_fmt, NULL, &src_fmt);
 	if (ret < 0 && ret != -ENOIOCTLCMD) {
@@ -951,11 +942,11 @@ static bool is_entity_link_setup(struct mxc_isi_pipe *pipe)
 	if (!vdev->entity.num_links || !pipe->sd.entity.num_links)
 		return false;
 
-	csi_sd = mxc_get_source_subdev(&pipe->sd, __func__);
+	csi_sd = mxc_get_source_subdev(&pipe->sd, NULL, __func__);
 	if (!csi_sd || !csi_sd->entity.num_links)
 		return false;
 
-	sen_sd = mxc_get_source_subdev(csi_sd, __func__);
+	sen_sd = mxc_get_source_subdev(csi_sd, NULL, __func__);
 	if (!sen_sd || !sen_sd->entity.num_links)
 		return false;
 
