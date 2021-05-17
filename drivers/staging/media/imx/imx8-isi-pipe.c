@@ -679,13 +679,6 @@ static void set_frame_bounds(struct mxc_isi_frame *f,
 	f->height = height;
 }
 
-static void set_frame_crop(struct mxc_isi_frame *f,
-			   u32 left, u32 top, u32 width, u32 height)
-{
-	f->h_off = left;
-	f->v_off = top;
-}
-
 static int mxc_isi_cap_querycap(struct file *file, void *priv,
 				struct v4l2_capability *cap)
 {
@@ -1362,7 +1355,8 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		*try_sel = sel->r;
 	} else {
 		spin_lock_irqsave(&pipe->slock, flags);
-		set_frame_crop(f, r->left, r->top, r->width, r->height);
+		f->h_off = r->left;
+		f->v_off = r->top;
 		spin_unlock_irqrestore(&pipe->slock, flags);
 	}
 
