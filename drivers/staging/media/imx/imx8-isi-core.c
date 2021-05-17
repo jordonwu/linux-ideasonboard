@@ -26,46 +26,6 @@
 
 #include "imx8-isi-hw.h"
 
-static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
-{
-	struct mxc_isi_dev *isi = priv;
-	struct device *dev = isi->dev;
-	const struct mxc_isi_ier_reg *ier_reg = isi->pdata->ier_reg;
-	unsigned long flags;
-	u32 status;
-
-	spin_lock_irqsave(&isi->slock, flags);
-
-	status = mxc_isi_get_irq_status(isi);
-	isi->status = status;
-
-	if (status & CHNL_STS_FRM_STRD_MASK)
-		mxc_isi_cap_frame_write_done(isi);
-
-	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
-		      CHNL_STS_AXI_WR_ERR_U_MASK |
-		      CHNL_STS_AXI_WR_ERR_V_MASK))
-		dev_dbg(dev, "%s, IRQ AXI Error stat=0x%X\n", __func__, status);
-
-	if (status & (ier_reg->panic_y_buf_en.mask |
-		      ier_reg->panic_u_buf_en.mask |
-		      ier_reg->panic_v_buf_en.mask))
-		dev_dbg(dev, "%s, IRQ Panic OFLW Error stat=0x%X\n", __func__, status);
-
-	if (status & (ier_reg->oflw_y_buf_en.mask |
-		      ier_reg->oflw_u_buf_en.mask |
-		      ier_reg->oflw_v_buf_en.mask))
-		dev_dbg(dev, "%s, IRQ OFLW Error stat=0x%X\n", __func__, status);
-
-	if (status & (ier_reg->excs_oflw_y_buf_en.mask |
-		      ier_reg->excs_oflw_u_buf_en.mask |
-		      ier_reg->excs_oflw_v_buf_en.mask))
-		dev_dbg(dev, "%s, IRQ EXCS OFLW Error stat=0x%X\n", __func__, status);
-
-	spin_unlock_irqrestore(&isi->slock, flags);
-	return IRQ_HANDLED;
-}
-
 static int disp_mix_sft_rstn(struct reset_control *reset, bool enable)
 {
 	int ret;
@@ -637,18 +597,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	disp_mix_clks_enable(isi->clk_enable, true);
 
 	mxc_isi_clean_registers(isi);
-
-	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!res) {
-		dev_err(dev, "Failed to get IRQ resource\n");
-		goto err;
-	}
-	ret = devm_request_irq(dev, res->start, mxc_isi_irq_handler,
-			       0, dev_name(dev), isi);
-	if (ret < 0) {
-		dev_err(dev, "failed to install irq (%d)\n", ret);
-		goto err;
-	}
 
 	mxc_isi_channel_set_chain_buf(isi);
 
