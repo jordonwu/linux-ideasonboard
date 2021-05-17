@@ -301,6 +301,22 @@ struct mxc_isi_pipe {
 
 	struct mutex			lock;
 	spinlock_t			slock;
+
+	/* manage share ISI channel resource */
+	atomic_t			usage_count;
+	u32				status;
+
+	u8				chain_buf;
+	u8				alpha;
+
+	unsigned int			hflip:1;
+	unsigned int			vflip:1;
+	unsigned int			cscen:1;
+	unsigned int			scale:1;
+	unsigned int			alphaen:1;
+	unsigned int			crop:1;
+	unsigned int			deinterlace:1;
+	unsigned int			is_streaming:1;
 };
 
 struct mxc_isi_dev {
@@ -322,14 +338,6 @@ struct mxc_isi_dev {
 
 	void __iomem *regs;
 
-	u8 chain_buf;
-	u8 alpha;
-
-	/* manage share ISI channel resource */
-	atomic_t usage_count;
-
-	u32 status;
-
 	u32 interface[MAX_PORTS];
 	int id;
 
@@ -337,15 +345,6 @@ struct mxc_isi_dev {
 	struct v4l2_device v4l2_dev;
 	struct v4l2_async_notifier notifier;
 	struct list_head asds;
-
-	unsigned int hflip:1;
-	unsigned int vflip:1;
-	unsigned int cscen:1;
-	unsigned int scale:1;
-	unsigned int alphaen:1;
-	unsigned int crop:1;
-	unsigned int deinterlace:1;
-	unsigned int is_streaming:1;
 };
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi);

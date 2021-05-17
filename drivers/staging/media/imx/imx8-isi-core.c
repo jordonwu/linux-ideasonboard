@@ -415,7 +415,7 @@ static int mxc_isi_pm_suspend(struct device *dev)
 {
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 
-	if (isi->is_streaming) {
+	if (isi->pipe.is_streaming) {
 		dev_warn(dev, "running, prevent entering suspend.\n");
 		return -EAGAIN;
 	}
@@ -565,7 +565,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 
 	spin_lock_init(&isi->slock);
 	mutex_init(&isi->lock);
-	atomic_set(&isi->usage_count, 0);
 
 	if (!of_property_read_bool(dev->of_node, "no-reset-control")) {
 		ret = mxc_isi_of_parse_resets(isi);
@@ -595,10 +594,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	}
 	disp_mix_sft_rstn(isi->soft_resetn, false);
 	disp_mix_clks_enable(isi->clk_enable, true);
-
-	mxc_isi_clean_registers(isi);
-
-	mxc_isi_channel_set_chain_buf(isi);
 
 	mxc_isi_clk_disable(isi);
 

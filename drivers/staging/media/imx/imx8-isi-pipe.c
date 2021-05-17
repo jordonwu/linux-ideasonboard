@@ -294,7 +294,6 @@ static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_dev *isi = pipe->isi;
 	struct device *dev = pipe->isi->dev;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
@@ -310,9 +309,9 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 	 * Skip frame when buffer number is not match ISI trigger
 	 * buffer
 	 */
-	if ((is_buf_active(isi, 1) && buf->id == MXC_ISI_BUF1) ||
-	    (is_buf_active(isi, 2) && buf->id == MXC_ISI_BUF2)) {
-		dev_dbg(dev, "status=0x%x id=%d\n", isi->status, buf->id);
+	if ((is_buf_active(pipe, 1) && buf->id == MXC_ISI_BUF1) ||
+	    (is_buf_active(pipe, 2) && buf->id == MXC_ISI_BUF2)) {
+		dev_dbg(dev, "status=0x%x id=%d\n", pipe->status, buf->id);
 		return;
 	}
 
@@ -336,7 +335,7 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 		buf = list_first_entry(&pipe->video.out_discard,
 				       struct mxc_isi_buffer, list);
 		buf->v4l2_buf.sequence = pipe->video.frame_count;
-		mxc_isi_channel_set_outbuf(isi, buf);
+		mxc_isi_channel_set_outbuf(pipe, buf);
 		list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
 		return;
 	}
@@ -344,7 +343,7 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 	/* ISI channel output buffer */
 	buf = list_first_entry(&pipe->video.out_pending, struct mxc_isi_buffer, list);
 	buf->v4l2_buf.sequence = pipe->video.frame_count;
-	mxc_isi_channel_set_outbuf(isi, buf);
+	mxc_isi_channel_set_outbuf(pipe, buf);
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
 	list_move_tail(pipe->video.out_pending.next, &pipe->video.out_active);
@@ -436,7 +435,6 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 	const struct mxc_isi_format_info *info;
-	struct mxc_isi_dev *isi = pipe->isi;
 	struct mxc_isi_buffer *buf;
 	struct mxc_isi_frame *fmt;
 	struct vb2_buffer *vb2;
@@ -467,8 +465,8 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		goto error;
 	}
 
-	mxc_isi_channel_init(isi);
-	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
+	mxc_isi_channel_init(pipe);
+	mxc_isi_channel_config(pipe, &pipe->formats[MXC_ISI_SD_PAD_SINK],
 			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE],
 			       pipe->video.pix.plane_fmt[0].bytesperline);
 
@@ -514,7 +512,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	buf->v4l2_buf.sequence = 0;
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
-	mxc_isi_channel_set_outbuf(isi, buf);
+	mxc_isi_channel_set_outbuf(pipe, buf);
 	list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
 
 	/* ISI channel output buffer 2 */
@@ -522,19 +520,19 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	buf->v4l2_buf.sequence = 1;
 	vb2 = &buf->v4l2_buf.vb2_buf;
 	vb2->state = VB2_BUF_STATE_ACTIVE;
-	mxc_isi_channel_set_outbuf(isi, buf);
+	mxc_isi_channel_set_outbuf(pipe, buf);
 	list_move_tail(pipe->video.out_pending.next, &pipe->video.out_active);
 
 	/* Clear frame count */
 	pipe->video.frame_count = 1;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	mxc_isi_channel_enable(isi);
+	mxc_isi_channel_enable(pipe);
 	ret = mxc_isi_pipeline_enable(pipe, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
 		goto error;
 
-	isi->is_streaming = 1;
+	pipe->is_streaming = 1;
 
 	return 0;
 
@@ -547,13 +545,12 @@ error:
 static void cap_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_dev *isi = pipe->isi;
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 	int i;
 
 	mxc_isi_pipeline_enable(pipe, 0);
-	mxc_isi_channel_disable(isi);
+	mxc_isi_channel_disable(pipe);
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
@@ -594,7 +591,7 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 
 	media_pipeline_stop(&pipe->video.vdev.entity);
 
-	isi->is_streaming = 0;
+	pipe->is_streaming = 0;
 }
 
 static const struct vb2_ops mxc_cap_vb2_qops = {
@@ -620,20 +617,19 @@ static inline struct mxc_isi_pipe *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_pipe *pipe = ctrl_to_isi_cap(ctrl);
-	struct mxc_isi_dev *isi = pipe->isi;
 	unsigned long flags;
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
 
-	spin_lock_irqsave(&isi->slock, flags);
+	spin_lock_irqsave(&pipe->isi->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
 		if (ctrl->val < 0 || ctrl->val > 255)
 			return -EINVAL;
-		isi->alpha = ctrl->val;
-		isi->alphaen = 1;
+		pipe->alpha = ctrl->val;
+		pipe->alphaen = 1;
 		break;
 
 	default:
@@ -642,7 +638,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 		return -EINVAL;
 	}
 
-	spin_unlock_irqrestore(&isi->slock, flags);
+	spin_unlock_irqrestore(&pipe->isi->slock, flags);
 	return 0;
 }
 
@@ -848,8 +844,6 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 static int mxc_isi_capture_open(struct file *file)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_dev *isi = pipe->isi;
-	struct device *dev = pipe->isi->dev;
 	int ret;
 
 	mutex_lock(&pipe->lock);
@@ -860,12 +854,12 @@ static int mxc_isi_capture_open(struct file *file)
 	}
 	mutex_unlock(&pipe->lock);
 
-	pm_runtime_get_sync(dev);
+	pm_runtime_get_sync(pipe->isi->dev);
 
 	/* increase usage count for ISI channel */
-	mutex_lock(&isi->lock);
-	atomic_inc(&isi->usage_count);
-	mutex_unlock(&isi->lock);
+	mutex_lock(&pipe->isi->lock);
+	atomic_inc(&pipe->usage_count);
+	mutex_unlock(&pipe->isi->lock);
 
 	return 0;
 }
@@ -873,25 +867,23 @@ static int mxc_isi_capture_open(struct file *file)
 static int mxc_isi_capture_release(struct file *file)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_dev *isi = pipe->isi;
-	struct device *dev = pipe->isi->dev;
 	int ret;
 
 	mutex_lock(&pipe->lock);
 	ret = _vb2_fop_release(file, NULL);
 	if (ret) {
-		dev_err(dev, "%s fail\n", __func__);
+		dev_err(pipe->isi->dev, "%s fail\n", __func__);
 		mutex_unlock(&pipe->lock);
 		goto label;
 	}
 	mutex_unlock(&pipe->lock);
 
-	if (atomic_read(&isi->usage_count) > 0 &&
-	    atomic_dec_and_test(&isi->usage_count))
-		mxc_isi_channel_deinit(isi);
+	if (atomic_read(&pipe->usage_count) > 0 &&
+	    atomic_dec_and_test(&pipe->usage_count))
+		mxc_isi_channel_deinit(pipe);
 
 label:
-	pm_runtime_put(dev);
+	pm_runtime_put(pipe->isi->dev);
 	return (ret) ? ret : 0;
 }
 
@@ -1431,8 +1423,8 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 
 	spin_lock_irqsave(&isi->slock, flags);
 
-	status = mxc_isi_get_irq_status(isi);
-	isi->status = status;
+	status = mxc_isi_get_irq_status(pipe);
+	pipe->status = status;
 
 	if (status & CHNL_STS_FRM_STRD_MASK)
 		mxc_isi_cap_frame_write_done(pipe);
@@ -1481,6 +1473,8 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	pipe->id = isi->id;
 	pipe->isi = isi;
 
+	atomic_set(&pipe->usage_count, 0);
+
 	spin_lock_init(&pipe->slock);
 	mutex_init(&pipe->lock);
 
@@ -1514,6 +1508,9 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	}
 
 	/* Register IRQ handler. */
+	mxc_isi_clean_registers(pipe);
+	mxc_isi_channel_set_chain_buf(pipe);
+
 	irq = platform_get_irq(to_platform_device(isi->dev), 0);
 	if (irq < 0) {
 		dev_err(pipe->isi->dev, "Failed to get IRQ (%d)\n", irq);
