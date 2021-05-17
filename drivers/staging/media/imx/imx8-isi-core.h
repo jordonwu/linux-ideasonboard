@@ -317,9 +317,6 @@ struct mxc_isi_dev {
 	struct reset_control		*soft_resetn;
 	struct reset_control		*clk_enable;
 
-	struct mutex			lock;
-	spinlock_t			slock;
-
 	struct regmap			*chain;
 	u32				interface[MAX_PORTS];
 
