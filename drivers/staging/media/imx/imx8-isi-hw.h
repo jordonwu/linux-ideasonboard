@@ -429,44 +429,21 @@ void mxc_isi_channel_init(struct mxc_isi_dev *isi);
 void mxc_isi_channel_deinit(struct mxc_isi_dev *isi);
 void mxc_isi_channel_enable(struct mxc_isi_dev *isi, bool m2m_enabled);
 void mxc_isi_channel_disable(struct mxc_isi_dev *isi);
-void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi);
-void mxc_isi_channel_sw_reset(struct mxc_isi_dev *isi);
-void mxc_isi_channel_hw_reset(struct mxc_isi_dev *isi);
-void mxc_isi_channel_source_config(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_flip(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_alpha(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_chain_buf(struct mxc_isi_dev *isi);
-void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_crop(struct mxc_isi_dev *isi);
-void mxc_isi_channel_set_memory_image(struct mxc_isi_dev *isi);
-void mxc_isi_channel_set_panic_threshold(struct mxc_isi_dev *isi);
-
-void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
-				 const struct mxc_isi_frame *src_f,
-				 const struct mxc_isi_frame *dst_f);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 				struct mxc_isi_buffer *buf);
-
-void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
-			     const struct mxc_isi_frame *src_f,
-			     const struct mxc_isi_frame *dst_f);
 
 void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 			    const struct mxc_isi_frame *src_f,
 			    const struct mxc_isi_frame *dst_f,
 			    unsigned int pitch);
 
-void mxc_isi_channel_set_alpha_roi0(struct mxc_isi_dev *isi,
-				    struct v4l2_rect *rect);
-void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *isi,
-			struct mxc_isi_buffer *buf);
-
 void mxc_isi_clean_irq_status(struct mxc_isi_dev *isi, u32 val);
 void mxc_isi_clean_registers(struct mxc_isi_dev *isi);
-void mxc_isi_enable_irq(struct mxc_isi_dev *isi);
-void mxc_isi_disable_irq(struct mxc_isi_dev *isi);
-void dump_isi_regs(struct mxc_isi_dev *isi);
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_dev *isi);
 bool is_buf_active(struct mxc_isi_dev *isi, int buf_id);
