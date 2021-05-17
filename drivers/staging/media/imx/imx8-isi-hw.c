@@ -551,7 +551,8 @@ void mxc_isi_channel_deinit(struct mxc_isi_dev *isi)
 
 void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 			    const struct mxc_isi_frame *src_f,
-			    const struct mxc_isi_frame *dst_f)
+			    const struct mxc_isi_frame *dst_f,
+			    unsigned int pitch)
 {
 	u32 val;
 
@@ -574,8 +575,7 @@ void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 	mxc_isi_channel_source_config(isi);
 
 	/* line pitch */
-	val = dst_f->bytesperline[0];
-	writel(val, isi->regs + CHNL_OUT_BUF_PITCH);
+	writel(pitch, isi->regs + CHNL_OUT_BUF_PITCH);
 
 	/* TODO */
 	mxc_isi_channel_set_flip(isi);
