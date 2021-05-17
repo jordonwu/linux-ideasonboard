@@ -116,6 +116,7 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 				      | MEDIA_LNK_FL_ENABLED;
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
+	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
 	struct media_pad *pad = &isi->pipes[masd->port].pads[MXC_ISI_SD_PAD_SINK];
 
 	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
@@ -190,7 +191,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	v4l2_async_notifier_init(&isi->notifier);
 	isi->notifier.ops = &mxc_isi_async_notifier_ops;
 
-	for (i = 0; i < MXC_ISI_NUM_PORTS; ++i) {
+	for (i = 0; i < isi->pdata->num_ports; ++i) {
 		struct mxc_isi_async_subdev *masd;
 		struct fwnode_handle *ep;
 
@@ -296,16 +297,6 @@ static const struct mxc_isi_set_thd mxc_imx8_isi_thd_v1 = {
 	.panic_set_thd_v = { .mask = 0xF0000, .offset = 16, .threshold = 0x7 },
 };
 
-static const struct mxc_isi_chan_src mxc_imx8_chan_src = {
-	.src_dc0   = 0,
-	.src_dc1   = 1,
-	.src_mipi0 = 2,
-	.src_mipi1 = 3,
-	.src_hdmi  = 4,
-	.src_csi   = 4,
-	.src_mem   = 5,
-};
-
 static const struct clk_bulk_data mxc_imx8_clks[] = {
 	{ .id = NULL },
 };
@@ -313,9 +304,9 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 /* Chip C0 */
 static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.model    = MXC_ISI_IMX8,
+	.num_ports = 5,
 	.num_channels = 8,
 	.reg_offset = 0x10000,
-	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
 	.clks     = mxc_imx8_clks,
@@ -325,21 +316,14 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.model    = MXC_ISI_IMX8,
+	.num_ports = 5,
 	.num_channels = 8,
 	.reg_offset = 0x10000,
-	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
 	.clks     = mxc_imx8_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse = true,
-};
-
-static const struct mxc_isi_chan_src mxc_imx8mn_chan_src = {
-	.src_mipi0 = 0,
-	.src_mipi1 = 1,
-	/* For i.MX8MP */
-	.src_mem = 2,
 };
 
 static const struct clk_bulk_data mxc_imx8mn_clks[] = {
@@ -351,9 +335,9 @@ static const struct clk_bulk_data mxc_imx8mn_clks[] = {
 
 static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.model    = MXC_ISI_IMX8MN,
+	.num_ports = 1,
 	.num_channels = 1,
 	.reg_offset = 0,
-	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
 	.clks     = mxc_imx8mn_clks,
@@ -363,9 +347,9 @@ static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.model    = MXC_ISI_IMX8MP,
+	.num_ports = 2,
 	.num_channels = 2,
 	.reg_offset = 0x2000,
-	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v2,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
 	.clks     = mxc_imx8mn_clks,
@@ -481,23 +465,6 @@ static const struct dev_pm_ops mxc_isi_pm_ops = {
  * Probe, remove & driver
  */
 
-static int mxc_isi_parse_dt(struct mxc_isi_dev *isi)
-{
-	struct device *dev = isi->dev;
-	struct device_node *node = dev->of_node;
-	int ret = 0;
-
-	ret = of_property_read_u32_array(node, "interface", isi->interface, 2);
-	if (ret < 0)
-		return ret;
-
-	dev_dbg(dev, "%s, interface(%d, %d, %d)\n", __func__,
-		isi->interface[0],
-		isi->interface[1],
-		isi->interface[2]);
-	return 0;
-}
-
 static int mxc_isi_of_parse_resets(struct mxc_isi_dev *isi)
 {
 	int ret;
@@ -569,10 +536,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 			     GFP_KERNEL);
 	if (!isi->pipes)
 		return -ENOMEM;
-
-	ret = mxc_isi_parse_dt(isi);
-	if (ret < 0)
-		return ret;
 
 	isi->chain = syscon_regmap_lookup_by_phandle(dev->of_node, "isi_chain");
 	if (IS_ERR(isi->chain))
