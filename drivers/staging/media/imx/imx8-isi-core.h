@@ -199,7 +199,6 @@ struct mxc_isi_frame {
 	u32	v_off;
 	u32	width;
 	u32	height;
-	unsigned int	sizeimage[MXC_MAX_PLANES];
 	unsigned int	bytesperline[MXC_MAX_PLANES];
 	const struct mxc_isi_format_info *info;
 };
