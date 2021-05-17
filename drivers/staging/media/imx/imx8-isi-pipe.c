@@ -1470,7 +1470,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	int irq;
 	int ret;
 
-	pipe->id = isi->id;
+	pipe->id = 0;
 	pipe->isi = isi;
 
 	atomic_set(&pipe->usage_count, 0);
