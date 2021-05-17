@@ -719,10 +719,9 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 	return 0;
 }
 
-static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
-				      struct v4l2_format *f)
+static void __mxc_isi_cap_try_fmt_mplane(struct v4l2_pix_format_mplane *pix,
+					 const struct mxc_isi_format_info **info)
 {
-	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_format_info *fmt;
 	unsigned int i;
 
@@ -762,7 +761,8 @@ static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 					      pix->colorspace, pix->ycbcr_enc);
 	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
 
-	return 0;
+	if (info)
+		*info = fmt;
 }
 
 /* Update input frame size and formate  */
@@ -823,6 +823,13 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
 	return 0;
 }
 
+static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
+				      struct v4l2_format *f)
+{
+	__mxc_isi_cap_try_fmt_mplane(&f->fmt.pix_mp, NULL);
+	return 0;
+}
+
 static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 				    struct v4l2_format *f)
 {
@@ -830,66 +837,23 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_format_info *fmt;
-	int bpl;
-	int i;
-
-	/* Step1: Check format with output support format list.
-	 * Step2: Update output frame information.
-	 * Step3: Checkout the format whether is supported by remote subdev
-	 *	 Step3.1: If Yes, call remote subdev set_fmt.
-	 *	 Step3.2: If NO, call remote subdev get_fmt.
-	 * Step4: Update input frame information.
-	 * Step5: Update mxc isi channel configuration.
-	 */
+	unsigned int i;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	/* Check out put format */
-	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
-	if (!fmt)
-		return -EINVAL;
-
-	/* update out put frame size and formate */
-	if (pix->height <= 0 || pix->width <= 0)
-		return -EINVAL;
+	__mxc_isi_cap_try_fmt_mplane(pix, &fmt);
 
 	dst_f->info = fmt;
 	dst_f->height = pix->height;
 	dst_f->width = pix->width;
 
-	pix->field = V4L2_FIELD_NONE;
-	pix->colorspace = V4L2_COLORSPACE_JPEG;
-	pix->num_planes = fmt->memplanes;
-
 	for (i = 0; i < pix->num_planes; i++) {
-		bpl = pix->plane_fmt[i].bytesperline;
-
-		if ((bpl == 0) || (bpl / (fmt->depth[i] >> 3)) < pix->width)
-			pix->plane_fmt[i].bytesperline =
-					(pix->width * fmt->depth[i]) >> 3;
-
-		if ((i == 1) && (pix->pixelformat == V4L2_PIX_FMT_NV12))
-			pix->plane_fmt[i].sizeimage =
-				(pix->width * (pix->height >> 1) *
-				 fmt->depth[i] >> 3);
-		else
-			pix->plane_fmt[i].sizeimage =
-				(pix->width * pix->height *
-				 fmt->depth[i] >> 3);
+		dst_f->bytesperline[i] = pix->plane_fmt[i].bytesperline;
+		dst_f->sizeimage[i] = pix->plane_fmt[i].sizeimage;
 	}
 
-	if (pix->num_planes > 1) {
-		for (i = 0; i < pix->num_planes; i++) {
-			dst_f->bytesperline[i] = pix->plane_fmt[i].bytesperline;
-			dst_f->sizeimage[i]    = pix->plane_fmt[i].sizeimage;
-		}
-	} else {
-		dst_f->bytesperline[0] = dst_f->width * dst_f->info->depth[0] / 8;
-		dst_f->sizeimage[0]    = dst_f->height * dst_f->bytesperline[0];
-	}
-
-	memcpy(&pipe->video.pix, pix, sizeof(*pix));
+	pipe->video.pix = *pix;
 	set_frame_bounds(dst_f, pix->width, pix->height);
 
 	return 0;
