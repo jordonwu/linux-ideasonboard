@@ -351,6 +351,4 @@ struct mxc_isi_dev {
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi);
 void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi);
 
-void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi);
-
 #endif /* __MXC_ISI_CORE_H__ */
