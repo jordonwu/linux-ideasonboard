@@ -713,21 +713,8 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 				    struct v4l2_format *f)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	int i;
 
-	pix->width = dst_f->o_width;
-	pix->height = dst_f->o_height;
-	pix->field = V4L2_FIELD_NONE;
-	pix->pixelformat = dst_f->info->fourcc;
-	pix->colorspace = V4L2_COLORSPACE_JPEG;
-	pix->num_planes = dst_f->info->memplanes;
-
-	for (i = 0; i < pix->num_planes; ++i) {
-		pix->plane_fmt[i].bytesperline = dst_f->bytesperline[i];
-		pix->plane_fmt[i].sizeimage = dst_f->sizeimage[i];
-	}
+	f->fmt.pix_mp = pipe->video.pix;
 
 	return 0;
 }
@@ -845,6 +832,8 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	dst_f->height = pix->height;
 	dst_f->width = pix->width;
 
+	pix->field = V4L2_FIELD_NONE;
+	pix->colorspace = V4L2_COLORSPACE_JPEG;
 	pix->num_planes = fmt->memplanes;
 
 	for (i = 0; i < pix->num_planes; i++) {
