@@ -292,9 +292,9 @@ static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 	return 0;
 }
 
-void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
+static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_pipe *pipe = &isi->pipe;
+	struct mxc_isi_dev *isi = pipe->isi;
 	struct device *dev = pipe->isi->dev;
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
@@ -1418,6 +1418,55 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 };
 
 /* -----------------------------------------------------------------------------
+ * IRQ handling
+ */
+
+static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
+{
+	struct mxc_isi_pipe *pipe = priv;
+	struct mxc_isi_dev *isi = pipe->isi;
+	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
+	unsigned long flags;
+	u32 status;
+
+	spin_lock_irqsave(&isi->slock, flags);
+
+	status = mxc_isi_get_irq_status(isi);
+	isi->status = status;
+
+	if (status & CHNL_STS_FRM_STRD_MASK)
+		mxc_isi_cap_frame_write_done(pipe);
+
+	spin_unlock_irqrestore(&isi->slock, flags);
+
+	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
+		      CHNL_STS_AXI_WR_ERR_U_MASK |
+		      CHNL_STS_AXI_WR_ERR_V_MASK))
+		dev_dbg(pipe->isi->dev, "%s: IRQ AXI Error stat=0x%X\n",
+			__func__, status);
+
+	if (status & (ier_reg->panic_y_buf_en.mask |
+		      ier_reg->panic_u_buf_en.mask |
+		      ier_reg->panic_v_buf_en.mask))
+		dev_dbg(pipe->isi->dev, "%s: IRQ Panic OFLW Error stat=0x%X\n",
+			__func__, status);
+
+	if (status & (ier_reg->oflw_y_buf_en.mask |
+		      ier_reg->oflw_u_buf_en.mask |
+		      ier_reg->oflw_v_buf_en.mask))
+		dev_dbg(pipe->isi->dev, "%s: IRQ OFLW Error stat=0x%X\n",
+			__func__, status);
+
+	if (status & (ier_reg->excs_oflw_y_buf_en.mask |
+		      ier_reg->excs_oflw_u_buf_en.mask |
+		      ier_reg->excs_oflw_v_buf_en.mask))
+		dev_dbg(pipe->isi->dev, "%s: IRQ EXCS OFLW Error stat=0x%X\n",
+			__func__, status);
+
+	return IRQ_HANDLED;
+}
+
+/* -----------------------------------------------------------------------------
  * Init & cleanup
  */
 
@@ -1426,6 +1475,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct v4l2_subdev *sd;
 	unsigned int i;
+	int irq;
 	int ret;
 
 	pipe->id = isi->id;
@@ -1463,7 +1513,28 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 		frame->info = mxc_isi_format_by_code(frame->format.code);
 	}
 
+	/* Register IRQ handler. */
+	irq = platform_get_irq(to_platform_device(isi->dev), 0);
+	if (irq < 0) {
+		dev_err(pipe->isi->dev, "Failed to get IRQ (%d)\n", irq);
+		ret = irq;
+		goto error;
+	}
+
+	ret = devm_request_irq(isi->dev, irq, mxc_isi_pipe_irq_handler,
+			       0, dev_name(isi->dev), pipe);
+	if (ret < 0) {
+		dev_err(isi->dev, "failed to request IRQ (%d)\n", ret);
+		goto error;
+	}
+
 	return 0;
+
+error:
+	media_entity_cleanup(&sd->entity);
+	v4l2_set_subdevdata(sd, NULL);
+
+	return ret;
 }
 
 void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi)
