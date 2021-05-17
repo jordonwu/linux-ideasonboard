@@ -941,91 +941,6 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 	return ret;
 }
 
-static int mxc_isi_cap_g_selection(struct file *file, void *fh,
-				   struct v4l2_selection *s)
-{
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-
-	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		return -EINVAL;
-
-	switch (s->target) {
-	case V4L2_SEL_TGT_COMPOSE_DEFAULT:
-	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-		/* fall through */
-	case V4L2_SEL_TGT_CROP_BOUNDS:
-	case V4L2_SEL_TGT_CROP_DEFAULT:
-		s->r.left = 0;
-		s->r.top = 0;
-		s->r.width = f->o_width;
-		s->r.height = f->o_height;
-		return 0;
-
-	case V4L2_SEL_TGT_COMPOSE:
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-		/* fall through */
-	case V4L2_SEL_TGT_CROP:
-		s->r.left = f->h_off;
-		s->r.top = f->v_off;
-		s->r.width = f->width;
-		s->r.height = f->height;
-		return 0;
-	}
-
-	return -EINVAL;
-}
-
-static int enclosed_rectangle(struct v4l2_rect *a, struct v4l2_rect *b)
-{
-	if (a->left < b->left || a->top < b->top)
-		return 0;
-
-	if (a->left + a->width > b->left + b->width)
-		return 0;
-
-	if (a->top + a->height > b->top + b->height)
-		return 0;
-
-	return 1;
-}
-
-static int mxc_isi_cap_s_selection(struct file *file, void *fh,
-				   struct v4l2_selection *s)
-{
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_frame *f;
-	struct v4l2_rect rect = s->r;
-	unsigned long flags;
-
-	if (s->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		return -EINVAL;
-
-	if (s->target == V4L2_SEL_TGT_COMPOSE)
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	else if (s->target == V4L2_SEL_TGT_CROP)
-		f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-	else
-		return -EINVAL;
-
-	if (s->flags & V4L2_SEL_FLAG_LE &&
-	    !enclosed_rectangle(&rect, &s->r))
-		return -ERANGE;
-
-	if (s->flags & V4L2_SEL_FLAG_GE &&
-	    !enclosed_rectangle(&s->r, &rect))
-		return -ERANGE;
-
-	s->r = rect;
-	spin_lock_irqsave(&pipe->slock, flags);
-	set_frame_crop(f, s->r.left, s->r.top, s->r.width,
-		       s->r.height);
-	spin_unlock_irqrestore(&pipe->slock, flags);
-
-	return 0;
-}
-
 static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 				       struct v4l2_frmsizeenum *fsize)
 {
@@ -1068,9 +983,6 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 
 	.vidioc_streamon		= mxc_isi_cap_streamon,
 	.vidioc_streamoff		= mxc_isi_cap_streamoff,
-
-	.vidioc_g_selection		= mxc_isi_cap_g_selection,
-	.vidioc_s_selection		= mxc_isi_cap_s_selection,
 
 	.vidioc_enum_framesizes		= mxc_isi_cap_enum_framesizes,
 };
@@ -1443,6 +1355,8 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		mutex_unlock(&pipe->lock);
 		return -EINVAL;
 	}
+
+	/* FIXME: Clamp selection rectangle coordinates. */
 
 	if (sel->which == V4L2_SUBDEV_FORMAT_TRY) {
 		*try_sel = sel->r;
