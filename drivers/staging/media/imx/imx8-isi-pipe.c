@@ -529,7 +529,7 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	pipe->video.frame_count = 1;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	mxc_isi_channel_enable(isi, false);
+	mxc_isi_channel_enable(isi);
 	ret = mxc_isi_pipeline_enable(pipe, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
 		goto error;
