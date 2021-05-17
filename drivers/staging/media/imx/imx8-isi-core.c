@@ -469,14 +469,11 @@ static int mxc_isi_parse_dt(struct mxc_isi_dev *isi)
 	struct device_node *node = dev->of_node;
 	int ret = 0;
 
-	isi->id = of_alias_get_id(node, "isi");
-
 	ret = of_property_read_u32_array(node, "interface", isi->interface, 2);
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(dev, "%s, isi_%d,interface(%d, %d, %d)\n", __func__,
-		isi->id,
+	dev_dbg(dev, "%s, interface(%d, %d, %d)\n", __func__,
 		isi->interface[0],
 		isi->interface[1],
 		isi->interface[2]);
@@ -553,12 +550,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
-	if (isi->id >= MXC_ISI_MAX_DEVS || isi->id < 0) {
-		dev_err(dev, "Invalid driver data or device id (%d)\n",
-			isi->id);
-		return -EINVAL;
-	}
-
 	isi->chain = syscon_regmap_lookup_by_phandle(dev->of_node, "isi_chain");
 	if (IS_ERR(isi->chain))
 		isi->chain = NULL;
@@ -576,7 +567,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 
 	ret = mxc_isi_clk_get(isi);
 	if (ret < 0) {
-		dev_err(dev, "ISI_%d get clocks fail\n", isi->id);
+		dev_err(dev, "Failed to get clocks\n");
 		return ret;
 	}
 
@@ -589,7 +580,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 
 	ret = mxc_isi_clk_enable(isi);
 	if (ret < 0) {
-		dev_err(dev, "ISI_%d enable clocks fail\n", isi->id);
+		dev_err(dev, "Failed to enable clocks\n");
 		return ret;
 	}
 	disp_mix_sft_rstn(isi->soft_resetn, false);
@@ -612,7 +603,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	dev_info(dev, "mxc_isi.%d registered successfully\n", isi->id);
+	dev_info(dev, "mxc_isi registered successfully\n");
 	return 0;
 
 err:
