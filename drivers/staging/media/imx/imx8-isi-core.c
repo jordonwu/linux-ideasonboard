@@ -554,9 +554,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	if (IS_ERR(isi->chain))
 		isi->chain = NULL;
 
-	spin_lock_init(&isi->slock);
-	mutex_init(&isi->lock);
-
 	if (!of_property_read_bool(dev->of_node, "no-reset-control")) {
 		ret = mxc_isi_of_parse_resets(isi);
 		if (ret) {
