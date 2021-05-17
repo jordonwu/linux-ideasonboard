@@ -1135,6 +1135,51 @@ static void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
  * V4L2 subdev operations
  */
 
+static struct v4l2_mbus_framefmt *
+mxc_isi_pipe_get_pad_format(struct mxc_isi_pipe *pipe,
+			    struct v4l2_subdev_pad_config *cfg,
+			    enum v4l2_subdev_format_whence which,
+			    unsigned int pad)
+{
+	switch (which) {
+	case V4L2_SUBDEV_FORMAT_ACTIVE:
+		return &pipe->formats[pad].format;
+	case V4L2_SUBDEV_FORMAT_TRY:
+	default:
+		return v4l2_subdev_get_try_format(&pipe->sd, cfg, pad);
+	}
+}
+
+static struct v4l2_rect *
+mxc_isi_pipe_get_pad_crop(struct mxc_isi_pipe *pipe,
+			  struct v4l2_subdev_pad_config *cfg,
+			  enum v4l2_subdev_format_whence which,
+			  unsigned int pad)
+{
+	switch (which) {
+	case V4L2_SUBDEV_FORMAT_ACTIVE:
+		return &pipe->formats[pad].crop;
+	case V4L2_SUBDEV_FORMAT_TRY:
+	default:
+		return v4l2_subdev_get_try_crop(&pipe->sd, cfg, pad);
+	}
+}
+
+static struct v4l2_rect *
+mxc_isi_pipe_get_pad_compose(struct mxc_isi_pipe *pipe,
+			     struct v4l2_subdev_pad_config *cfg,
+			     enum v4l2_subdev_format_whence which,
+			     unsigned int pad)
+{
+	switch (which) {
+	case V4L2_SUBDEV_FORMAT_ACTIVE:
+		return &pipe->formats[pad].compose;
+	case V4L2_SUBDEV_FORMAT_TRY:
+	default:
+		return v4l2_subdev_get_try_compose(&pipe->sd, cfg, pad);
+	}
+}
+
 static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_mbus_code_enum *code)
@@ -1147,31 +1192,12 @@ static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
 				struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct mxc_isi_frame *f;
-	struct v4l2_mbus_framefmt *mf = &fmt->format;
+	struct v4l2_mbus_framefmt *format;
+
+	format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which, fmt->pad);
 
 	mutex_lock(&pipe->lock);
-
-	switch (fmt->pad) {
-	case MXC_ISI_SD_PAD_SOURCE:
-	case MXC_ISI_SD_PAD_SINK:
-		f = &pipe->formats[fmt->pad];
-		break;
-	default:
-		mutex_unlock(&pipe->lock);
-		v4l2_err(&pipe->sd,
-			 "%s, Pad is not support now!\n", __func__);
-		return -1;
-	}
-
-	if (!WARN_ON(!f->info))
-		mf->code = f->info->mbus_code;
-
-	/* Source/Sink pads crop rectangle size */
-	mf->width = f->width;
-	mf->height = f->height;
-	mf->colorspace = V4L2_COLORSPACE_JPEG;
-
+	fmt->format = *format;
 	mutex_unlock(&pipe->lock);
 
 	return 0;
@@ -1184,21 +1210,70 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	const struct mxc_isi_format_info *out_fmt;
+	const struct mxc_isi_format_info *info;
+	struct v4l2_mbus_framefmt *format;
+	struct v4l2_rect *rect;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	out_fmt = mxc_isi_format_by_code(mf->code);
-	if (!out_fmt)
-		return -EINVAL;
-
-	if (pipe->isi->pdata->model == MXC_ISI_IMX8MN && mf->width > ISI_2K)
-		return -EINVAL;
+	info = mxc_isi_format_by_code(mf->code);
+	if (!info)
+		info = mxc_isi_format_by_code(MEDIA_BUS_FMT_YUYV8_1X16);
 
 	mutex_lock(&pipe->lock);
+
+	if (fmt->pad == MXC_ISI_SD_PAD_SINK) {
+		unsigned int max_width;
+
+		/*
+		 * FIXME: This needs to handled more dynamically, larger line
+		 * lengths are possible when bypassing the scaler.
+		 */
+		max_width = pipe->isi->pdata->model == MXC_ISI_IMX8MN
+			  ? 2048 : 4096;
+
+		mf->width = clamp(mf->width, MXC_ISI_MIN_WIDTH, max_width);
+		mf->height = clamp(mf->height, MXC_ISI_MIN_HEIGHT,
+				   MXC_ISI_MAX_HEIGHT);
+
+		/* Propagate the format to the source pad. */
+		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, fmt->which,
+						    MXC_ISI_SD_PAD_SINK);
+		rect->width = mf->width;
+		rect->height = mf->height;
+
+		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, fmt->which,
+						 MXC_ISI_SD_PAD_SOURCE);
+		rect->left = 0;
+		rect->top = 0;
+		rect->width = mf->width;
+		rect->height = mf->height;
+
+		format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which,
+						     MXC_ISI_SD_PAD_SOURCE);
+		format->width = mf->width;
+		format->height = mf->height;
+	} else {
+		/*
+		 * The width and height on the source can't be changed, they
+		 * must match the crop rectangle size.
+		 */
+		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, fmt->which,
+						 MXC_ISI_SD_PAD_SOURCE);
+
+		mf->width = rect->width;
+		mf->height = rect->height;
+	}
+
+	format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which, fmt->pad);
+	*format = *mf;
+
+	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		pipe->formats[fmt->pad].info = info;
+
 	/* update out put frame size and formate */
-	dst_f->info = out_fmt;
+	dst_f->info = info;
 	set_frame_bounds(dst_f, mf->width, mf->height);
 	mutex_unlock(&pipe->lock);
 
@@ -1213,51 +1288,73 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-	struct v4l2_rect *r = &sel->r;
-	struct v4l2_rect *try_sel;
+	const struct v4l2_mbus_framefmt *format;
+	const struct v4l2_rect *rect;
+	int ret = 0;
 
 	mutex_lock(&pipe->lock);
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-		/* fall through */
+		if (sel->pad != MXC_ISI_SD_PAD_SINK) {
+			/* No compose rectangle on source pad. */
+			ret = -EINVAL;
+			break;
+		}
+
+		/* The sink compose is bound by the sink format. */
+		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+						     MXC_ISI_SD_PAD_SINK);
+		sel->r.left = 0;
+		sel->r.top = 0;
+		sel->r.width = format->width;
+		sel->r.height = format->height;
+		break;
+
 	case V4L2_SEL_TGT_CROP_BOUNDS:
-		r->width = f->o_width;
-		r->height = f->o_height;
-		r->left = 0;
-		r->top = 0;
-		mutex_unlock(&pipe->lock);
-		return 0;
+		if (sel->pad != MXC_ISI_SD_PAD_SOURCE) {
+			/* No crop rectangle on sink pad. */
+			ret = -EINVAL;
+			break;
+		}
+
+		/* The source crop is bound by the sink compose. */
+		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+						    MXC_ISI_SD_PAD_SINK);
+		sel->r = *rect;
+		break;
 
 	case V4L2_SEL_TGT_CROP:
-		try_sel = v4l2_subdev_get_try_crop(sd, cfg, sel->pad);
+		if (sel->pad != MXC_ISI_SD_PAD_SOURCE) {
+			/* No crop rectangle on sink pad. */
+			ret = -EINVAL;
+			break;
+		}
+
+		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+						 sel->pad);
+		sel->r = *rect;
 		break;
+
 	case V4L2_SEL_TGT_COMPOSE:
-		try_sel = v4l2_subdev_get_try_compose(sd, cfg, sel->pad);
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+		if (sel->pad != MXC_ISI_SD_PAD_SINK) {
+			/* No compose rectangle on source pad. */
+			ret = -EINVAL;
+			break;
+		}
+
+		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+						    sel->pad);
+		sel->r = *rect;
 		break;
+
 	default:
-		mutex_unlock(&pipe->lock);
-		return -EINVAL;
+		ret = -EINVAL;
+		break;
 	}
-
-	if (sel->which == V4L2_SUBDEV_FORMAT_TRY) {
-		sel->r = *try_sel;
-	} else {
-		r->left = f->h_off;
-		r->top = f->v_off;
-		r->width = f->width;
-		r->height = f->height;
-	}
-
-	dev_dbg(pipe->isi->dev,
-		"%s, target %#x: l:%d, t:%d, %dx%d",
-		__func__, sel->pad, r->left, r->top, r->width, r->height);
 
 	mutex_unlock(&pipe->lock);
-	return 0;
+	return ret;
 }
 
 static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
@@ -1266,40 +1363,100 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-	struct v4l2_rect *r = &sel->r;
-	struct v4l2_rect *try_sel;
+	struct v4l2_mbus_framefmt *format;
+	struct v4l2_rect *rect;
 	unsigned long flags;
+	int ret = 0;
 
 	mutex_lock(&pipe->lock);
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP:
-		try_sel = v4l2_subdev_get_try_crop(sd, cfg, sel->pad);
+		if (sel->pad != MXC_ISI_SD_PAD_SOURCE) {
+			/* The pipeline support cropping on the source only. */
+			ret = -EINVAL;
+			break;
+		}
+
+		/* The source crop is bound by the sink compose. */
+		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+						    MXC_ISI_SD_PAD_SINK);
+		sel->r.left = clamp_t(s32, sel->r.left, 0, rect->width - 1);
+		sel->r.top = clamp_t(s32, sel->r.top, 0, rect->height - 1);
+		sel->r.width = clamp(sel->r.width, MXC_ISI_MIN_WIDTH,
+				     rect->width - sel->r.left);
+		sel->r.height = clamp(sel->r.height, MXC_ISI_MIN_HEIGHT,
+				      rect->height - sel->r.top);
+
+		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+						 MXC_ISI_SD_PAD_SOURCE);
+		*rect = sel->r;
+
+		/* Propagate the crop rectangle to the source pad. */
+		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+						     MXC_ISI_SD_PAD_SOURCE);
+		format->width = sel->r.width;
+		format->height = sel->r.height;
 		break;
+
 	case V4L2_SEL_TGT_COMPOSE:
-		try_sel = v4l2_subdev_get_try_compose(sd, cfg, sel->pad);
+		if (sel->pad != MXC_ISI_SD_PAD_SINK) {
+			/* Composing is supported on the sink only. */
+			ret = -EINVAL;
+			break;
+		}
+
 		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+
+		/* The sink crop is bound by the sink format downscaling only). */
+		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+						     MXC_ISI_SD_PAD_SINK);
+
+		sel->r.left = 0;
+		sel->r.top = 0;
+		sel->r.width = clamp(sel->r.width, MXC_ISI_MIN_WIDTH,
+				     format->width);
+		sel->r.height = clamp(sel->r.height, MXC_ISI_MIN_HEIGHT,
+				      format->height);
+
+		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+						    MXC_ISI_SD_PAD_SINK);
+		*rect = sel->r;
+
+		/* Propagate the compose rectangle to the source pad. */
+		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+						 MXC_ISI_SD_PAD_SOURCE);
+		rect->left = 0;
+		rect->top = 0;
+		rect->width = sel->r.width;
+		rect->height = sel->r.height;
+
+		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+						     MXC_ISI_SD_PAD_SOURCE);
+		format->width = sel->r.width;
+		format->height = sel->r.height;
 		break;
+
 	default:
-		mutex_unlock(&pipe->lock);
-		return -EINVAL;
+		ret = -EINVAL;
+		break;
 	}
 
-	/* FIXME: Clamp selection rectangle coordinates. */
+	mutex_unlock(&pipe->lock);
 
-	if (sel->which == V4L2_SUBDEV_FORMAT_TRY) {
-		*try_sel = sel->r;
-	} else {
+	if (ret < 0)
+		return ret;
+
+	if (sel->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
 		spin_lock_irqsave(&pipe->slock, flags);
-		f->h_off = r->left;
-		f->v_off = r->top;
+		f->h_off = sel->r.left;
+		f->v_off = sel->r.top;
 		spin_unlock_irqrestore(&pipe->slock, flags);
 	}
 
 	dev_dbg(pipe->isi->dev, "%s, target %#x: (%d,%d)/%dx%d", __func__,
-		sel->target, r->left, r->top, r->width, r->height);
-
-	mutex_unlock(&pipe->lock);
+		sel->target, sel->r.left, sel->r.top, sel->r.width,
+		sel->r.height);
 
 	return 0;
 }
