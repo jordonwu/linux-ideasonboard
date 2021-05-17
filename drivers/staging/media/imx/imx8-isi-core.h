@@ -55,6 +55,18 @@
 
 #define ISI_2K			2048
 
+/*
+ * Absolute limits based on register field widths, not taking the scaler and
+ * line buffer constraints into account. The hardware may have additional
+ * constraints not documented in the reference manual.
+ */
+#define MXC_ISI_MIN_WIDTH		1U
+#define MXC_ISI_MIN_HEIGHT		1U
+#define MXC_ISI_MAX_WIDTH		8191U
+#define MXC_ISI_MAX_HEIGHT		8191U
+#define MXC_ISI_DEF_WIDTH		1920U
+#define MXC_ISI_DEF_HEIGHT		1080U
+
 #define MXC_ISI_DRIVER_NAME	"mxc-isi"
 #define MXC_ISI_CAPTURE		"mxc-isi-cap"
 #define MXC_MAX_PLANES		3
