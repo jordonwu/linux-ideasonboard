@@ -271,7 +271,6 @@ struct mxc_isi_video {
 	struct video_device		vdev;
 	struct media_pad		pad;
 
-	bool				is_link_setup;
 	struct v4l2_pix_format_mplane	pix;
 	struct mxc_isi_ctrls		ctrls;
 
