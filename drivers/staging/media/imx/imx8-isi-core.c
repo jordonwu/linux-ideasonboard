@@ -711,8 +711,8 @@ static struct platform_driver mxc_isi_driver = {
 };
 module_platform_driver(mxc_isi_driver);
 
-MODULE_AUTHOR("Freescale Semiconductor, Inc.");
-MODULE_DESCRIPTION("IMX8 Image Subsystem driver");
-MODULE_LICENSE("GPL");
 MODULE_ALIAS("ISI");
+MODULE_AUTHOR("Freescale Semiconductor, Inc.");
+MODULE_DESCRIPTION("IMX8 Image Sensing Interface driver");
+MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0");
