@@ -469,6 +469,12 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	struct vb2_buffer *vb2;
 	unsigned long flags;
 	int i, j;
+	int ret;
+
+	mxc_isi_channel_init(isi);
+	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
+			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE],
+			       pipe->video.pix.plane_fmt[0].bytesperline);
 
 	/* Create a buffer for discard operation */
 	for (i = 0; i < pipe->video.pix.num_planes; i++) {
@@ -525,6 +531,11 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	pipe->video.frame_count = 1;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
+	mxc_isi_channel_enable(isi, false);
+	ret = mxc_isi_pipeline_enable(pipe, 1);
+	if (ret < 0 && ret != -ENOIOCTLCMD)
+		return ret;
+
 	return 0;
 }
 
@@ -536,6 +547,7 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 	unsigned long flags;
 	int i;
 
+	mxc_isi_pipeline_enable(pipe, 0);
 	mxc_isi_channel_disable(isi);
 
 	spin_lock_irqsave(&pipe->slock, flags);
@@ -847,23 +859,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_config_parm(struct mxc_isi_pipe *pipe)
-{
-	struct mxc_isi_dev *isi = pipe->isi;
-	int ret;
-
-	ret = mxc_isi_source_fmt_init(pipe);
-	if (ret < 0)
-		return -EINVAL;
-
-	mxc_isi_channel_init(isi);
-	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
-			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE],
-			       pipe->video.pix.plane_fmt[0].bytesperline);
-
-	return 0;
-}
-
 static int mxc_isi_cap_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type type)
 {
@@ -871,14 +866,12 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *isi = pipe->isi;
 	int ret;
 
-	ret = mxc_isi_config_parm(pipe);
+	ret = mxc_isi_source_fmt_init(pipe);
 	if (ret < 0)
 		return ret;
 
 	ret = vb2_ioctl_streamon(file, priv, type);
-	mxc_isi_channel_enable(isi, false);
-	ret = mxc_isi_pipeline_enable(pipe, 1);
-	if (ret < 0 && ret != -ENOIOCTLCMD)
+	if (ret < 0)
 		return ret;
 
 	isi->is_streaming = 1;
@@ -893,8 +886,6 @@ static int mxc_isi_cap_streamoff(struct file *file, void *priv,
 	struct mxc_isi_dev *isi = pipe->isi;
 	int ret;
 
-	mxc_isi_pipeline_enable(pipe, 0);
-	mxc_isi_channel_disable(isi);
 	ret = vb2_ioctl_streamoff(file, priv, type);
 
 	isi->is_streaming = 0;
