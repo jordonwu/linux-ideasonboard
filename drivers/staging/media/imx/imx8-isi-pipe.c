@@ -622,7 +622,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
 
-	spin_lock_irqsave(&pipe->isi->slock, flags);
+	spin_lock_irqsave(&pipe->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
@@ -638,7 +638,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 		return -EINVAL;
 	}
 
-	spin_unlock_irqrestore(&pipe->isi->slock, flags);
+	spin_unlock_irqrestore(&pipe->slock, flags);
 	return 0;
 }
 
@@ -857,9 +857,9 @@ static int mxc_isi_capture_open(struct file *file)
 	pm_runtime_get_sync(pipe->isi->dev);
 
 	/* increase usage count for ISI channel */
-	mutex_lock(&pipe->isi->lock);
+	mutex_lock(&pipe->lock);
 	atomic_inc(&pipe->usage_count);
-	mutex_unlock(&pipe->isi->lock);
+	mutex_unlock(&pipe->lock);
 
 	return 0;
 }
@@ -1416,12 +1416,11 @@ static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
 static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 {
 	struct mxc_isi_pipe *pipe = priv;
-	struct mxc_isi_dev *isi = pipe->isi;
 	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
 	unsigned long flags;
 	u32 status;
 
-	spin_lock_irqsave(&isi->slock, flags);
+	spin_lock_irqsave(&pipe->slock, flags);
 
 	status = mxc_isi_get_irq_status(pipe);
 	pipe->status = status;
@@ -1429,7 +1428,7 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 	if (status & CHNL_STS_FRM_STRD_MASK)
 		mxc_isi_cap_frame_write_done(pipe);
 
-	spin_unlock_irqrestore(&isi->slock, flags);
+	spin_unlock_irqrestore(&pipe->slock, flags);
 
 	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
 		      CHNL_STS_AXI_WR_ERR_U_MASK |
