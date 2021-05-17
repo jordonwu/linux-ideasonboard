@@ -1396,9 +1396,8 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 	}
 
 	dev_dbg(pipe->isi->dev,
-		"%s, target %#x: l:%d, t:%d, %dx%d, f_w: %d, f_h: %d",
-		__func__, sel->pad, r->left, r->top, r->width, r->height,
-		f->c_width, f->c_height);
+		"%s, target %#x: l:%d, t:%d, %dx%d",
+		__func__, sel->pad, r->left, r->top, r->width, r->height);
 
 	mutex_unlock(&pipe->lock);
 	return 0;
