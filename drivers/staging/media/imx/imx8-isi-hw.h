@@ -454,7 +454,8 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
 
 void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 			    const struct mxc_isi_frame *src_f,
-			    const struct mxc_isi_frame *dst_f);
+			    const struct mxc_isi_frame *dst_f,
+			    unsigned int pitch);
 
 void mxc_isi_channel_set_alpha_roi0(struct mxc_isi_dev *isi,
 				    struct v4l2_rect *rect);

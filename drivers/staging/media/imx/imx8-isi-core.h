@@ -188,8 +188,6 @@ struct frame_addr {
  * v_off:	crop vertical pixel offset
  * width:	out image pixel width
  * height:	out image pixel weight
- * bytesperline: bytesperline value for each plane
- * paddr:	image frame buffer physical addresses
  * fmt:	color format pointer
  */
 struct mxc_isi_frame {
@@ -199,7 +197,6 @@ struct mxc_isi_frame {
 	u32	v_off;
 	u32	width;
 	u32	height;
-	unsigned int	bytesperline[MXC_MAX_PLANES];
 	const struct mxc_isi_format_info *info;
 };
 

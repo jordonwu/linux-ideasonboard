@@ -837,7 +837,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_format_info *fmt;
-	unsigned int i;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
@@ -847,9 +846,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	dst_f->info = fmt;
 	dst_f->height = pix->height;
 	dst_f->width = pix->width;
-
-	for (i = 0; i < pix->num_planes; i++)
-		dst_f->bytesperline[i] = pix->plane_fmt[i].bytesperline;
 
 	pipe->video.pix = *pix;
 	set_frame_bounds(dst_f, pix->width, pix->height);
@@ -868,7 +864,8 @@ static int mxc_isi_config_parm(struct mxc_isi_pipe *pipe)
 
 	mxc_isi_channel_init(isi);
 	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
-			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE]);
+			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE],
+			       pipe->video.pix.plane_fmt[0].bytesperline);
 
 	return 0;
 }
@@ -1211,7 +1208,6 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_format_info *out_fmt;
-	int i;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
@@ -1226,13 +1222,6 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	mutex_lock(&pipe->lock);
 	/* update out put frame size and formate */
 	dst_f->info = out_fmt;
-
-	if (dst_f->info->memplanes > 1)
-		dst_f->bytesperline[i] = (mf->width *
-					 dst_f->info->depth[i] >> 3);
-	else
-		dst_f->bytesperline[0] = mf->width * dst_f->info->depth[0] / 8;
-
 	set_frame_bounds(dst_f, mf->width, mf->height);
 	mutex_unlock(&pipe->lock);
 
