@@ -116,7 +116,7 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 				      | MEDIA_LNK_FL_ENABLED;
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
-	struct media_pad *pad = &isi->pipe.pads[masd->port];
+	struct media_pad *pad = &isi->pipes[masd->port].pads[MXC_ISI_SD_PAD_SINK];
 
 	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
 	dev_info(isi->dev, "Creating links %s -> ISI:%u\n",
@@ -173,12 +173,17 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 		goto err_media;
 	}
 
-	/* Register the ISI subdev. */
-	ret = v4l2_device_register_subdev(v4l2_dev, &isi->pipe.sd);
-	if (ret < 0) {
-		dev_err(isi->dev,
-			"Failed to register ISI subdev: %d\n", ret);
-		goto err_v4l2;
+	/* Register the ISI subdevs. */
+	for (i = 0; i < isi->pdata->num_channels; ++i) {
+		struct mxc_isi_pipe *pipe = &isi->pipes[i];
+
+		ret = v4l2_device_register_subdev(v4l2_dev, &pipe->sd);
+		if (ret < 0) {
+			dev_err(isi->dev,
+				"Failed to register ISI pipe%u subdev: %d\n", i,
+				ret);
+			goto err_v4l2;
+		}
 	}
 
 	/* Initialize, fill and register the async notifier. */
@@ -308,6 +313,8 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 /* Chip C0 */
 static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.model    = MXC_ISI_IMX8,
+	.num_channels = 8,
+	.reg_offset = 0x10000,
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v0,
 	.set_thd  = &mxc_imx8_isi_thd_v0,
@@ -318,6 +325,8 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.model    = MXC_ISI_IMX8,
+	.num_channels = 8,
+	.reg_offset = 0x10000,
 	.chan_src = &mxc_imx8_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -342,6 +351,8 @@ static const struct clk_bulk_data mxc_imx8mn_clks[] = {
 
 static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.model    = MXC_ISI_IMX8MN,
+	.num_channels = 1,
+	.reg_offset = 0,
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v1,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -352,6 +363,8 @@ static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.model    = MXC_ISI_IMX8MP,
+	.num_channels = 2,
+	.reg_offset = 0x2000,
 	.chan_src = &mxc_imx8mn_chan_src,
 	.ier_reg  = &mxc_imx8_isi_ier_v2,
 	.set_thd  = &mxc_imx8_isi_thd_v1,
@@ -414,10 +427,15 @@ static int mxc_isi_get_platform_data(struct mxc_isi_dev *isi)
 static int mxc_isi_pm_suspend(struct device *dev)
 {
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
+	unsigned int i;
 
-	if (isi->pipe.is_streaming) {
-		dev_warn(dev, "running, prevent entering suspend.\n");
-		return -EAGAIN;
+	for (i = 0; i < isi->pdata->num_channels; ++i) {
+		struct mxc_isi_pipe *pipe = &isi->pipes[i];
+
+		if (pipe->is_streaming) {
+			dev_warn(dev, "running, prevent entering suspend.\n");
+			return -EAGAIN;
+		}
 	}
 
 	return pm_runtime_force_suspend(dev);
@@ -532,6 +550,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct mxc_isi_dev *isi;
 	struct resource *res;
+	unsigned int i;
 	int ret = 0;
 
 	isi = devm_kzalloc(dev, sizeof(*isi), GFP_KERNEL);
@@ -545,6 +564,11 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		dev_err(dev, "Can't get platform device data\n");
 		return ret;
 	}
+
+	isi->pipes = kcalloc(isi->pdata->num_channels, sizeof(isi->pipes[0]),
+			     GFP_KERNEL);
+	if (!isi->pipes)
+		return -ENOMEM;
 
 	ret = mxc_isi_parse_dt(isi);
 	if (ret < 0)
@@ -588,10 +612,13 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
-	ret = mxc_isi_pipe_init(isi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to initialize pipeline: %d\n", ret);
-		goto err;
+	for (i = 0; i < isi->pdata->num_channels; ++i) {
+		ret = mxc_isi_pipe_init(isi, i);
+		if (ret < 0) {
+			dev_err(dev, "Failed to initialize pipe%u: %d\n", i,
+				ret);
+			goto err;
+		}
 	}
 
 	ret = mxc_isi_v4l2_init(isi);
@@ -613,8 +640,14 @@ err:
 static int mxc_isi_remove(struct platform_device *pdev)
 {
 	struct mxc_isi_dev *isi = platform_get_drvdata(pdev);
+	unsigned int i;
 
-	mxc_isi_pipe_cleanup(isi);
+	for (i = 0; i < isi->pdata->num_channels; ++i) {
+		struct mxc_isi_pipe *pipe = &isi->pipes[i];
+
+		mxc_isi_pipe_cleanup(pipe);
+	}
+
 	mxc_isi_v4l2_cleanup(isi);
 
 	pm_runtime_disable(isi->dev);
