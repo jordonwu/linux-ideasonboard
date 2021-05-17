@@ -328,12 +328,6 @@ struct mxc_isi_dev {
 	/* manage share ISI channel resource */
 	atomic_t usage_count;
 
-	/* scale factor */
-	u32 xfactor;
-	u32 yfactor;
-	u32 pre_dec_x;
-	u32 pre_dec_y;
-
 	u32 status;
 
 	u32 interface[MAX_PORTS];
