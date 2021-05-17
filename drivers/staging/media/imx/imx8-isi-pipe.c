@@ -470,12 +470,6 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	unsigned long flags;
 	int i, j;
 
-	if (count < 2)
-		return -ENOBUFS;
-
-	if (!isi)
-		return -EINVAL;
-
 	/* Create a buffer for discard operation */
 	for (i = 0; i < pipe->video.pix.num_planes; i++) {
 		pipe->video.discard_size[i] = pipe->video.pix.plane_fmt[i].sizeimage;
@@ -1096,6 +1090,7 @@ static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->buf_struct_size = sizeof(struct mxc_isi_buffer);
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+	q->min_buffers_needed = 2;
 	q->lock = &pipe->lock;
 
 	ret = vb2_queue_init(q);
