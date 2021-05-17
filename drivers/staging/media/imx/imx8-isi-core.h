@@ -39,20 +39,14 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
-#define ISI_OF_NODE_NAME	"isi"
-#define MIPI_CSI2_OF_NODE_NAME  "csi"
-#define PARALLEL_OF_NODE_NAME   "pcsi"
-
-#define MXC_ISI_NUM_PORTS	1
-#define MXC_MIPI_CSI2_MAX_DEVS	2
-#define MXC_MAX_SENSORS		3
+#define MXC_ISI_NUM_PORTS		1
 
 /* ISI PADS */
-#define MXC_ISI_SD_PAD_SINK	0
-#define MXC_ISI_SD_PAD_SOURCE	1
-#define MXC_ISI_SD_PADS_NUM	2
+#define MXC_ISI_SD_PAD_SINK		0
+#define MXC_ISI_SD_PAD_SOURCE		1
+#define MXC_ISI_SD_PADS_NUM		2
 
-#define ISI_2K			2048
+#define ISI_2K				2048
 
 /*
  * Absolute limits based on register field widths, not taking the scaler and
@@ -66,9 +60,9 @@
 #define MXC_ISI_DEF_WIDTH		1920U
 #define MXC_ISI_DEF_HEIGHT		1080U
 
-#define MXC_ISI_DRIVER_NAME	"mxc-isi"
-#define MXC_ISI_CAPTURE		"mxc-isi-cap"
-#define MXC_MAX_PLANES		3
+#define MXC_ISI_DRIVER_NAME		"mxc-isi"
+#define MXC_ISI_CAPTURE			"mxc-isi-cap"
+#define MXC_MAX_PLANES			3
 
 struct mxc_isi_dev;
 
@@ -191,11 +185,6 @@ struct mxc_isi_frame {
 	struct v4l2_mbus_framefmt format;
 	struct v4l2_rect crop;
 	struct v4l2_rect compose;
-};
-
-struct mxc_isi_roi_alpha {
-	u8 alpha;
-	struct v4l2_rect rect;
 };
 
 struct mxc_isi_buffer {
