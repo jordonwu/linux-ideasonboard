@@ -292,6 +292,8 @@ struct mxc_isi_pipe {
 	struct mxc_isi_dev		*isi;
 	u32				id;
 
+	struct media_pipeline		pipe;
+
 	struct v4l2_subdev		sd;
 	struct media_pad		pads[MXC_ISI_SD_PADS_NUM];
 	struct mxc_isi_frame		formats[MXC_ISI_SD_PADS_NUM];
