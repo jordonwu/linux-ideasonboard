@@ -11,9 +11,9 @@
 
 #define	ISI_DOWNSCALE_THRESHOLD		0x4000
 
-#ifdef DEBUG
-void dump_isi_regs(struct mxc_isi_dev *isi)
+static void dump_isi_regs(struct mxc_isi_dev *isi)
 {
+#ifdef DEBUG
 	struct device *dev = isi->dev;
 	struct {
 		u32 offset;
@@ -68,12 +68,8 @@ void dump_isi_regs(struct mxc_isi_dev *isi)
 		dev_dbg(dev, "%20s[0x%.2x]: %.2x\n",
 			registers[i].name, registers[i].offset, reg);
 	}
-}
-#else
-void dump_isi_regs(struct mxc_isi_dev *isi)
-{
-}
 #endif
+}
 
 /* 
  * A2,A1,      B1, A3,     B3, B2,
@@ -176,7 +172,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 	writel(val, isi->regs + CHNL_OUT_BUF_CTRL);
 }
 
-void mxc_isi_channel_sw_reset(struct mxc_isi_dev *isi)
+static void mxc_isi_channel_sw_reset(struct mxc_isi_dev *isi)
 {
 	u32 val;
 
@@ -188,7 +184,7 @@ void mxc_isi_channel_sw_reset(struct mxc_isi_dev *isi)
 	writel(val, isi->regs + CHNL_CTRL);
 }
 
-void mxc_isi_channel_source_config(struct mxc_isi_dev *isi)
+static void mxc_isi_channel_source_config(struct mxc_isi_dev *isi)
 {
 	u32 val;
 
@@ -244,9 +240,9 @@ void mxc_isi_channel_set_flip(struct mxc_isi_dev *isi)
 	writel(val, isi->regs + CHNL_IMG_CTRL);
 }
 
-void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
-			     const struct mxc_isi_frame *src_f,
-			     const struct mxc_isi_frame *dst_f)
+static void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
+				    const struct mxc_isi_frame *src_f,
+				    const struct mxc_isi_frame *dst_f)
 {
 	const struct mxc_isi_format_info *src_fmt = src_f->info;
 	const struct mxc_isi_format_info *dst_fmt = dst_f->info;
@@ -297,17 +293,6 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
 	writel(val, isi->regs + CHNL_IMG_CTRL);
 }
 
-void mxc_isi_channel_set_alpha_roi0(struct mxc_isi_dev *isi,
-				    struct v4l2_rect *rect)
-{
-	u32 val0, val1;
-
-	val0 = (rect->left << 16) | rect->top;
-	writel(val0, isi->regs + CHNL_ROI_0_ULC);
-	val1 = (rect->width << 16) | rect->height;
-	writel(val0 + val1, isi->regs + CHNL_ROI_0_LRC);
-}
-
 void mxc_isi_channel_set_alpha(struct mxc_isi_dev *isi)
 {
 	u32 val;
@@ -322,7 +307,7 @@ void mxc_isi_channel_set_alpha(struct mxc_isi_dev *isi)
 	writel(val, isi->regs + CHNL_IMG_CTRL);
 }
 
-void mxc_isi_channel_set_panic_threshold(struct mxc_isi_dev *isi)
+static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_dev *isi)
 {
 	const struct mxc_isi_set_thd *set_thd = isi->pdata->set_thd;
 	u32 val;
@@ -352,31 +337,6 @@ void mxc_isi_channel_set_chain_buf(struct mxc_isi_dev *isi)
 
 		writel(val, isi->regs + CHNL_CTRL);
 	}
-}
-
-void mxc_isi_channel_deinterlace_init(struct mxc_isi_dev *isi)
-{
-	/* Config for Blending deinterlace */
-}
-
-void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi)
-{
-	/* de-interlacing method
-	 * Weaving-------------Yes
-	 * Line Doubling-------No
-	 * Blending -----------TODO
-	 */
-	u32 val;
-
-	val = readl(isi->regs + CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_DEINT_MASK;
-	if (isi->deinterlace)
-		val |= isi->deinterlace << CHNL_IMG_CTRL_DEINT_OFFSET;
-	if (isi->deinterlace == CHNL_IMG_CTRL_DEINT_LDOUBLE_ODD_EVEN ||
-	    isi->deinterlace == CHNL_IMG_CTRL_DEINT_LDOUBLE_EVEN_ODD)
-		mxc_isi_channel_deinterlace_init(isi);
-
-	writel(val, isi->regs + CHNL_IMG_CTRL);
 }
 
 void mxc_isi_channel_set_crop(struct mxc_isi_dev *isi)
@@ -422,9 +382,9 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_dev *isi)
 	writel(val0, isi->regs + CHNL_IMG_CTRL);
 }
 
-void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
-				 const struct mxc_isi_frame *src_f,
-				 const struct mxc_isi_frame *dst_f)
+static void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
+					const struct mxc_isi_frame *src_f,
+					const struct mxc_isi_frame *dst_f)
 {
 	u32 decx, decy;
 	u32 xscale, yscale;
@@ -592,6 +552,39 @@ void mxc_isi_clean_registers(struct mxc_isi_dev *isi)
 	mxc_isi_clean_irq_status(isi, status);
 }
 
+static void mxc_isi_enable_irq(struct mxc_isi_dev *isi)
+{
+	const struct mxc_isi_ier_reg *ier_reg = isi->pdata->ier_reg;
+	u32 val;
+
+	val = CHNL_IER_FRM_RCVD_EN_MASK |
+		CHNL_IER_AXI_WR_ERR_U_EN_MASK |
+		CHNL_IER_AXI_WR_ERR_V_EN_MASK |
+		CHNL_IER_AXI_WR_ERR_Y_EN_MASK;
+
+	/* Y/U/V overflow enable */
+	val |= ier_reg->oflw_y_buf_en.mask |
+	       ier_reg->oflw_u_buf_en.mask |
+	       ier_reg->oflw_v_buf_en.mask;
+
+	/* Y/U/V excess overflow enable */
+	val |= ier_reg->excs_oflw_y_buf_en.mask |
+	       ier_reg->excs_oflw_u_buf_en.mask |
+	       ier_reg->excs_oflw_v_buf_en.mask;
+
+	/* Y/U/V panic enable */
+	val |= ier_reg->panic_y_buf_en.mask |
+	       ier_reg->panic_u_buf_en.mask |
+	       ier_reg->panic_v_buf_en.mask;
+
+	writel(val, isi->regs + CHNL_IER);
+}
+
+static void mxc_isi_disable_irq(struct mxc_isi_dev *isi)
+{
+	writel(0, isi->regs + CHNL_IER);
+}
+
 void mxc_isi_channel_enable(struct mxc_isi_dev *isi, bool m2m_enabled)
 {
 	u32 val;
@@ -634,39 +627,6 @@ void mxc_isi_channel_disable(struct mxc_isi_dev *isi)
 	val |= (CHNL_CTRL_CHNL_EN_DISABLE << CHNL_CTRL_CHNL_EN_OFFSET);
 	val |= (CHNL_CTRL_CLK_EN_DISABLE << CHNL_CTRL_CLK_EN_OFFSET);
 	writel(val, isi->regs + CHNL_CTRL);
-}
-
-void  mxc_isi_enable_irq(struct mxc_isi_dev *isi)
-{
-	const struct mxc_isi_ier_reg *ier_reg = isi->pdata->ier_reg;
-	u32 val;
-
-	val = CHNL_IER_FRM_RCVD_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_U_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_V_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_Y_EN_MASK;
-
-	/* Y/U/V overflow enable */
-	val |= ier_reg->oflw_y_buf_en.mask |
-	       ier_reg->oflw_u_buf_en.mask |
-	       ier_reg->oflw_v_buf_en.mask;
-
-	/* Y/U/V excess overflow enable */
-	val |= ier_reg->excs_oflw_y_buf_en.mask |
-	       ier_reg->excs_oflw_u_buf_en.mask |
-	       ier_reg->excs_oflw_v_buf_en.mask;
-
-	/* Y/U/V panic enable */
-	val |= ier_reg->panic_y_buf_en.mask |
-	       ier_reg->panic_u_buf_en.mask |
-	       ier_reg->panic_v_buf_en.mask;
-
-	writel(val, isi->regs + CHNL_IER);
-}
-
-void mxc_isi_disable_irq(struct mxc_isi_dev *isi)
-{
-	writel(0, isi->regs + CHNL_IER);
 }
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_dev *isi)
