@@ -39,8 +39,6 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
-#define MXC_ISI_NUM_PORTS		1
-
 /* ISI PADS */
 #define MXC_ISI_SD_PAD_SINK		0
 #define MXC_ISI_SD_PAD_SOURCE		1
@@ -65,23 +63,6 @@
 #define MXC_MAX_PLANES			3
 
 struct mxc_isi_dev;
-
-enum {
-	IN_PORT,
-	OUT_PORT,
-	MAX_PORTS,
-};
-
-enum isi_input_interface {
-	ISI_INPUT_INTERFACE_DC0 = 0,
-	ISI_INPUT_INTERFACE_DC1,
-	ISI_INPUT_INTERFACE_MIPI0_CSI2,
-	ISI_INPUT_INTERFACE_MIPI1_CSI2,
-	ISI_INPUT_INTERFACE_HDMI,
-	ISI_INPUT_INTERFACE_MEM,
-	ISI_INPUT_INTERFACE_PARALLEL_CSI,
-	ISI_INPUT_INTERFACE_MAX,
-};
 
 enum mxc_isi_buf_id {
 	MXC_ISI_BUF1 = 0x0,
@@ -195,16 +176,6 @@ struct mxc_isi_buffer {
 	bool discard;
 };
 
-struct mxc_isi_chan_src {
-	u32 src_dc0;
-	u32 src_dc1;
-	u32 src_mipi0;
-	u32 src_mipi1;
-	u32 src_hdmi;
-	u32 src_csi;
-	u32 src_mem;
-};
-
 struct mxc_isi_reg {
 	u32 offset;
 	u32 mask;
@@ -247,9 +218,9 @@ enum model {
 
 struct mxc_isi_plat_data {
 	enum model model;
+	unsigned int num_ports;
 	unsigned int num_channels;
 	unsigned int reg_offset;
-	const struct mxc_isi_chan_src *chan_src;
 	const struct mxc_isi_ier_reg  *ier_reg;
 	const struct mxc_isi_set_thd *set_thd;
 	const struct clk_bulk_data *clks;
@@ -321,7 +292,6 @@ struct mxc_isi_dev {
 	struct reset_control		*clk_enable;
 
 	struct regmap			*chain;
-	u32				interface[MAX_PORTS];
 
 	struct mxc_isi_pipe		*pipes;
 

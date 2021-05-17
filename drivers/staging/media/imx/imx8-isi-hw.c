@@ -201,35 +201,13 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe)
 	val &= ~(CHNL_CTRL_MIPI_VC_ID_MASK |
 		 CHNL_CTRL_SRC_INPUT_MASK | CHNL_CTRL_SRC_TYPE_MASK);
 
-	switch (pipe->isi->interface[IN_PORT]) {
-	case ISI_INPUT_INTERFACE_MIPI0_CSI2:
-		val |= pipe->isi->pdata->chan_src->src_mipi0;
-		val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET;
-		break;
-	case ISI_INPUT_INTERFACE_MIPI1_CSI2:
-		val |= pipe->isi->pdata->chan_src->src_mipi1;
-		val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET;
-		break;
-	case ISI_INPUT_INTERFACE_DC0:
-		val |= pipe->isi->pdata->chan_src->src_dc0;
-		break;
-	case ISI_INPUT_INTERFACE_DC1:
-		val |= pipe->isi->pdata->chan_src->src_dc1;
-		break;
-	case ISI_INPUT_INTERFACE_HDMI:
-		val |= pipe->isi->pdata->chan_src->src_hdmi;
-		break;
-	case ISI_INPUT_INTERFACE_PARALLEL_CSI:
-		val |= pipe->isi->pdata->chan_src->src_csi;
-		break;
-	case ISI_INPUT_INTERFACE_MEM:
-		val |= pipe->isi->pdata->chan_src->src_mem;
-		val |= (CHNL_CTRL_SRC_TYPE_MEMORY << CHNL_CTRL_SRC_TYPE_OFFSET);
-		break;
-	default:
-		dev_err(pipe->isi->dev, "invalid interface\n");
-		break;
-	}
+	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
+	val |= pipe->id;
+	val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET; /* FIXME: For CSI-2 only */
+	/*
+	 * FIXME: Support memory input
+	 * val |= (CHNL_CTRL_SRC_TYPE_MEMORY << CHNL_CTRL_SRC_TYPE_OFFSET);
+	 */
 
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
