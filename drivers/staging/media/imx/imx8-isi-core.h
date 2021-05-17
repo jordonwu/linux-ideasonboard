@@ -78,13 +78,6 @@ enum isi_input_interface {
 	ISI_INPUT_INTERFACE_MAX,
 };
 
-enum isi_output_interface {
-	ISI_OUTPUT_INTERFACE_DC0 = 0,
-	ISI_OUTPUT_INTERFACE_DC1,
-	ISI_OUTPUT_INTERFACE_MEM,
-	ISI_OUTPUT_INTERFACE_MAX,
-};
-
 enum mxc_isi_buf_id {
 	MXC_ISI_BUF1 = 0x0,
 	MXC_ISI_BUF2,
