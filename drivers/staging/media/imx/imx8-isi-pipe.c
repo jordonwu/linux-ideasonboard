@@ -1180,6 +1180,50 @@ mxc_isi_pipe_get_pad_compose(struct mxc_isi_pipe *pipe,
 	}
 }
 
+static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
+				 struct v4l2_subdev_pad_config *cfg)
+{
+	enum v4l2_subdev_format_whence which = cfg ? V4L2_SUBDEV_FORMAT_TRY
+					     : V4L2_SUBDEV_FORMAT_ACTIVE;
+	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct v4l2_mbus_framefmt *fmt_source;
+	struct v4l2_mbus_framefmt *fmt_sink;
+	struct v4l2_rect *compose;
+	struct v4l2_rect *crop;
+
+	fmt_sink = mxc_isi_pipe_get_pad_format(pipe, cfg, which,
+					       MXC_ISI_SD_PAD_SINK);
+	fmt_source = mxc_isi_pipe_get_pad_format(pipe, cfg, which,
+						 MXC_ISI_SD_PAD_SOURCE);
+
+	fmt_sink->width = MXC_ISI_DEF_WIDTH;
+	fmt_sink->height = MXC_ISI_DEF_HEIGHT;
+	fmt_sink->code = MEDIA_BUS_FMT_YUYV8_1X16;
+	fmt_sink->field = V4L2_FIELD_NONE;
+	fmt_sink->colorspace = V4L2_COLORSPACE_JPEG;
+	fmt_sink->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt_sink->colorspace);
+	fmt_sink->quantization =
+		V4L2_MAP_QUANTIZATION_DEFAULT(false, fmt_sink->colorspace,
+					      fmt_sink->ycbcr_enc);
+	fmt_sink->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(fmt_sink->colorspace);
+
+	*fmt_source = *fmt_sink;
+
+	compose = mxc_isi_pipe_get_pad_compose(pipe, cfg, which,
+					       MXC_ISI_SD_PAD_SINK);
+	crop = mxc_isi_pipe_get_pad_crop(pipe, cfg, which,
+					 MXC_ISI_SD_PAD_SOURCE);
+
+	compose->left = 0;
+	compose->top = 0;
+	compose->width = MXC_ISI_DEF_WIDTH;
+	compose->height = MXC_ISI_DEF_HEIGHT;
+
+	*crop = *compose;
+
+	return 0;
+}
+
 static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_pad_config *cfg,
 				       struct v4l2_subdev_mbus_code_enum *code)
@@ -1462,6 +1506,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 }
 
 static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
+	.init_cfg = mxc_isi_pipe_init_cfg,
 	.enum_mbus_code = mxc_isi_pipe_enum_mbus_code,
 	.get_fmt = mxc_isi_pipe_get_fmt,
 	.set_fmt = mxc_isi_pipe_set_fmt,
@@ -1511,6 +1556,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct v4l2_subdev *sd;
+	unsigned int i;
 	int ret;
 
 	pipe->id = isi->id;
@@ -1539,11 +1585,17 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 
 	sd->fwnode = of_fwnode_handle(pipe->isi->dev->of_node);
 
-	/* Default configuration  */
+	/* Default configuration. */
+	mxc_isi_pipe_init_cfg(sd, NULL);
+
+	for (i = 0; i < ARRAY_SIZE(pipe->formats); ++i) {
+		struct mxc_isi_frame *frame = &pipe->formats[i];
+
+		frame->info = mxc_isi_format_by_code(frame->format.code);
+	}
+
 	pipe->formats[MXC_ISI_SD_PAD_SOURCE].width = 1280;
 	pipe->formats[MXC_ISI_SD_PAD_SOURCE].height = 800;
-	pipe->formats[MXC_ISI_SD_PAD_SOURCE].info = &mxc_isi_out_formats[0];
-	pipe->formats[MXC_ISI_SD_PAD_SINK].info = &mxc_isi_out_formats[0];
 
 	return 0;
 }
