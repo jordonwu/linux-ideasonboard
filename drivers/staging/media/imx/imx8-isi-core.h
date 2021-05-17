@@ -371,15 +371,6 @@ static inline void set_frame_bounds(struct mxc_isi_frame *f,
 	f->height = height;
 }
 
-static inline void set_frame_out(struct mxc_isi_frame *f,
-				 u32 width, u32 height)
-{
-	f->c_width  = width;
-	f->c_height = height;
-	f->width  = width;
-	f->height = height;
-}
-
 static inline void set_frame_crop(struct mxc_isi_frame *f,
 				  u32 left, u32 top, u32 width, u32 height)
 {
