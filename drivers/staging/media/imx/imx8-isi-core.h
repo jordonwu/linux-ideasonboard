@@ -188,7 +188,10 @@ struct frame_addr {
  * v_off:	crop vertical pixel offset
  * width:	out image pixel width
  * height:	out image pixel weight
- * fmt:	color format pointer
+ * @info:	Format information
+ * @format:	Media bus format
+ * @crop:	Crop rectangle
+ * @compose:	Compose rectangle
  */
 struct mxc_isi_frame {
 	u32	o_width;
@@ -197,7 +200,11 @@ struct mxc_isi_frame {
 	u32	v_off;
 	u32	width;
 	u32	height;
+
 	const struct mxc_isi_format_info *info;
+	struct v4l2_mbus_framefmt format;
+	struct v4l2_rect crop;
+	struct v4l2_rect compose;
 };
 
 struct mxc_isi_roi_alpha {
