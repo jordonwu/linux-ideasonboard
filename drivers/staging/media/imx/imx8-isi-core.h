@@ -319,30 +319,27 @@ struct mxc_isi_pipe {
 };
 
 struct mxc_isi_dev {
-	struct mxc_isi_pipe pipe;
+	struct device			*dev;
 
-	struct device *dev;
+	const struct mxc_isi_plat_data	*pdata;
 
-	const struct mxc_isi_plat_data *pdata;
+	void __iomem			*regs;
+	struct clk_bulk_data		*clks;
+	struct reset_control		*soft_resetn;
+	struct reset_control		*clk_enable;
 
-	struct clk_bulk_data *clks;
+	struct mutex			lock;
+	spinlock_t			slock;
 
-	struct reset_control *soft_resetn;
-	struct reset_control *clk_enable;
+	struct regmap			*chain;
+	u32				interface[MAX_PORTS];
 
-	struct regmap *chain;
+	struct mxc_isi_pipe		pipe;
 
-	struct mutex lock;
-	spinlock_t   slock;
-
-	void __iomem *regs;
-
-	u32 interface[MAX_PORTS];
-
-	struct media_device media_dev;
-	struct v4l2_device v4l2_dev;
-	struct v4l2_async_notifier notifier;
-	struct list_head asds;
+	struct media_device		media_dev;
+	struct v4l2_device		v4l2_dev;
+	struct v4l2_async_notifier	notifier;
+	struct list_head		asds;
 };
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi);
