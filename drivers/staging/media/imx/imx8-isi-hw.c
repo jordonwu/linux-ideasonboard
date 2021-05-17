@@ -112,7 +112,7 @@ bool is_buf_active(struct mxc_isi_dev *isi, int buf_id)
 			       ((reverse) ? (status & 0x200) : (status & 0x100));
 }
 
-static void chain_buf(struct mxc_isi_dev *isi, struct mxc_isi_frame *frm)
+static void chain_buf(struct mxc_isi_dev *isi, const struct mxc_isi_frame *frm)
 {
 	u32 val;
 
@@ -250,8 +250,8 @@ void mxc_isi_channel_set_flip(struct mxc_isi_dev *isi)
 }
 
 void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
-			     struct mxc_isi_frame *src_f,
-			     struct mxc_isi_frame *dst_f)
+			     const struct mxc_isi_frame *src_f,
+			     const struct mxc_isi_frame *dst_f)
 {
 	const struct mxc_isi_format_info *src_fmt = src_f->info;
 	const struct mxc_isi_format_info *dst_fmt = dst_f->info;
@@ -438,8 +438,8 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_dev *isi)
 }
 
 void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
-				 struct mxc_isi_frame *src_f,
-				 struct mxc_isi_frame *dst_f)
+				 const struct mxc_isi_frame *src_f,
+				 const struct mxc_isi_frame *dst_f)
 {
 	u32 decx, decy;
 	u32 xscale, yscale;
@@ -550,8 +550,8 @@ void mxc_isi_channel_deinit(struct mxc_isi_dev *isi)
 }
 
 void mxc_isi_channel_config(struct mxc_isi_dev *isi,
-			    struct mxc_isi_frame *src_f,
-			    struct mxc_isi_frame *dst_f)
+			    const struct mxc_isi_frame *src_f,
+			    const struct mxc_isi_frame *dst_f)
 {
 	u32 val;
 
