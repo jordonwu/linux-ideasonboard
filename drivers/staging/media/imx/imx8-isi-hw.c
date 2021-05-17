@@ -111,7 +111,7 @@ static void chain_buf(struct mxc_isi_dev *isi, const struct mxc_isi_frame *frm)
 {
 	u32 val;
 
-	if (frm->o_width > ISI_2K) {
+	if (frm->format.width > ISI_2K) {
 		val = readl(isi->regs + CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		val |= (CHNL_CTRL_CHAIN_BUF_2_CHAIN << CHNL_CTRL_CHAIN_BUF_OFFSET);
@@ -381,40 +381,30 @@ void mxc_isi_channel_set_deinterlace(struct mxc_isi_dev *isi)
 
 void mxc_isi_channel_set_crop(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_frame *src_f = &isi->pipe.formats[MXC_ISI_SD_PAD_SINK];
-	struct v4l2_rect crop;
-	u32 val, val0, val1, temp;
+	const struct mxc_isi_frame *src_f = &isi->pipe.formats[MXC_ISI_SD_PAD_SINK];
+	const struct mxc_isi_frame *dst_f = &isi->pipe.formats[MXC_ISI_SD_PAD_SOURCE];
+	u32 val, val0, val1;
 
 	val = readl(isi->regs + CHNL_IMG_CTRL);
 	val &= ~CHNL_IMG_CTRL_CROP_EN_MASK;
 
-	if ((src_f->o_height == src_f->height) &&
-	    (src_f->o_width == src_f->width)) {
+	/*
+	 * FIXME: To take advantage of scaler phase configuration, and to allow
+	 * digital zoom use cases, we should expose a crop rectangle on the
+	 * sink pad and convert it to the post-scaler crop rectangle
+	 * internally.
+	 */
+	if ((src_f->compose.height == dst_f->crop.height) &&
+	    (src_f->compose.width == dst_f->crop.width)) {
 		isi->crop = 0;
 		writel(val, isi->regs + CHNL_IMG_CTRL);
 		return;
 	}
 
-	if (isi->scale) {
-		temp = (src_f->h_off << 12) / isi->xfactor;
-		crop.left = temp >> isi->pre_dec_x;
-		temp = (src_f->v_off << 12) / isi->yfactor;
-		crop.top = temp >> isi->pre_dec_y;
-		temp = (src_f->width << 12) / isi->xfactor;
-		crop.width = temp >> isi->pre_dec_x;
-		temp = (src_f->height << 12) / isi->yfactor;
-		crop.height = temp >> isi->pre_dec_y;
-	} else {
-		crop.left = src_f->h_off;
-		crop.top = src_f->v_off;
-		crop.width = src_f->width;
-		crop.height = src_f->height;
-	}
-
 	isi->crop = 1;
 	val |= (CHNL_IMG_CTRL_CROP_EN_ENABLE << CHNL_IMG_CTRL_CROP_EN_OFFSET);
-	val0 = crop.top | (crop.left << CHNL_CROP_ULC_X_OFFSET);
-	val1 = crop.height | (crop.width << CHNL_CROP_LRC_X_OFFSET);
+	val0 = dst_f->crop.top | (dst_f->crop.left << CHNL_CROP_ULC_X_OFFSET);
+	val1 = dst_f->crop.height | (dst_f->crop.width << CHNL_CROP_LRC_X_OFFSET);
 
 	writel(val0, isi->regs + CHNL_CROP_ULC);
 	writel((val1 + val0), isi->regs + CHNL_CROP_LRC);
@@ -441,21 +431,22 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
 	u32 xdec = 0, ydec = 0;
 	u32 val0, val1;
 
-	if (dst_f->height == src_f->height &&
-	    dst_f->width == src_f->width) {
+	dev_dbg(isi->dev, "input_size %ux%u, output_size %ux%u\n",
+		src_f->format.width, src_f->format.height,
+		src_f->compose.width, src_f->compose.height);
+
+	if (src_f->format.height == src_f->compose.height &&
+	    src_f->format.width == src_f->compose.width) {
 		isi->scale = 0;
 		mxc_isi_channel_clear_scaling(isi);
 		dev_dbg(isi->dev, "%s: no scale\n", __func__);
 		return;
 	}
 
-	dev_info(isi->dev, "input_size(%d,%d), output_size(%d,%d)\n",
-		 src_f->width, src_f->height, dst_f->width, dst_f->height);
-
 	isi->scale = 1;
 
-	decx = src_f->width / dst_f->width;
-	decy = src_f->height / dst_f->height;
+	decx = src_f->format.width / src_f->compose.width;
+	decy = src_f->format.height / src_f->compose.height;
 
 	if (decx > 1) {
 		/* Down */
@@ -469,10 +460,11 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
 			decx = 8;
 			xdec = 3;
 		}
-		xscale = src_f->width * 0x1000 / (dst_f->width * decx);
+		xscale = src_f->format.width * 0x1000
+		       / (src_f->compose.width * decx);
 	} else {
 		/* Up  */
-		xscale = src_f->width * 0x1000 / dst_f->width;
+		xscale = src_f->format.width * 0x1000 / src_f->compose.width;
 	}
 
 	if (decy > 1) {
@@ -486,9 +478,10 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
 			decy = 8;
 			ydec = 3;
 		}
-		yscale = src_f->height * 0x1000 / (dst_f->height * decy);
+		yscale = src_f->format.height * 0x1000
+		       / (src_f->compose.height * decy);
 	} else {
-		yscale = src_f->height * 0x1000 / dst_f->height;
+		yscale = src_f->format.height * 0x1000 / src_f->compose.height;
 	}
 
 	val0 = readl(isi->regs + CHNL_IMG_CTRL);
@@ -508,7 +501,8 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
 	writel(val1, isi->regs + CHNL_SCALE_FACTOR);
 
 	/* Update scale config if scaling enabled */
-	val1 = dst_f->o_width | (dst_f->o_height << CHNL_SCL_IMG_CFG_HEIGHT_OFFSET);
+	val1 = (src_f->compose.height << CHNL_SCL_IMG_CFG_HEIGHT_OFFSET)
+	     | src_f->compose.width;
 	writel(val1, isi->regs + CHNL_SCL_IMG_CFG);
 
 	writel(0, isi->regs + CHNL_SCALE_OFFSET);
@@ -555,7 +549,8 @@ void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 	chain_buf(isi, src_f);
 
 	/* config output frame size and format */
-	val = src_f->o_width | (src_f->o_height << CHNL_IMG_CFG_HEIGHT_OFFSET);
+	val = (src_f->format.height << CHNL_IMG_CFG_HEIGHT_OFFSET)
+	    | src_f->format.width;
 	writel(val, isi->regs + CHNL_IMG_CFG);
 
 	/* scale size need to equal input size when scaling disabled*/
