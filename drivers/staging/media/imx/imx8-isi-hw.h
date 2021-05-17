@@ -442,19 +442,19 @@ void mxc_isi_channel_set_memory_image(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_panic_threshold(struct mxc_isi_dev *isi);
 
 void mxc_isi_channel_set_scaling(struct mxc_isi_dev *isi,
-				 struct mxc_isi_frame *src_f,
-				 struct mxc_isi_frame *dst_f);
+				 const struct mxc_isi_frame *src_f,
+				 const struct mxc_isi_frame *dst_f);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_dev *isi,
 				struct mxc_isi_buffer *buf);
 
 void mxc_isi_channel_set_csc(struct mxc_isi_dev *isi,
-			     struct mxc_isi_frame *src_f,
-			     struct mxc_isi_frame *dst_f);
+			     const struct mxc_isi_frame *src_f,
+			     const struct mxc_isi_frame *dst_f);
 
 void mxc_isi_channel_config(struct mxc_isi_dev *isi,
-			    struct mxc_isi_frame *src_f,
-			    struct mxc_isi_frame *dst_f);
+			    const struct mxc_isi_frame *src_f,
+			    const struct mxc_isi_frame *dst_f);
 
 void mxc_isi_channel_set_alpha_roi0(struct mxc_isi_dev *isi,
 				    struct v4l2_rect *rect);
