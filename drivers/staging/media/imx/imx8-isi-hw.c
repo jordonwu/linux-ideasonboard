@@ -9,11 +9,6 @@
 
 #include "imx8-isi-hw.h"
 
-MODULE_AUTHOR("Freescale Semiconductor, Inc.");
-MODULE_DESCRIPTION("IMX8 Image Sensor Interface Hardware driver");
-MODULE_LICENSE("GPL");
-MODULE_VERSION("1.0");
-
 #define	ISI_DOWNSCALE_THRESHOLD		0x4000
 
 #ifdef DEBUG
