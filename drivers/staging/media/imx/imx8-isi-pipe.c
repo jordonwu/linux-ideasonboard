@@ -1065,9 +1065,15 @@ static const struct v4l2_file_operations mxc_isi_capture_fops = {
 static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 				  struct v4l2_device *v4l2_dev)
 {
+	struct v4l2_pix_format_mplane *pix = &pipe->video.pix;
 	struct video_device *vdev = &pipe->video.vdev;
 	struct vb2_queue *q = &pipe->video.vb2_q;
 	int ret = -ENOMEM;
+
+	pix->width = MXC_ISI_DEF_WIDTH;
+	pix->height = MXC_ISI_DEF_HEIGHT;
+	pix->pixelformat = V4L2_PIX_FMT_YUYV;
+	__mxc_isi_cap_try_fmt_mplane(pix, NULL);
 
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
