@@ -427,7 +427,7 @@ enum isi_csi_coeff {
 
 void mxc_isi_channel_init(struct mxc_isi_dev *isi);
 void mxc_isi_channel_deinit(struct mxc_isi_dev *isi);
-void mxc_isi_channel_enable(struct mxc_isi_dev *isi, bool m2m_enabled);
+void mxc_isi_channel_enable(struct mxc_isi_dev *isi);
 void mxc_isi_channel_disable(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_flip(struct mxc_isi_dev *isi);
 void mxc_isi_channel_set_alpha(struct mxc_isi_dev *isi);
