@@ -292,7 +292,7 @@ static int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 	return 0;
 }
 
-static void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
+void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *isi)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct device *dev = pipe->isi->dev;
@@ -852,11 +852,6 @@ static int mxc_isi_capture_open(struct file *file)
 	struct device *dev = pipe->isi->dev;
 	int ret;
 
-	if (isi->frame_write_done) {
-		dev_err(dev, "ISI channel[%d] is busy\n", pipe->id);
-		return -EBUSY;
-	}
-
 	mutex_lock(&pipe->lock);
 	ret = v4l2_fh_open(file);
 	if (ret) {
@@ -870,7 +865,6 @@ static int mxc_isi_capture_open(struct file *file)
 	/* increase usage count for ISI channel */
 	mutex_lock(&isi->lock);
 	atomic_inc(&isi->usage_count);
-	isi->frame_write_done = mxc_isi_cap_frame_write_done;
 	mutex_unlock(&isi->lock);
 
 	return 0;
@@ -895,10 +889,6 @@ static int mxc_isi_capture_release(struct file *file)
 	if (atomic_read(&isi->usage_count) > 0 &&
 	    atomic_dec_and_test(&isi->usage_count))
 		mxc_isi_channel_deinit(isi);
-
-	mutex_lock(&isi->lock);
-	isi->frame_write_done = NULL;
-	mutex_unlock(&isi->lock);
 
 label:
 	pm_runtime_put(dev);
