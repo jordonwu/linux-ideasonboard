@@ -845,43 +845,16 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
  * Video device file operations
  */
 
-static bool is_entity_link_setup(struct mxc_isi_pipe *pipe)
-{
-	struct video_device *vdev = &pipe->video.vdev;
-	struct v4l2_subdev *csi_sd, *sen_sd;
-
-	if (!vdev->entity.num_links || !pipe->sd.entity.num_links)
-		return false;
-
-	csi_sd = mxc_get_source_subdev(&pipe->sd, NULL, __func__);
-	if (!csi_sd || !csi_sd->entity.num_links)
-		return false;
-
-	sen_sd = mxc_get_source_subdev(csi_sd, NULL, __func__);
-	if (!sen_sd || !sen_sd->entity.num_links)
-		return false;
-
-	return true;
-}
-
 static int mxc_isi_capture_open(struct file *file)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct mxc_isi_dev *isi = pipe->isi;
 	struct device *dev = pipe->isi->dev;
-	int ret = -EBUSY;
-
-	mutex_lock(&pipe->lock);
-	pipe->video.is_link_setup = is_entity_link_setup(pipe);
-	if (!pipe->video.is_link_setup) {
-		mutex_unlock(&pipe->lock);
-		return 0;
-	}
-	mutex_unlock(&pipe->lock);
+	int ret;
 
 	if (isi->frame_write_done) {
 		dev_err(dev, "ISI channel[%d] is busy\n", pipe->id);
-		return ret;
+		return -EBUSY;
 	}
 
 	mutex_lock(&pipe->lock);
@@ -908,10 +881,7 @@ static int mxc_isi_capture_release(struct file *file)
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct mxc_isi_dev *isi = pipe->isi;
 	struct device *dev = pipe->isi->dev;
-	int ret = -1;
-
-	if (!pipe->video.is_link_setup)
-		return 0;
+	int ret;
 
 	mutex_lock(&pipe->lock);
 	ret = _vb2_fop_release(file, NULL);
