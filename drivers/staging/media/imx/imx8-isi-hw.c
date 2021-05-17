@@ -602,13 +602,6 @@ void mxc_isi_channel_enable(struct mxc_isi_dev *isi, bool m2m_enabled)
 	mxc_isi_clean_registers(isi);
 	mxc_isi_enable_irq(isi);
 
-#if 0
-	if (m2m_enabled) {
-		mxc_isi_m2m_start_read(isi);
-		return;
-	}
-#endif
-
 	dump_isi_regs(isi);
 	msleep(300);
 }
