@@ -43,7 +43,6 @@
 #define MIPI_CSI2_OF_NODE_NAME  "csi"
 #define PARALLEL_OF_NODE_NAME   "pcsi"
 
-#define MXC_ISI_MAX_DEVS	8
 #define MXC_ISI_NUM_PORTS	1
 #define MXC_MIPI_CSI2_MAX_DEVS	2
 #define MXC_MAX_SENSORS		3
@@ -339,7 +338,6 @@ struct mxc_isi_dev {
 	void __iomem *regs;
 
 	u32 interface[MAX_PORTS];
-	int id;
 
 	struct media_device media_dev;
 	struct v4l2_device v4l2_dev;
