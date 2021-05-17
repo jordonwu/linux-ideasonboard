@@ -1043,6 +1043,11 @@ mxc_isi_pipe_get_pad_compose(struct mxc_isi_pipe *pipe,
 	}
 }
 
+static int mxc_isi_pipe_s_stream(struct v4l2_subdev *sd, int enable)
+{
+	return 0;
+}
+
 static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg)
 {
@@ -1366,6 +1371,10 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static const struct v4l2_subdev_video_ops mxc_isi_subdev_video_ops = {
+	.s_stream = mxc_isi_pipe_s_stream,
+};
+
 static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
 	.init_cfg = mxc_isi_pipe_init_cfg,
 	.enum_mbus_code = mxc_isi_pipe_enum_mbus_code,
@@ -1376,6 +1385,7 @@ static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
 };
 
 static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
+	.video = &mxc_isi_subdev_video_ops,
 	.pad = &mxc_isi_subdev_pad_ops,
 };
 
