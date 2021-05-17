@@ -247,6 +247,8 @@ enum model {
 
 struct mxc_isi_plat_data {
 	enum model model;
+	unsigned int num_channels;
+	unsigned int reg_offset;
 	const struct mxc_isi_chan_src *chan_src;
 	const struct mxc_isi_ier_reg  *ier_reg;
 	const struct mxc_isi_set_thd *set_thd;
@@ -278,6 +280,7 @@ struct mxc_isi_video {
 struct mxc_isi_pipe {
 	struct mxc_isi_dev		*isi;
 	u32				id;
+	void __iomem			*regs;
 
 	struct media_pipeline		pipe;
 
@@ -320,7 +323,7 @@ struct mxc_isi_dev {
 	struct regmap			*chain;
 	u32				interface[MAX_PORTS];
 
-	struct mxc_isi_pipe		pipe;
+	struct mxc_isi_pipe		*pipes;
 
 	struct media_device		media_dev;
 	struct v4l2_device		v4l2_dev;
@@ -328,7 +331,7 @@ struct mxc_isi_dev {
 	struct list_head		asds;
 };
 
-int mxc_isi_pipe_init(struct mxc_isi_dev *isi);
-void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi);
+int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
+void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
 
 #endif /* __MXC_ISI_CORE_H__ */
