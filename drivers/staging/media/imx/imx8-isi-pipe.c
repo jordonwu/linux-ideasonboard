@@ -404,7 +404,7 @@ static int cap_vb2_queue_setup(struct vb2_queue *q,
 	for (i = 0; i < fmt->memplanes; i++)
 		alloc_devs[i] = pipe->isi->dev;
 
-	wh = dst_f->width * dst_f->height;
+	wh = dst_f->format.width * dst_f->format.height;
 
 	*num_planes = fmt->memplanes;
 
