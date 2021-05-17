@@ -435,12 +435,37 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
+	const struct mxc_isi_format_info *info;
 	struct mxc_isi_dev *isi = pipe->isi;
 	struct mxc_isi_buffer *buf;
+	struct mxc_isi_frame *fmt;
 	struct vb2_buffer *vb2;
 	unsigned long flags;
 	int i, j;
 	int ret;
+
+	ret = media_pipeline_start(&pipe->video.vdev.entity, &pipe->pipe);
+	if (ret < 0)
+		return ret;
+
+	/*
+	 * Verify that the configured format matches the output of the
+	 * subdev.
+	 */
+	fmt = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
+
+        if (fmt->format.code != info->mbus_code ||
+	    fmt->format.width != pipe->video.pix.width ||
+            fmt->format.height != pipe->video.pix.height) {
+		dev_dbg(pipe->isi->dev,
+			"%s: configuration mismatch, 0x%04x/%ux%u != 0x%04x/%ux%u\n",
+			__func__, fmt->format.code, fmt->format.width,
+			fmt->format.height, info->mbus_code,
+			pipe->video.pix.width, pipe->video.pix.height);
+                ret = -EINVAL;
+		goto error;
+	}
 
 	mxc_isi_channel_init(isi);
 	mxc_isi_channel_config(isi, &pipe->formats[MXC_ISI_SD_PAD_SINK],
@@ -464,7 +489,9 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 				dev_err(pipe->isi->dev,
 					"alloc dma buffer(%d) fail\n", j);
 			}
-			return -ENOMEM;
+
+			ret = -ENOMEM;
+			goto error;
 		}
 		dev_dbg(pipe->isi->dev,
 			"%s: num_plane=%d discard_size=%d discard_buffer=%p\n"
@@ -505,11 +532,16 @@ static int cap_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	mxc_isi_channel_enable(isi, false);
 	ret = mxc_isi_pipeline_enable(pipe, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
-		return ret;
+		goto error;
 
 	isi->is_streaming = 1;
 
 	return 0;
+
+error:
+	/* FIXME: Free discard buffer, return vb2 buffers to vb2 */
+	media_pipeline_stop(&pipe->video.vdev.entity);
+	return ret;
 }
 
 static void cap_vb2_stop_streaming(struct vb2_queue *q)
@@ -559,6 +591,8 @@ static void cap_vb2_stop_streaming(struct vb2_queue *q)
 				  PAGE_ALIGN(pipe->video.discard_size[i]),
 				  pipe->video.discard_buffer[i],
 				  pipe->video.discard_buffer_dma[i]);
+
+	media_pipeline_stop(&pipe->video.vdev.entity);
 
 	isi->is_streaming = 0;
 }
