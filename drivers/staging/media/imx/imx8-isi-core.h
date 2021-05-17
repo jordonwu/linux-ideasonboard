@@ -356,19 +356,4 @@ struct mxc_isi_dev {
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi);
 void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi);
 
-static inline void set_frame_bounds(struct mxc_isi_frame *f,
-				    u32 width, u32 height)
-{
-	f->o_width  = width;
-	f->o_height = height;
-	f->width  = width;
-	f->height = height;
-}
-
-static inline void set_frame_crop(struct mxc_isi_frame *f,
-				  u32 left, u32 top, u32 width, u32 height)
-{
-	f->h_off = left;
-	f->v_off = top;
-}
 #endif /* __MXC_ISI_CORE_H__ */
