@@ -38,7 +38,6 @@ static irqreturn_t mxc_isi_irq_handler(int irq, void *priv)
 
 	status = mxc_isi_get_irq_status(isi);
 	isi->status = status;
-	mxc_isi_clean_irq_status(isi, status);
 
 	if (status & CHNL_STS_FRM_STRD_MASK)
 		mxc_isi_cap_frame_write_done(isi);
