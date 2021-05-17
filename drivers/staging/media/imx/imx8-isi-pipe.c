@@ -1471,16 +1471,17 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
  * Init & cleanup
  */
 
-int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
+int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 {
-	struct mxc_isi_pipe *pipe = &isi->pipe;
+	struct mxc_isi_pipe *pipe = &isi->pipes[id];
 	struct v4l2_subdev *sd;
 	unsigned int i;
 	int irq;
 	int ret;
 
-	pipe->id = 0;
+	pipe->id = id;
 	pipe->isi = isi;
+	pipe->regs = isi->regs + id * isi->pdata->reg_offset;
 
 	atomic_set(&pipe->usage_count, 0);
 
@@ -1520,7 +1521,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 	mxc_isi_clean_registers(pipe);
 	mxc_isi_channel_set_chain_buf(pipe);
 
-	irq = platform_get_irq(to_platform_device(isi->dev), 0);
+	irq = platform_get_irq(to_platform_device(isi->dev), id);
 	if (irq < 0) {
 		dev_err(pipe->isi->dev, "Failed to get IRQ (%d)\n", irq);
 		ret = irq;
@@ -1543,9 +1544,8 @@ error:
 	return ret;
 }
 
-void mxc_isi_pipe_cleanup(struct mxc_isi_dev *isi)
+void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_pipe *pipe = &isi->pipe;
 	struct v4l2_subdev *sd = &pipe->sd;
 
 	media_entity_cleanup(&sd->entity);
