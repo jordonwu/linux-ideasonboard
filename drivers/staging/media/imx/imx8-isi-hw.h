@@ -442,7 +442,6 @@ void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 			    const struct mxc_isi_frame *dst_f,
 			    unsigned int pitch);
 
-void mxc_isi_clean_irq_status(struct mxc_isi_dev *isi, u32 val);
 void mxc_isi_clean_registers(struct mxc_isi_dev *isi);
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_dev *isi);

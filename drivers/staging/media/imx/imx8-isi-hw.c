@@ -546,10 +546,7 @@ void mxc_isi_channel_config(struct mxc_isi_dev *isi,
 
 void mxc_isi_clean_registers(struct mxc_isi_dev *isi)
 {
-	u32 status;
-
-	status = mxc_isi_get_irq_status(isi);
-	mxc_isi_clean_irq_status(isi, status);
+	mxc_isi_get_irq_status(isi);
 }
 
 static void mxc_isi_enable_irq(struct mxc_isi_dev *isi)
@@ -631,10 +628,9 @@ void mxc_isi_channel_disable(struct mxc_isi_dev *isi)
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_dev *isi)
 {
-	return readl(isi->regs + CHNL_STS);
-}
+	u32 status;
 
-void mxc_isi_clean_irq_status(struct mxc_isi_dev *isi, u32 val)
-{
-	writel(val, isi->regs + CHNL_STS);
+	status = readl(isi->regs + CHNL_STS);
+	writel(status, isi->regs + CHNL_STS);
+	return status;
 }
