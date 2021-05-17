@@ -172,8 +172,6 @@ struct frame_addr {
  * struct mxc_isi_frame - source/target frame properties
  * o_width:	 original image width from sensor
  * o_height: original image height from sensor
- * c_width:	 crop image width set by g_selection
- * c_height: crop image height set by g_selection
  * h_off:	crop horizontal pixel offset
  * v_off:	crop vertical pixel offset
  * width:	out image pixel width
@@ -185,8 +183,6 @@ struct frame_addr {
 struct mxc_isi_frame {
 	u32	o_width;
 	u32	o_height;
-	u32	c_width;
-	u32	c_height;
 	u32	h_off;
 	u32	v_off;
 	u32	width;
@@ -365,8 +361,6 @@ static inline void set_frame_bounds(struct mxc_isi_frame *f,
 {
 	f->o_width  = width;
 	f->o_height = height;
-	f->c_width  = width;
-	f->c_height = height;
 	f->width  = width;
 	f->height = height;
 }
@@ -376,7 +370,5 @@ static inline void set_frame_crop(struct mxc_isi_frame *f,
 {
 	f->h_off = left;
 	f->v_off = top;
-	f->c_width  = width;
-	f->c_height = height;
 }
 #endif /* __MXC_ISI_CORE_H__ */
