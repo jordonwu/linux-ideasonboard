@@ -722,19 +722,45 @@ static int mxc_isi_cap_g_fmt_mplane(struct file *file, void *fh,
 static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 				      struct v4l2_format *f)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_format_info *fmt;
+	unsigned int i;
 
 	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
 	if (!fmt)
-		return -EINVAL;
+		fmt = &mxc_isi_out_formats[0];
 
-	if (pix->width <= 0 || pix->height <= 0) {
-		v4l2_err(&pipe->sd, "%s, W/H=(%d, %d) is not valid\n"
-			, __func__, pix->width, pix->height);
-		return -EINVAL;
+	pix->width = clamp(pix->width, MXC_ISI_MIN_WIDTH, MXC_ISI_MAX_WIDTH);
+	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
+	pix->pixelformat = fmt->fourcc;
+	pix->field = V4L2_FIELD_NONE;
+	pix->colorspace = V4L2_COLORSPACE_JPEG;
+	pix->num_planes = fmt->memplanes;
+
+	for (i = 0; i < pix->num_planes; i++) {
+		struct v4l2_plane_pix_format *plane = &pix->plane_fmt[i];
+		unsigned int bpl;
+
+		/* The pitch must be identical for all planes. */
+		if (i == 0)
+			bpl = clamp(plane->bytesperline,
+				    pix->width * fmt->depth[i] / 8,
+				    65535U);
+		else
+			bpl = pix->plane_fmt[0].bytesperline;
+
+		plane->bytesperline = bpl;
+
+		plane->sizeimage = plane->bytesperline * pix->height;
+		if (pix->pixelformat == V4L2_PIX_FMT_NV12 && i == 1)
+			plane->sizeimage /= 2;
 	}
+
+	pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);
+	pix->quantization =
+		V4L2_MAP_QUANTIZATION_DEFAULT(fmt->color == MXC_ISI_CS_RGB,
+					      pix->colorspace, pix->ycbcr_enc);
+	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
 
 	return 0;
 }
