@@ -202,17 +202,6 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	}
 };
 
-/*
- * Pixel link input format
- */
-static const struct mxc_isi_format_info mxc_isi_src_formats[] = {
-	{
-		.colorspace	= MXC_ISI_CS_RGB,
-	}, {
-		.colorspace	= MXC_ISI_CS_YUV,
-	}
-};
-
 static const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code)
 {
 	unsigned int i;
@@ -239,22 +228,6 @@ static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
 	}
 
 	return NULL;
-}
-
-static const struct mxc_isi_format_info *mxc_isi_get_src_fmt(u32 code)
-{
-	/* two fmt RGB32 and YUV444 from pixellink */
-	switch (code) {
-	case MEDIA_BUS_FMT_YUYV8_1X16:
-	case MEDIA_BUS_FMT_YVYU8_2X8:
-	case MEDIA_BUS_FMT_AYUV8_1X32:
-	case MEDIA_BUS_FMT_UYVY8_2X8:
-	case MEDIA_BUS_FMT_YUYV8_2X8:
-		return &mxc_isi_src_formats[1];
-
-	default:
-		return &mxc_isi_src_formats[0];
-	}
 }
 
 static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
@@ -674,15 +647,6 @@ static void mxc_isi_ctrls_delete(struct mxc_isi_pipe *pipe)
  * V4L2 ioctls
  */
 
-static void set_frame_bounds(struct mxc_isi_frame *f,
-			     u32 width, u32 height)
-{
-	f->o_width  = width;
-	f->o_height = height;
-	f->width  = width;
-	f->height = height;
-}
-
 static int mxc_isi_cap_querycap(struct file *file, void *priv,
 				struct v4l2_capability *cap)
 {
@@ -769,57 +733,6 @@ static void __mxc_isi_cap_try_fmt_mplane(struct v4l2_pix_format_mplane *pix,
 		*info = fmt;
 }
 
-/* Update input frame size and formate  */
-static int mxc_isi_source_fmt_init(struct mxc_isi_pipe *pipe)
-{
-	struct mxc_isi_frame *src_f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	struct v4l2_subdev_format src_fmt;
-	struct v4l2_subdev *src_sd;
-	u32 source_pad;
-	int ret;
-
-	src_sd = mxc_get_source_subdev(&pipe->sd, &source_pad, __func__);
-	if (!src_sd)
-		return -EINVAL;
-
-	src_fmt.pad = source_pad;
-	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
-	src_fmt.format.code = dst_f->info->mbus_code;
-	src_fmt.format.width = dst_f->width;
-	src_fmt.format.height = dst_f->height;
-	ret = v4l2_subdev_call(src_sd, pad, set_fmt, NULL, &src_fmt);
-	if (ret < 0 && ret != -ENOIOCTLCMD) {
-		v4l2_err(&pipe->sd, "set remote fmt fail!\n");
-		return ret;
-	}
-
-	memset(&src_fmt, 0, sizeof(src_fmt));
-	src_fmt.pad = source_pad;
-	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
-	ret = v4l2_subdev_call(src_sd, pad, get_fmt, NULL, &src_fmt);
-	if (ret < 0 && ret != -ENOIOCTLCMD) {
-		v4l2_err(&pipe->sd, "get remote fmt fail!\n");
-		return ret;
-	}
-
-	/* Pixel link master will transfer format to RGB32 or YUV32 */
-	src_f->info = mxc_isi_get_src_fmt(src_fmt.format.code);
-
-	set_frame_bounds(src_f, src_fmt.format.width, src_fmt.format.height);
-
-	if (dst_f->width > src_f->width || dst_f->height > src_f->height) {
-		dev_err(pipe->isi->dev,
-			"%s: src:(%d,%d), dst:(%d,%d) Not support upscale\n",
-			__func__,
-			src_f->width, src_f->height,
-			dst_f->width, dst_f->height);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static int mxc_isi_cap_try_fmt_mplane(struct file *file, void *fh,
 				      struct v4l2_format *f)
 {
@@ -832,7 +745,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_format_info *fmt;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
@@ -840,12 +752,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 
 	__mxc_isi_cap_try_fmt_mplane(pix, &fmt);
 
-	dst_f->info = fmt;
-	dst_f->height = pix->height;
-	dst_f->width = pix->width;
-
 	pipe->video.pix = *pix;
-	set_frame_bounds(dst_f, pix->width, pix->height);
 
 	return 0;
 }
@@ -854,18 +761,13 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 				enum v4l2_buf_type type)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
-	struct mxc_isi_dev *isi = pipe->isi;
 	int ret;
-
-	ret = mxc_isi_source_fmt_init(pipe);
-	if (ret < 0)
-		return ret;
 
 	ret = vb2_ioctl_streamon(file, priv, type);
 	if (ret < 0)
 		return ret;
 
-	isi->is_streaming = 1;
+	pipe->isi->is_streaming = 1;
 
 	return 0;
 }
@@ -1253,7 +1155,6 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	const struct mxc_isi_format_info *info;
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *rect;
@@ -1316,9 +1217,6 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
 		pipe->formats[fmt->pad].info = info;
 
-	/* update out put frame size and formate */
-	dst_f->info = info;
-	set_frame_bounds(dst_f, mf->width, mf->height);
 	mutex_unlock(&pipe->lock);
 
 	dev_dbg(pipe->isi->dev, "pad%d: code: 0x%x, %dx%d",
@@ -1493,8 +1391,10 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 
 	if (sel->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
 		spin_lock_irqsave(&pipe->slock, flags);
-		f->h_off = sel->r.left;
-		f->v_off = sel->r.top;
+		/*
+		 * FIXME: Support moving the crop rectangle when the pipeline
+		 * is streaming.
+		 */
 		spin_unlock_irqrestore(&pipe->slock, flags);
 	}
 
@@ -1593,9 +1493,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi)
 
 		frame->info = mxc_isi_format_by_code(frame->format.code);
 	}
-
-	pipe->formats[MXC_ISI_SD_PAD_SOURCE].width = 1280;
-	pipe->formats[MXC_ISI_SD_PAD_SOURCE].height = 800;
 
 	return 0;
 }

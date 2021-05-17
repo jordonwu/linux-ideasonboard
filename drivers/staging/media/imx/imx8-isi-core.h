@@ -182,25 +182,12 @@ struct frame_addr {
 
 /**
  * struct mxc_isi_frame - source/target frame properties
- * o_width:	 original image width from sensor
- * o_height: original image height from sensor
- * h_off:	crop horizontal pixel offset
- * v_off:	crop vertical pixel offset
- * width:	out image pixel width
- * height:	out image pixel weight
  * @info:	Format information
  * @format:	Media bus format
  * @crop:	Crop rectangle
  * @compose:	Compose rectangle
  */
 struct mxc_isi_frame {
-	u32	o_width;
-	u32	o_height;
-	u32	h_off;
-	u32	v_off;
-	u32	width;
-	u32	height;
-
 	const struct mxc_isi_format_info *info;
 	struct v4l2_mbus_framefmt format;
 	struct v4l2_rect crop;
