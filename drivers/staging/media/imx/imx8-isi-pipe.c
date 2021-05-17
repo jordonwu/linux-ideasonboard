@@ -670,6 +670,22 @@ static void mxc_isi_ctrls_delete(struct mxc_isi_pipe *pipe)
  * V4L2 ioctls
  */
 
+static void set_frame_bounds(struct mxc_isi_frame *f,
+			     u32 width, u32 height)
+{
+	f->o_width  = width;
+	f->o_height = height;
+	f->width  = width;
+	f->height = height;
+}
+
+static void set_frame_crop(struct mxc_isi_frame *f,
+			   u32 left, u32 top, u32 width, u32 height)
+{
+	f->h_off = left;
+	f->v_off = top;
+}
+
 static int mxc_isi_cap_querycap(struct file *file, void *priv,
 				struct v4l2_capability *cap)
 {
