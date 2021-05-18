@@ -39,8 +39,6 @@
 		serial2 = &uart3;
 		serial3 = &uart4;
 		spi0 = &flexspi;
-		isi0 = &isi_0;
-		isi1 = &isi_1;
 		csi0 = &mipi_csi_0;
 		csi1 = &mipi_csi_1;
 	};
@@ -1100,9 +1098,9 @@
 
 			isi_0: isi@32e00000 {
 				compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
-				reg = <0x32e00000 0x2000>;
-				interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
-				interface = <2 2>;
+				reg = <0x32e00000 0x4000>;
+				interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
 					 <&clk IMX8MP_CLK_MEDIA_APB>,
 					 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
@@ -1122,37 +1120,14 @@
 
 					port@0 {
 						reg = <0>;
-						isi_0_in: endpoint {
+						isi_in_0: endpoint {
 							remote-endpoint = <&mipi_csi_0_out>;
 						};
 					};
-				};
-			};
 
-			isi_1: isi@32e02000 {
-				compatible = "fsl,imx8mp-isi", "fsl,imx8mn-isi";
-				reg = <0x32e02000 0x2000>;
-				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-				interface = <3 2>;
-				clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
-					 <&clk IMX8MP_CLK_MEDIA_APB>,
-					 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-					 <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-				clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
-				assigned-clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
-						  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-				assigned-clock-rates = <500000000>, <200000000>;
-				no-reset-control;
-				power-domains = <&mediamix_pd>;
-				status = "disabled";
-
-				ports {
-					#address-cells = <1>;
-					#size-cells = <0>;
-
-					port@0 {
-						reg = <0>;
-						isi_1_in: endpoint {
+					port@1 {
+						reg = <1>;
+						isi_in_1: endpoint {
 							remote-endpoint = <&mipi_csi_1_out>;
 						};
 					};
@@ -1188,7 +1163,7 @@
 					port@1 {
 						reg = <1>;
 						mipi_csi_0_out: endpoint {
-							remote-endpoint = <&isi_0_in>;
+							remote-endpoint = <&isi_in_0>;
 						};
 					};
 				};
@@ -1223,7 +1198,7 @@
 					port@1 {
 						reg = <1>;
 						mipi_csi_1_out: endpoint {
-							remote-endpoint = <&isi_1_in>;
+							remote-endpoint = <&isi_in_1>;
 						};
 					};
 				};
