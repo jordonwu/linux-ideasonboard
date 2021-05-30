@@ -732,10 +732,23 @@ static int imx296_get_selection(struct v4l2_subdev *sd,
 {
 	struct imx296 *imx = to_imx296(sd);
 
-	if (sel->target != V4L2_SEL_TGT_CROP)
-		return -EINVAL;
+	switch (sel->target) {
+	case V4L2_SEL_TGT_CROP:
+		sel->r = *imx296_get_pad_crop(imx, cfg, sel->pad, sel->which);
+		break;
 
-	sel->r = *imx296_get_pad_crop(imx, cfg, sel->pad, sel->which);
+	case V4L2_SEL_TGT_CROP_DEFAULT:
+	case V4L2_SEL_TGT_CROP_BOUNDS:
+	case V4L2_SEL_TGT_NATIVE_SIZE:
+		sel->r.left = 0;
+		sel->r.top = 0;
+		sel->r.width = IMX296_PIXEL_ARRAY_WIDTH;
+		sel->r.height = IMX296_PIXEL_ARRAY_HEIGHT;
+		break;
+
+	default:
+		return -EINVAL;
+	}
 
 	return 0;
 }
