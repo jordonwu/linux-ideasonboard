@@ -198,6 +198,7 @@ struct imx296 {
 	struct media_pad pad;
 
 	struct v4l2_ctrl_handler ctrls;
+	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *vblank;
 
 	struct v4l2_mbus_framefmt format;
@@ -328,19 +329,35 @@ static const struct v4l2_ctrl_ops imx296_ctrl_ops = {
 static int imx296_ctrls_init(struct imx296 *imx)
 {
 	struct v4l2_fwnode_device_properties props;
+	unsigned int hblank;
 	int ret;
 
 	ret = v4l2_fwnode_device_parse(imx->dev, &props);
 	if (ret < 0)
 		return ret;
 
-	v4l2_ctrl_handler_init(&imx->ctrls, 7);
+	v4l2_ctrl_handler_init(&imx->ctrls, 8);
 
 	v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
 			  V4L2_CID_EXPOSURE, 1, 1048575, 1, 1104);
 	v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
 			  V4L2_CID_GAIN, IMX296_GAIN_MIN,
 			  IMX296_GAIN_MAX, 1, IMX296_GAIN_MIN);
+
+	/*
+	 * Horizontal blanking is controlled through the HMAX register, which
+	 * contains a line length in INCK clock units. The INCK frequency is
+	 * fixed to 74.25 MHz. The HMAX value is currently fixed to 1100,
+	 * convert it to a number of pixels based on the nominal pixel rate.
+	 */
+	hblank = 1100 * 1188000000ULL / 10 / 74250000
+	       - IMX296_PIXEL_ARRAY_WIDTH;
+	imx->hblank = v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
+					V4L2_CID_HBLANK, hblank, hblank, 1,
+					hblank);
+	if (imx->hblank)
+		imx->hblank->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+
 	imx->vblank = v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
 					V4L2_CID_VBLANK, 30,
 					1048575 - IMX296_PIXEL_ARRAY_HEIGHT,
