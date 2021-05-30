@@ -655,6 +655,17 @@ imx296_get_pad_crop(struct imx296 *imx, struct v4l2_subdev_pad_config *cfg,
 	}
 }
 
+static int imx296_get_format(struct v4l2_subdev *sd,
+			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_format *fmt)
+{
+	struct imx296 *imx = to_imx296(sd);
+
+	fmt->format = *imx296_get_pad_format(imx, cfg, fmt->pad, fmt->which);
+
+	return 0;
+}
+
 static int imx296_set_format(struct v4l2_subdev *sd,
 			     struct v4l2_subdev_pad_config *cfg,
 			     struct v4l2_subdev_format *fmt)
@@ -764,17 +775,6 @@ static int imx296_set_selection(struct v4l2_subdev *sd,
 
 	*crop = rect;
 	sel->r = rect;
-
-	return 0;
-}
-
-static int imx296_get_format(struct v4l2_subdev *sd,
-			     struct v4l2_subdev_pad_config *cfg,
-			     struct v4l2_subdev_format *fmt)
-{
-	struct imx296 *imx = to_imx296(sd);
-
-	fmt->format = *imx296_get_pad_format(imx, cfg, fmt->pad, fmt->which);
 
 	return 0;
 }
