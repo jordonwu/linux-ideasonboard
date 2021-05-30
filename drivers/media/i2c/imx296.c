@@ -695,6 +695,12 @@ static int imx296_set_format(struct v4l2_subdev *sd,
 
 	format->code = imx->mono ? MEDIA_BUS_FMT_Y10_1X10
 		     : MEDIA_BUS_FMT_SBGGR10_1X10;
+	format->field = V4L2_FIELD_NONE;
+	format->colorspace = V4L2_COLORSPACE_RAW;
+	format->ycbcr_enc = V4L2_YCBCR_ENC_DEFAULT;
+	format->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+	format->xfer_func = V4L2_XFER_FUNC_NONE;
+
 	fmt->format = *format;
 
 	return 0;
@@ -786,8 +792,10 @@ static int imx296_init_cfg(struct v4l2_subdev *sd,
 	struct v4l2_subdev_format format = {
 		.which = cfg ? V4L2_SUBDEV_FORMAT_TRY
 		       : V4L2_SUBDEV_FORMAT_ACTIVE,
-		.format.width = IMX296_PIXEL_ARRAY_WIDTH,
-		.format.height = IMX296_PIXEL_ARRAY_HEIGHT,
+		.format = {
+			.width = IMX296_PIXEL_ARRAY_WIDTH,
+			.height = IMX296_PIXEL_ARRAY_HEIGHT,
+		},
 	};
 
 	imx296_set_selection(sd, cfg, &sel);
