@@ -327,7 +327,14 @@ static const struct v4l2_ctrl_ops imx296_ctrl_ops = {
 
 static int imx296_ctrls_init(struct imx296 *imx)
 {
-	v4l2_ctrl_handler_init(&imx->ctrls, 5);
+	struct v4l2_fwnode_device_properties props;
+	int ret;
+
+	ret = v4l2_fwnode_device_parse(imx->dev, &props);
+	if (ret < 0)
+		return ret;
+
+	v4l2_ctrl_handler_init(&imx->ctrls, 7);
 
 	v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
 			  V4L2_CID_EXPOSURE, 1, 1048575, 1, 1104);
@@ -351,6 +358,8 @@ static int imx296_ctrls_init(struct imx296 *imx)
 				     V4L2_CID_TEST_PATTERN,
 				     ARRAY_SIZE(imx296_test_pattern_menu) - 1,
 				     0, 0, imx296_test_pattern_menu);
+
+	v4l2_ctrl_new_fwnode_properties(&imx->ctrls, &imx296_ctrl_ops, &props);
 
 	if (imx->ctrls.error) {
 		dev_err(imx->dev, "failed to add controls (%d)\n",
