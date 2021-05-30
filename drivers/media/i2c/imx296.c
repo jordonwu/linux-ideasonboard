@@ -278,7 +278,7 @@ static int imx296_s_ctrl(struct v4l2_ctrl *ctrl)
 		imx296_write(imx, IMX296_SHS1, vmax - ctrl->val, &ret);
 		break;
 
-	case V4L2_CID_GAIN:
+	case V4L2_CID_ANALOGUE_GAIN:
 		imx296_write(imx, IMX296_GAIN, ctrl->val, &ret);
 		break;
 
@@ -341,7 +341,7 @@ static int imx296_ctrls_init(struct imx296 *imx)
 	v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
 			  V4L2_CID_EXPOSURE, 1, 1048575, 1, 1104);
 	v4l2_ctrl_new_std(&imx->ctrls, &imx296_ctrl_ops,
-			  V4L2_CID_GAIN, IMX296_GAIN_MIN,
+			  V4L2_CID_ANALOGUE_GAIN, IMX296_GAIN_MIN,
 			  IMX296_GAIN_MAX, 1, IMX296_GAIN_MIN);
 
 	/*
