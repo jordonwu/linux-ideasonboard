@@ -23,7 +23,7 @@
 	x16_clk: clock-x16 {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
-		clock-frequency = <37125000>;
+		clock-frequency = <54000000>;
 	};
 };
 
@@ -93,21 +93,20 @@
 	};
 
 	camera@1a {
-		compatible = "sony,imx327", "sony,imx290";
+		compatible = "sony,imx296ll";
 		reg = <0x1a>;
 
 		clocks = <&x16_clk>;
-		clock-names = "xclk";
-		clock-frequency = <37125000>;
+		clock-names = "inck";
 
-		vdda-supply = <&vc_ctrl>;
 		vddd-supply = <&vc_ctrl>;
-		vdddo-supply = <&vc_ctrl>;
+
+		orientation = <1>;	/* Back */
+		rotation = <0>;
 
 		port {
-			imx327_out: endpoint {
-				data-lanes = <1 2 3 4>;
-				link-frequencies = /bits/ 64 <148500000 222750000>;
+			imx296_out: endpoint {
+				data-lanes = <1>;
 				remote-endpoint = <&mipi_csi0_ep>;
 			};
 		};
@@ -128,8 +127,8 @@
 	ports {
 		port@0 {
 			mipi_csi0_ep: endpoint {
-				remote-endpoint = <&imx327_out>;
-				data-lanes = <1 2 3 4>;
+				remote-endpoint = <&imx296_out>;
+				data-lanes = <1>;
 			};
 		};
 	};
