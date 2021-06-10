@@ -10,6 +10,7 @@
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/of_device.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
@@ -106,6 +107,8 @@
 
 #define IMX296_SENSOR_INFO				IMX296_REG_16BIT(0x3148)
 #define IMX296_SENSOR_INFO_MONO				BIT(15)
+#define IMX296_SENSOR_INFO_IMX296LQ			0x4a00
+#define IMX296_SENSOR_INFO_IMX296LL			0xca00
 #define IMX296_S_SHSA					IMX296_REG_16BIT(0x31ca)
 #define IMX296_S_SHSB					IMX296_REG_16BIT(0x31d2)
 /*
@@ -896,6 +899,15 @@ static int imx296_identify_model(struct imx296 *imx)
 	int temp = 0;
 	int ret;
 
+	model = (uintptr_t)of_device_get_match_data(imx->dev);
+	if (model) {
+		dev_dbg(imx->dev,
+			"sensor model auto-detection disabled, forcing 0x%04x\n",
+			model);
+		imx->mono = model & IMX296_SENSOR_INFO_MONO;
+		return 0;
+	}
+
 	ret = imx296_power_on(imx);
 	if (ret < 0)
 		return ret;
@@ -1070,7 +1082,9 @@ static int imx296_remove(struct i2c_client *client)
 }
 
 static const struct of_device_id imx296_of_match[] = {
-	{ .compatible = "sony,imx296" },
+	{ .compatible = "sony,imx296", .data = NULL },
+	{ .compatible = "sony,imx296ll", .data = (void *)IMX296_SENSOR_INFO_IMX296LL },
+	{ .compatible = "sony,imx296lq", .data = (void *)IMX296_SENSOR_INFO_IMX296LQ },
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, imx296_of_match);
