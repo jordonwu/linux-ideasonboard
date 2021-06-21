@@ -74,6 +74,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mn-venice-gw7902.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-phyboard-pollux-rdk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin.dtb \
+			  imx8mp-maivin-csi1-ov5640.dtb \
 			  imx8mp-verdin-dahlia-imx296.dtb \
 			  imx8mp-verdin-dahlia-imx327.dtb \
 			  imx8mp-verdin-dahlia-isp1.dtb \
