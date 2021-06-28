@@ -312,6 +312,7 @@ static int dac5571_probe(struct i2c_client *client,
 	struct dac5571_data *data;
 	struct iio_dev *indio_dev;
 	int ret, i;
+	enum chip_id chip_id;
 
 	indio_dev = devm_iio_device_alloc(dev, sizeof(*data));
 	if (!indio_dev)
@@ -326,7 +327,13 @@ static int dac5571_probe(struct i2c_client *client,
 	indio_dev->modes = INDIO_DIRECT_MODE;
 	indio_dev->channels = dac5571_channels;
 
-	spec = &dac5571_spec[id->driver_data];
+	if (dev->of_node)
+		chip_id = (uintptr_t)of_device_get_match_data(dev);
+	else
+		chip_id = id->driver_data;
+
+	spec = &dac5571_spec[chip_id];
+
 	indio_dev->num_channels = spec->num_channels;
 	data->spec = spec;
 
@@ -385,15 +392,15 @@ static int dac5571_remove(struct i2c_client *i2c)
 }
 
 static const struct of_device_id dac5571_of_id[] = {
-	{.compatible = "ti,dac5571"},
-	{.compatible = "ti,dac6571"},
-	{.compatible = "ti,dac7571"},
-	{.compatible = "ti,dac5574"},
-	{.compatible = "ti,dac6574"},
-	{.compatible = "ti,dac7574"},
-	{.compatible = "ti,dac5573"},
-	{.compatible = "ti,dac6573"},
-	{.compatible = "ti,dac7573"},
+	{.compatible = "ti,dac5571", .data = (void *)single_8bit},
+	{.compatible = "ti,dac6571", .data = (void *)single_10bit},
+	{.compatible = "ti,dac7571", .data = (void *)single_12bit},
+	{.compatible = "ti,dac5574", .data = (void *)quad_8bit},
+	{.compatible = "ti,dac6574", .data = (void *)quad_10bit},
+	{.compatible = "ti,dac7574", .data = (void *)quad_12bit},
+	{.compatible = "ti,dac5573", .data = (void *)quad_8bit},
+	{.compatible = "ti,dac6573", .data = (void *)quad_10bit},
+	{.compatible = "ti,dac7573", .data = (void *)quad_12bit},
 	{}
 };
 MODULE_DEVICE_TABLE(of, dac5571_of_id);
