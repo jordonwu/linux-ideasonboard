@@ -691,9 +691,6 @@ static int mxc_isi_cap_querycap(struct file *file, void *priv,
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%d",
 		 dev_name(pipe->isi->dev), pipe->id);
 
-	cap->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE;
-	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
-
 	return 0;
 }
 
