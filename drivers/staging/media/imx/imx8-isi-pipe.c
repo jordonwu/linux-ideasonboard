@@ -1169,6 +1169,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		max_width = pipe->isi->pdata->model == MXC_ISI_IMX8MN
 			  ? 2048 : 4096;
 
+		mf->code = info->mbus_code;
 		mf->width = clamp(mf->width, MXC_ISI_MIN_WIDTH, max_width);
 		mf->height = clamp(mf->height, MXC_ISI_MIN_HEIGHT,
 				   MXC_ISI_MAX_HEIGHT);
@@ -1188,6 +1189,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 		format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which,
 						     MXC_ISI_SD_PAD_SOURCE);
+		format->code = info->mbus_code;
 		format->width = mf->width;
 		format->height = mf->height;
 	} else {
