@@ -701,11 +701,35 @@ static int mxc_isi_cap_enum_fmt(struct file *file, void *priv,
 				struct v4l2_fmtdesc *f)
 {
 	const struct mxc_isi_format_info *fmt;
+	unsigned int index = f->index;
+	unsigned int i;
 
-	if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
-		return -EINVAL;
+	if (f->mbus_code) {
+		/*
+		 * If a media bus code is specified, only enumerate formats
+		 * compatible with it.
+		 */
+		for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
+			fmt = &mxc_isi_out_formats[i];
+			if (fmt->mbus_code != f->mbus_code)
+				continue;
 
-	fmt = &mxc_isi_out_formats[f->index];
+			if (index == 0)
+				break;
+
+			index--;
+		}
+
+		if (i == ARRAY_SIZE(mxc_isi_out_formats))
+			return -EINVAL;
+	} else {
+		/* Otherwise, enumerate all formatS. */
+		if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
+			return -EINVAL;
+
+		fmt = &mxc_isi_out_formats[f->index];
+	}
+
 	f->pixelformat = fmt->fourcc;
 
 	return 0;
@@ -920,7 +944,8 @@ static int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	vdev->queue	= q;
 	vdev->lock	= &pipe->lock;
 
-	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE;
+	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE
+			  | V4L2_CAP_IO_MC;
 	video_set_drvdata(vdev, pipe);
 
 	INIT_LIST_HEAD(&pipe->video.out_pending);
