@@ -818,6 +818,9 @@ static int mxc_isi_cap_enum_framesizes(struct file *file, void *priv,
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	const struct mxc_isi_format_info *fmt;
 
+	if (fsize->index)
+		return -EINVAL;
+
 	fmt = mxc_isi_format_by_fourcc(fsize->pixel_format);
 	if (!fmt)
 		return -EINVAL;
