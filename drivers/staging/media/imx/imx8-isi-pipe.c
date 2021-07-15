@@ -31,6 +31,13 @@
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
 
 static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
+	/*
+	 * The ISI shifts the 10-bit and 12-bit formats left by 6 and 4 bits
+	 * when using MXC_ISI_OUT_FMT_RAW10 or MXC_ISI_OUT_FMT_RAW12
+	 * respectively, to align the bits to the left and pad with zeros in
+	 * the LSBs. The corresponding V4L2 formats are however right-aligned,
+	 * we have to use MXC_ISI_OUT_FMT_RAW16 to avoid the left shift.
+	 */
 	{
 		.fourcc		= V4L2_PIX_FMT_GREY,
 		.depth		= { 8 },
@@ -41,14 +48,14 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	}, {
 		.fourcc		= V4L2_PIX_FMT_Y10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_Y12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
@@ -83,56 +90,56 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SBGGR10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SGBRG10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SGRBG10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SRGGB10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SBGGR12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SGBRG12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SGRBG12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_SRGGB12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW16,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_NONE,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
