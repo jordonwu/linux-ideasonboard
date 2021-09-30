@@ -75,6 +75,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb \
 			  imx8mp-evk-isp1.dtb \
 			  imx8mp-evk-isp2.dtb \
 			  imx8mp-evk-ov5640-csi1.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-icore-edimm2.2.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-phyboard-pollux-rdk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin.dtb \
 			  imx8mp-maivin-csi1-imx296.dtb \
