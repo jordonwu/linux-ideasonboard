@@ -188,7 +188,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	}
 
 	/* Initialize, fill and register the async notifier. */
-	v4l2_async_notifier_init(&isi->notifier);
+	v4l2_async_nf_init(&isi->notifier);
 	isi->notifier.ops = &mxc_isi_async_notifier_ops;
 
 	for (i = 0; i < isi->pdata->num_ports; ++i) {
@@ -201,7 +201,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 		if (!ep)
 			continue;
 
-		masd = v4l2_async_notifier_add_fwnode_remote_subdev(
+		masd = v4l2_async_nf_add_fwnode_remote(
 				&isi->notifier, ep,
 				struct mxc_isi_async_subdev);
 		fwnode_handle_put(ep);
@@ -214,7 +214,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 		masd->port = i;
 	}
 
-	ret = v4l2_async_notifier_register(v4l2_dev, &isi->notifier);
+	ret = v4l2_async_nf_register(v4l2_dev, &isi->notifier);
 	if (ret < 0) {
 		dev_err(isi->dev,
 			"Failed to register async notifier: %d\n", ret);
@@ -224,7 +224,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	return 0;
 
 err_notifier:
-	v4l2_async_notifier_cleanup(&isi->notifier);
+	v4l2_async_nf_cleanup(&isi->notifier);
 err_v4l2:
 	v4l2_device_unregister(v4l2_dev);
 err_media:
@@ -234,8 +234,8 @@ err_media:
 
 static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *isi)
 {
-	v4l2_async_notifier_unregister(&isi->notifier);
-	v4l2_async_notifier_cleanup(&isi->notifier);
+	v4l2_async_nf_unregister(&isi->notifier);
+	v4l2_async_nf_cleanup(&isi->notifier);
 
 	v4l2_device_unregister(&isi->v4l2_dev);
 	media_device_unregister(&isi->media_dev);
