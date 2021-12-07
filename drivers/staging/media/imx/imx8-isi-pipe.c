@@ -1032,7 +1032,7 @@ static void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
 
 static struct v4l2_mbus_framefmt *
 mxc_isi_pipe_get_pad_format(struct mxc_isi_pipe *pipe,
-			    struct v4l2_subdev_pad_config *cfg,
+			    struct v4l2_subdev_state *state,
 			    enum v4l2_subdev_format_whence which,
 			    unsigned int pad)
 {
@@ -1041,13 +1041,13 @@ mxc_isi_pipe_get_pad_format(struct mxc_isi_pipe *pipe,
 		return &pipe->formats[pad].format;
 	case V4L2_SUBDEV_FORMAT_TRY:
 	default:
-		return v4l2_subdev_get_try_format(&pipe->sd, cfg, pad);
+		return v4l2_subdev_get_try_format(&pipe->sd, state, pad);
 	}
 }
 
 static struct v4l2_rect *
 mxc_isi_pipe_get_pad_crop(struct mxc_isi_pipe *pipe,
-			  struct v4l2_subdev_pad_config *cfg,
+			  struct v4l2_subdev_state *state,
 			  enum v4l2_subdev_format_whence which,
 			  unsigned int pad)
 {
@@ -1056,13 +1056,13 @@ mxc_isi_pipe_get_pad_crop(struct mxc_isi_pipe *pipe,
 		return &pipe->formats[pad].crop;
 	case V4L2_SUBDEV_FORMAT_TRY:
 	default:
-		return v4l2_subdev_get_try_crop(&pipe->sd, cfg, pad);
+		return v4l2_subdev_get_try_crop(&pipe->sd, state, pad);
 	}
 }
 
 static struct v4l2_rect *
 mxc_isi_pipe_get_pad_compose(struct mxc_isi_pipe *pipe,
-			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_state *state,
 			     enum v4l2_subdev_format_whence which,
 			     unsigned int pad)
 {
@@ -1071,7 +1071,7 @@ mxc_isi_pipe_get_pad_compose(struct mxc_isi_pipe *pipe,
 		return &pipe->formats[pad].compose;
 	case V4L2_SUBDEV_FORMAT_TRY:
 	default:
-		return v4l2_subdev_get_try_compose(&pipe->sd, cfg, pad);
+		return v4l2_subdev_get_try_compose(&pipe->sd, state, pad);
 	}
 }
 
@@ -1081,9 +1081,9 @@ static int mxc_isi_pipe_s_stream(struct v4l2_subdev *sd, int enable)
 }
 
 static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg)
+				 struct v4l2_subdev_state *state)
 {
-	enum v4l2_subdev_format_whence which = cfg ? V4L2_SUBDEV_FORMAT_TRY
+	enum v4l2_subdev_format_whence which = state ? V4L2_SUBDEV_FORMAT_TRY
 					     : V4L2_SUBDEV_FORMAT_ACTIVE;
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *fmt_source;
@@ -1091,9 +1091,9 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 	struct v4l2_rect *compose;
 	struct v4l2_rect *crop;
 
-	fmt_sink = mxc_isi_pipe_get_pad_format(pipe, cfg, which,
+	fmt_sink = mxc_isi_pipe_get_pad_format(pipe, state, which,
 					       MXC_ISI_SD_PAD_SINK);
-	fmt_source = mxc_isi_pipe_get_pad_format(pipe, cfg, which,
+	fmt_source = mxc_isi_pipe_get_pad_format(pipe, state, which,
 						 MXC_ISI_SD_PAD_SOURCE);
 
 	fmt_sink->width = MXC_ISI_DEF_WIDTH;
@@ -1109,9 +1109,9 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 
 	*fmt_source = *fmt_sink;
 
-	compose = mxc_isi_pipe_get_pad_compose(pipe, cfg, which,
+	compose = mxc_isi_pipe_get_pad_compose(pipe, state, which,
 					       MXC_ISI_SD_PAD_SINK);
-	crop = mxc_isi_pipe_get_pad_crop(pipe, cfg, which,
+	crop = mxc_isi_pipe_get_pad_crop(pipe, state, which,
 					 MXC_ISI_SD_PAD_SOURCE);
 
 	compose->left = 0;
@@ -1125,20 +1125,20 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 }
 
 static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
-				       struct v4l2_subdev_pad_config *cfg,
+				       struct v4l2_subdev_state *state,
 				       struct v4l2_subdev_mbus_code_enum *code)
 {
 	return 0;
 }
 
 static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
-				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
 	struct v4l2_mbus_framefmt *format;
 
-	format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which, fmt->pad);
+	format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which, fmt->pad);
 
 	mutex_lock(&pipe->lock);
 	fmt->format = *format;
@@ -1148,7 +1148,7 @@ static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
 }
 
 static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
-				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_format *fmt)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
@@ -1182,19 +1182,19 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 				   MXC_ISI_MAX_HEIGHT);
 
 		/* Propagate the format to the source pad. */
-		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, fmt->which,
+		rect = mxc_isi_pipe_get_pad_compose(pipe, state, fmt->which,
 						    MXC_ISI_SD_PAD_SINK);
 		rect->width = mf->width;
 		rect->height = mf->height;
 
-		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, fmt->which,
+		rect = mxc_isi_pipe_get_pad_crop(pipe, state, fmt->which,
 						 MXC_ISI_SD_PAD_SOURCE);
 		rect->left = 0;
 		rect->top = 0;
 		rect->width = mf->width;
 		rect->height = mf->height;
 
-		format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which,
+		format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which,
 						     MXC_ISI_SD_PAD_SOURCE);
 		format->code = info->mbus_code;
 		format->width = mf->width;
@@ -1204,14 +1204,14 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		 * The width and height on the source can't be changed, they
 		 * must match the crop rectangle size.
 		 */
-		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, fmt->which,
+		rect = mxc_isi_pipe_get_pad_crop(pipe, state, fmt->which,
 						 MXC_ISI_SD_PAD_SOURCE);
 
 		mf->width = rect->width;
 		mf->height = rect->height;
 	}
 
-	format = mxc_isi_pipe_get_pad_format(pipe, cfg, fmt->which, fmt->pad);
+	format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which, fmt->pad);
 	*format = *mf;
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
@@ -1226,7 +1226,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 }
 
 static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
-				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_subdev_state *state,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
@@ -1245,7 +1245,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 		}
 
 		/* The sink compose is bound by the sink format. */
-		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+		format = mxc_isi_pipe_get_pad_format(pipe, state, sel->which,
 						     MXC_ISI_SD_PAD_SINK);
 		sel->r.left = 0;
 		sel->r.top = 0;
@@ -1261,7 +1261,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 		}
 
 		/* The source crop is bound by the sink compose. */
-		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_compose(pipe, state, sel->which,
 						    MXC_ISI_SD_PAD_SINK);
 		sel->r = *rect;
 		break;
@@ -1273,7 +1273,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 			break;
 		}
 
-		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_crop(pipe, state, sel->which,
 						 sel->pad);
 		sel->r = *rect;
 		break;
@@ -1285,7 +1285,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 			break;
 		}
 
-		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_compose(pipe, state, sel->which,
 						    sel->pad);
 		sel->r = *rect;
 		break;
@@ -1300,7 +1300,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 }
 
 static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
-				      struct v4l2_subdev_pad_config *cfg,
+				      struct v4l2_subdev_state *state,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
@@ -1321,7 +1321,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		}
 
 		/* The source crop is bound by the sink compose. */
-		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_compose(pipe, state, sel->which,
 						    MXC_ISI_SD_PAD_SINK);
 		sel->r.left = clamp_t(s32, sel->r.left, 0, rect->width - 1);
 		sel->r.top = clamp_t(s32, sel->r.top, 0, rect->height - 1);
@@ -1330,12 +1330,12 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		sel->r.height = clamp(sel->r.height, MXC_ISI_MIN_HEIGHT,
 				      rect->height - sel->r.top);
 
-		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_crop(pipe, state, sel->which,
 						 MXC_ISI_SD_PAD_SOURCE);
 		*rect = sel->r;
 
 		/* Propagate the crop rectangle to the source pad. */
-		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+		format = mxc_isi_pipe_get_pad_format(pipe, state, sel->which,
 						     MXC_ISI_SD_PAD_SOURCE);
 		format->width = sel->r.width;
 		format->height = sel->r.height;
@@ -1351,7 +1351,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 
 		/* The sink crop is bound by the sink format downscaling only). */
-		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+		format = mxc_isi_pipe_get_pad_format(pipe, state, sel->which,
 						     MXC_ISI_SD_PAD_SINK);
 
 		sel->r.left = 0;
@@ -1361,19 +1361,19 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		sel->r.height = clamp(sel->r.height, MXC_ISI_MIN_HEIGHT,
 				      format->height);
 
-		rect = mxc_isi_pipe_get_pad_compose(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_compose(pipe, state, sel->which,
 						    MXC_ISI_SD_PAD_SINK);
 		*rect = sel->r;
 
 		/* Propagate the compose rectangle to the source pad. */
-		rect = mxc_isi_pipe_get_pad_crop(pipe, cfg, sel->which,
+		rect = mxc_isi_pipe_get_pad_crop(pipe, state, sel->which,
 						 MXC_ISI_SD_PAD_SOURCE);
 		rect->left = 0;
 		rect->top = 0;
 		rect->width = sel->r.width;
 		rect->height = sel->r.height;
 
-		format = mxc_isi_pipe_get_pad_format(pipe, cfg, sel->which,
+		format = mxc_isi_pipe_get_pad_format(pipe, state, sel->which,
 						     MXC_ISI_SD_PAD_SOURCE);
 		format->width = sel->r.width;
 		format->height = sel->r.height;
