@@ -625,7 +625,7 @@ static int imx296_s_stream(struct v4l2_subdev *sd, int enable)
 }
 
 static int imx296_enum_mbus_code(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_pad_config *cfg,
+				 struct v4l2_subdev_state *state,
 				 struct v4l2_subdev_mbus_code_enum *code)
 {
 	struct imx296 *imx = to_imx296(sd);
@@ -640,7 +640,7 @@ static int imx296_enum_mbus_code(struct v4l2_subdev *sd,
 }
 
 static int imx296_enum_frame_size(struct v4l2_subdev *sd,
-				  struct v4l2_subdev_pad_config *cfg,
+				  struct v4l2_subdev_state *state,
 				  struct v4l2_subdev_frame_size_enum *fse)
 {
 	struct imx296 *imx = to_imx296(sd);
@@ -657,12 +657,12 @@ static int imx296_enum_frame_size(struct v4l2_subdev *sd,
 }
 
 static struct v4l2_mbus_framefmt *
-imx296_get_pad_format(struct imx296 *imx, struct v4l2_subdev_pad_config *cfg,
+imx296_get_pad_format(struct imx296 *imx, struct v4l2_subdev_state *state,
 		      unsigned int pad, u32 which)
 {
 	switch (which) {
 	case V4L2_SUBDEV_FORMAT_TRY:
-		return v4l2_subdev_get_try_format(&imx->subdev, cfg, pad);
+		return v4l2_subdev_get_try_format(&imx->subdev, state, pad);
 	case V4L2_SUBDEV_FORMAT_ACTIVE:
 		return &imx->format;
 	default:
@@ -671,12 +671,12 @@ imx296_get_pad_format(struct imx296 *imx, struct v4l2_subdev_pad_config *cfg,
 }
 
 static struct v4l2_rect *
-imx296_get_pad_crop(struct imx296 *imx, struct v4l2_subdev_pad_config *cfg,
+imx296_get_pad_crop(struct imx296 *imx, struct v4l2_subdev_state *state,
 		    unsigned int pad, u32 which)
 {
 	switch (which) {
 	case V4L2_SUBDEV_FORMAT_TRY:
-		return v4l2_subdev_get_try_crop(&imx->subdev, cfg, pad);
+		return v4l2_subdev_get_try_crop(&imx->subdev, state, pad);
 	case V4L2_SUBDEV_FORMAT_ACTIVE:
 		return &imx->crop;
 	default:
@@ -685,26 +685,26 @@ imx296_get_pad_crop(struct imx296 *imx, struct v4l2_subdev_pad_config *cfg,
 }
 
 static int imx296_get_format(struct v4l2_subdev *sd,
-			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_state *state,
 			     struct v4l2_subdev_format *fmt)
 {
 	struct imx296 *imx = to_imx296(sd);
 
-	fmt->format = *imx296_get_pad_format(imx, cfg, fmt->pad, fmt->which);
+	fmt->format = *imx296_get_pad_format(imx, state, fmt->pad, fmt->which);
 
 	return 0;
 }
 
 static int imx296_set_format(struct v4l2_subdev *sd,
-			     struct v4l2_subdev_pad_config *cfg,
+			     struct v4l2_subdev_state *state,
 			     struct v4l2_subdev_format *fmt)
 {
 	struct imx296 *imx = to_imx296(sd);
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *crop;
 
-	crop = imx296_get_pad_crop(imx, cfg, fmt->pad, fmt->which);
-	format = imx296_get_pad_format(imx, cfg, fmt->pad, fmt->which);
+	crop = imx296_get_pad_crop(imx, state, fmt->pad, fmt->which);
+	format = imx296_get_pad_format(imx, state, fmt->pad, fmt->which);
 
 	/*
 	 * Binning is only allowed when cropping is disabled according to the
@@ -747,14 +747,14 @@ static int imx296_set_format(struct v4l2_subdev *sd,
 }
 
 static int imx296_get_selection(struct v4l2_subdev *sd,
-				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_selection *sel)
 {
 	struct imx296 *imx = to_imx296(sd);
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP:
-		sel->r = *imx296_get_pad_crop(imx, cfg, sel->pad, sel->which);
+		sel->r = *imx296_get_pad_crop(imx, state, sel->pad, sel->which);
 		break;
 
 	case V4L2_SEL_TGT_CROP_DEFAULT:
@@ -774,7 +774,7 @@ static int imx296_get_selection(struct v4l2_subdev *sd,
 }
 
 static int imx296_set_selection(struct v4l2_subdev *sd,
-				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_selection *sel)
 {
 	struct imx296 *imx = to_imx296(sd);
@@ -803,14 +803,14 @@ static int imx296_set_selection(struct v4l2_subdev *sd,
 	rect.height = min_t(unsigned int, rect.height,
 			    IMX296_PIXEL_ARRAY_HEIGHT - rect.top);
 
-	crop = imx296_get_pad_crop(imx, cfg, sel->pad, sel->which);
+	crop = imx296_get_pad_crop(imx, state, sel->pad, sel->which);
 
 	if (rect.width != crop->width || rect.height != crop->height) {
 		/*
 		 * Reset the output image size if the crop rectangle size has
 		 * been modified.
 		 */
-		format = imx296_get_pad_format(imx, cfg, sel->pad, sel->which);
+		format = imx296_get_pad_format(imx, state, sel->pad, sel->which);
 		format->width = rect.width;
 		format->height = rect.height;
 	}
@@ -822,17 +822,17 @@ static int imx296_set_selection(struct v4l2_subdev *sd,
 }
 
 static int imx296_init_cfg(struct v4l2_subdev *sd,
-			   struct v4l2_subdev_pad_config *cfg)
+			   struct v4l2_subdev_state *state)
 {
 	struct v4l2_subdev_selection sel = {
 		.target = V4L2_SEL_TGT_CROP,
-		.which = cfg ? V4L2_SUBDEV_FORMAT_TRY
+		.which = state ? V4L2_SUBDEV_FORMAT_TRY
 		       : V4L2_SUBDEV_FORMAT_ACTIVE,
 		.r.width = IMX296_PIXEL_ARRAY_WIDTH,
 		.r.height = IMX296_PIXEL_ARRAY_HEIGHT,
 	};
 	struct v4l2_subdev_format format = {
-		.which = cfg ? V4L2_SUBDEV_FORMAT_TRY
+		.which = state ? V4L2_SUBDEV_FORMAT_TRY
 		       : V4L2_SUBDEV_FORMAT_ACTIVE,
 		.format = {
 			.width = IMX296_PIXEL_ARRAY_WIDTH,
@@ -840,8 +840,8 @@ static int imx296_init_cfg(struct v4l2_subdev *sd,
 		},
 	};
 
-	imx296_set_selection(sd, cfg, &sel);
-	imx296_set_format(sd, cfg, &format);
+	imx296_set_selection(sd, state, &sel);
+	imx296_set_format(sd, state, &format);
 
 	return 0;
 }
