@@ -170,7 +170,7 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.color		= MXC_ISI_OUT_FMT_YUV422_1P8P,
 		.memplanes	= 1,
 		.colorspace	= MXC_ISI_CS_YUV,
-		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_YUV32,
 		.depth		= { 32 },
@@ -184,7 +184,7 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.color		= MXC_ISI_OUT_FMT_YUV420_2P8P,
 		.memplanes	= 2,
 		.colorspace	= MXC_ISI_CS_YUV,
-		.mbus_code	= MEDIA_BUS_FMT_YUYV8_1X16,
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 	}, {
 		.fourcc		= V4L2_PIX_FMT_YUV444M,
 		.depth		= { 8, 8, 8 },
@@ -1098,7 +1098,7 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 
 	fmt_sink->width = MXC_ISI_DEF_WIDTH;
 	fmt_sink->height = MXC_ISI_DEF_HEIGHT;
-	fmt_sink->code = MEDIA_BUS_FMT_YUYV8_1X16;
+	fmt_sink->code = MEDIA_BUS_FMT_UYVY8_1X16;
 	fmt_sink->field = V4L2_FIELD_NONE;
 	fmt_sink->colorspace = V4L2_COLORSPACE_JPEG;
 	fmt_sink->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt_sink->colorspace);
@@ -1162,7 +1162,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 	info = mxc_isi_format_by_code(mf->code);
 	if (!info)
-		info = mxc_isi_format_by_code(MEDIA_BUS_FMT_YUYV8_1X16);
+		info = mxc_isi_format_by_code(MEDIA_BUS_FMT_UYVY8_1X16);
 
 	mutex_lock(&pipe->lock);
 
