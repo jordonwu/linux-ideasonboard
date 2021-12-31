@@ -47,3 +47,13 @@
 		vddio-supply = <&vcc_1v8>;
 	};
 };
+
+&imx219 {
+	status = "okay";
+};
+
+/*
+&ov5647 {
+	status = "okay";
+};
+*/
