@@ -489,6 +489,51 @@
 	i2c-scl-rising-time-ns = <600>;
 	i2c-scl-falling-time-ns = <20>;
 	status = "okay";
+
+	imx219: camera-module@10 {
+		status = "disabled";
+		compatible = "sony,imx219";
+		reg = <0x10>;
+
+		clocks = <&xin24m>;
+		clock-names = "xclk";
+		/* The camera module has its own regulator */
+		VANA-supply = <&vcc_cam>;
+		VDIG-supply = <&vcc_cam>;
+		VDDL-supply = <&vcc_cam>;
+		pinctrl-names = "rockchip,camera_default";
+		reset-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+
+		port {
+			imx219_0: endpoint {
+				remote-endpoint = <&isp_ep0>;
+				data-lanes = <1 2>;
+				clock-noncontinuous;
+				link-frequencies = /bits/ 64 <456000000>;
+			};
+		};
+	};
+
+	/*
+	ov5647: camera-module@36 {
+		status = "disabled";
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+
+		clocks = <&xin24m>;
+		clock-names = "xclk";
+		pinctrl-names = "rockchip,camera_default";
+
+		port {
+			ov5647_0: endpoint {
+				remote-endpoint = <&isp_ep1>;
+				data-lanes = <1 2>;
+				clock-noncontinuous;
+				link-frequencies = /bits/ 64 <297000000>;
+			};
+		};
+	};
+	*/
 };
 
 &i2s0 {
@@ -521,6 +566,37 @@
 	bt656-supply = <&vcc_3v0>;
 	gpio1830-supply = <&vcc_3v0>;
 	sdmmc-supply = <&vcc_sdio>;
+	status = "okay";
+};
+
+&mipi_dphy_rx0 {
+	status = "okay";
+};
+
+&isp0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			isp_ep0: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&imx219_0>;
+				data-lanes = <1 2>;
+				clock-noncontinuous;
+			};
+
+			/*
+			isp_ep1: endpoint@1 {
+				remote-endpoint = <&ov5647_0>;
+				data-lantes = <1 2>;
+				clock-noncontinuous;
+			};
+			*/
+		};
+	};
+};
+
+&isp0_mmu {
 	status = "okay";
 };
 
