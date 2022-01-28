@@ -12,7 +12,7 @@
 
 int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 {
-	const struct rkisp1_isp_mbus_info *sink_fmt = rkisp1->isp.sink_fmt;
+	const struct rkisp1_mbus_info *sink_fmt = rkisp1->isp.sink_fmt;
 	unsigned int lanes = rkisp1->active_sensor->lanes;
 	u32 mipi_ctrl;
 
