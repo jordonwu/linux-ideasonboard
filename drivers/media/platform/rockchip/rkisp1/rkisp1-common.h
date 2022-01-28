@@ -66,6 +66,13 @@ enum rkisp1_rsz_pad {
 	RKISP1_RSZ_PAD_MAX
 };
 
+/* enum for the csi receiver pads */
+enum rkisp1_csi_pad {
+	RKISP1_CSI_PAD_SINK,
+	RKISP1_CSI_PAD_SRC,
+	RKISP1_CSI_PAD_MAX
+};
+
 /* enum for the capture id */
 enum rkisp1_stream_id {
 	RKISP1_MAINPATH,
@@ -333,6 +340,27 @@ struct rkisp1_resizer {
 };
 
 /*
+ * struct rkisp1_csi - CSI receiver subdev
+ *
+ * @sd:		   v4l2_subdev variable
+ * @rkisp1:	   pointer to the rkisp1 device
+ * @pads:	   media pads
+ * @pad_cfg:	   configurations for the pads
+ * @ops_lock:	   a lock for the subdev ops
+ * @active_sensor: sensor in-use, set when streaming on
+ * @notifier:	   a notifier to register on the v4l2-async API to be notified on the sensor
+ */
+struct rkisp1_csi {
+	struct v4l2_subdev sd;
+	struct rkisp1_device *rkisp1;
+	struct media_pad pads[RKISP1_CSI_PAD_MAX];
+	struct v4l2_subdev_pad_config pad_cfg[RKISP1_CSI_PAD_MAX];
+	struct mutex ops_lock; /* serialize the subdevice ops */
+	struct rkisp1_sensor_async *active_sensor;
+	struct v4l2_async_notifier notifier;
+};
+
+/*
  * struct rkisp1_debug - Values to be exposed on debugfs.
  *			 The parameters are counters of the number of times the
  *			 event occurred since the driver was loaded.
@@ -377,6 +405,7 @@ struct rkisp1_debug {
  * @isp:	   ISP sub-device
  * @resizer_devs:  resizer sub-devices
  * @capture_devs:  capture devices
+ * @csi_subdev:    a pointer to the v4l2 subdevice of the CSI receiver sub-device
  * @stats:	   ISP statistics metadata capture device
  * @params:	   ISP parameters metadata output device
  * @pipe:	   media pipeline
@@ -397,6 +426,7 @@ struct rkisp1_device {
 	struct rkisp1_capture capture_devs[2];
 	struct rkisp1_stats stats;
 	struct rkisp1_params params;
+	struct v4l2_subdev *csi_subdev;
 	struct media_pipeline pipe;
 	struct mutex stream_lock; /* serialize {start/stop}_streaming cb between capture devices */
 	struct rkisp1_debug debug;
@@ -525,5 +555,8 @@ void rkisp1_stats_unregister(struct rkisp1_device *rkisp1);
 
 int rkisp1_params_register(struct rkisp1_device *rkisp1);
 void rkisp1_params_unregister(struct rkisp1_device *rkisp1);
+
+int rkisp1_csi_register(struct rkisp1_device *rkisp1);
+void rkisp1_csi_unregister(struct rkisp1_device *rkisp1);
 
 #endif /* _RKISP1_COMMON_H */

@@ -370,14 +370,20 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	if (ret)
 		goto err_unreg_stats;
 
+	ret = rkisp1_csi_register(rkisp1);
+	if (ret)
+		goto err_unreg_params;
+
 	ret = rkisp1_subdev_notifier(rkisp1);
 	if (ret) {
 		dev_err(rkisp1->dev,
 			"Failed to register subdev notifier(%d)\n", ret);
-		goto err_unreg_params;
+		goto err_unreg_csi;
 	}
 
 	return 0;
+err_unreg_csi:
+	rkisp1_csi_unregister(rkisp1);
 err_unreg_params:
 	rkisp1_params_unregister(rkisp1);
 err_unreg_stats:
@@ -583,6 +589,7 @@ static int rkisp1_remove(struct platform_device *pdev)
 	v4l2_async_nf_unregister(&rkisp1->notifier);
 	v4l2_async_nf_cleanup(&rkisp1->notifier);
 
+	rkisp1_csi_unregister(rkisp1);
 	rkisp1_params_unregister(rkisp1);
 	rkisp1_stats_unregister(rkisp1);
 	rkisp1_capture_devs_unregister(rkisp1);
