@@ -910,6 +910,8 @@ static void rkisp1_pipeline_stream_disable(struct rkisp1_capture *cap)
 	__must_hold(&cap->rkisp1->stream_lock)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 
 	rkisp1_cap_stream_disable(cap);
 
@@ -918,7 +920,7 @@ static void rkisp1_pipeline_stream_disable(struct rkisp1_capture *cap)
 	 * be disabled, skip them.
 	 */
 	if (rkisp1->pipe.streaming_count < 2) {
-		v4l2_subdev_call(rkisp1->active_sensor->sd, video, s_stream,
+		v4l2_subdev_call(csi->active_sensor->sd, video, s_stream,
 				 false);
 		v4l2_subdev_call(&rkisp1->isp.sd, video, s_stream, false);
 	}
@@ -937,6 +939,8 @@ static int rkisp1_pipeline_stream_enable(struct rkisp1_capture *cap)
 	__must_hold(&cap->rkisp1->stream_lock)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 	int ret;
 
 	rkisp1_cap_stream_enable(cap);
@@ -957,7 +961,7 @@ static int rkisp1_pipeline_stream_enable(struct rkisp1_capture *cap)
 	if (ret)
 		goto err_disable_rsz;
 
-	ret = v4l2_subdev_call(rkisp1->active_sensor->sd, video, s_stream,
+	ret = v4l2_subdev_call(csi->active_sensor->sd, video, s_stream,
 			       true);
 	if (ret)
 		goto err_disable_isp;

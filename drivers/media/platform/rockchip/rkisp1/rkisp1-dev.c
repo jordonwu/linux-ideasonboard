@@ -121,39 +121,9 @@ struct rkisp1_match_data {
 static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 {
 	struct media_entity *source, *sink;
-	unsigned int flags, source_pad;
-	struct v4l2_subdev *sd;
+	unsigned int flags = MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE;
 	unsigned int i;
 	int ret;
-
-	/* sensor links */
-	flags = MEDIA_LNK_FL_ENABLED;
-	list_for_each_entry(sd, &rkisp1->v4l2_dev.subdevs, list) {
-		if (sd == &rkisp1->isp.sd ||
-		    sd == &rkisp1->resizer_devs[RKISP1_MAINPATH].sd ||
-		    sd == &rkisp1->resizer_devs[RKISP1_SELFPATH].sd)
-			continue;
-
-		ret = media_entity_get_fwnode_pad(&sd->entity, sd->fwnode,
-						  MEDIA_PAD_FL_SOURCE);
-		if (ret < 0) {
-			dev_err(rkisp1->dev, "failed to find src pad for %s\n",
-				sd->name);
-			return ret;
-		}
-		source_pad = ret;
-
-		ret = media_create_pad_link(&sd->entity, source_pad,
-					    &rkisp1->isp.sd.entity,
-					    RKISP1_ISP_PAD_SINK_VIDEO,
-					    flags);
-		if (ret)
-			return ret;
-
-		flags = 0;
-	}
-
-	flags = MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE;
 
 	/* create ISP->RSZ->CAP links */
 	for (i = 0; i < 2; i++) {
@@ -173,6 +143,15 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 			return ret;
 	}
 
+	/* CSI->ISP link */
+	source = &rkisp1->csi_subdev->entity;
+	sink = &rkisp1->isp.sd.entity;
+	ret = media_create_pad_link(source, RKISP1_CSI_PAD_SRC,
+				    sink, RKISP1_ISP_PAD_SINK_VIDEO,
+				    MEDIA_LNK_FL_ENABLED);
+	if (ret)
+		return ret;
+
 	/* params links */
 	source = &rkisp1->params.vnode.vdev.entity;
 	sink = &rkisp1->isp.sd.entity;
@@ -186,127 +165,6 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	sink = &rkisp1->stats.vnode.vdev.entity;
 	return media_create_pad_link(source, RKISP1_ISP_PAD_SOURCE_STATS,
 				     sink, 0, flags);
-}
-
-static int rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
-					struct v4l2_subdev *sd,
-					struct v4l2_async_subdev *asd)
-{
-	struct rkisp1_device *rkisp1 =
-		container_of(notifier, struct rkisp1_device, notifier);
-	struct rkisp1_sensor_async *s_asd =
-		container_of(asd, struct rkisp1_sensor_async, asd);
-
-	s_asd->pixel_rate_ctrl = v4l2_ctrl_find(sd->ctrl_handler,
-						V4L2_CID_PIXEL_RATE);
-	s_asd->sd = sd;
-	s_asd->dphy = devm_phy_get(rkisp1->dev, "dphy");
-	if (IS_ERR(s_asd->dphy)) {
-		if (PTR_ERR(s_asd->dphy) != -EPROBE_DEFER)
-			dev_err(rkisp1->dev, "Couldn't get the MIPI D-PHY\n");
-		return PTR_ERR(s_asd->dphy);
-	}
-
-	phy_init(s_asd->dphy);
-
-	return 0;
-}
-
-static void rkisp1_subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
-					  struct v4l2_subdev *sd,
-					  struct v4l2_async_subdev *asd)
-{
-	struct rkisp1_sensor_async *s_asd =
-		container_of(asd, struct rkisp1_sensor_async, asd);
-
-	phy_exit(s_asd->dphy);
-}
-
-static int rkisp1_subdev_notifier_complete(struct v4l2_async_notifier *notifier)
-{
-	struct rkisp1_device *rkisp1 =
-		container_of(notifier, struct rkisp1_device, notifier);
-	int ret;
-
-	ret = rkisp1_create_links(rkisp1);
-	if (ret)
-		return ret;
-
-	ret = v4l2_device_register_subdev_nodes(&rkisp1->v4l2_dev);
-	if (ret)
-		return ret;
-
-	dev_dbg(rkisp1->dev, "Async subdev notifier completed\n");
-
-	return 0;
-}
-
-static const struct v4l2_async_notifier_operations rkisp1_subdev_notifier_ops = {
-	.bound = rkisp1_subdev_notifier_bound,
-	.unbind = rkisp1_subdev_notifier_unbind,
-	.complete = rkisp1_subdev_notifier_complete,
-};
-
-static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
-{
-	struct v4l2_async_notifier *ntf = &rkisp1->notifier;
-	unsigned int next_id = 0;
-	int ret;
-
-	v4l2_async_nf_init(ntf);
-
-	while (1) {
-		struct v4l2_fwnode_endpoint vep = {
-			.bus_type = V4L2_MBUS_CSI2_DPHY
-		};
-		struct rkisp1_sensor_async *rk_asd;
-		struct fwnode_handle *ep;
-
-		ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(rkisp1->dev),
-						     0, next_id,
-						     FWNODE_GRAPH_ENDPOINT_NEXT);
-		if (!ep)
-			break;
-
-		ret = v4l2_fwnode_endpoint_parse(ep, &vep);
-		if (ret)
-			goto err_parse;
-
-		rk_asd = v4l2_async_nf_add_fwnode_remote(ntf, ep,
-							 struct
-							 rkisp1_sensor_async);
-		if (IS_ERR(rk_asd)) {
-			ret = PTR_ERR(rk_asd);
-			goto err_parse;
-		}
-
-		rk_asd->mbus_type = vep.bus_type;
-		rk_asd->mbus_flags = vep.bus.mipi_csi2.flags;
-		rk_asd->lanes = vep.bus.mipi_csi2.num_data_lanes;
-
-		dev_dbg(rkisp1->dev, "registered ep id %d with %d lanes\n",
-			vep.base.id, rk_asd->lanes);
-
-		next_id = vep.base.id + 1;
-
-		fwnode_handle_put(ep);
-
-		continue;
-err_parse:
-		fwnode_handle_put(ep);
-		v4l2_async_nf_cleanup(ntf);
-		return ret;
-	}
-
-	if (next_id == 0)
-		dev_dbg(rkisp1->dev, "no remote subdevice found\n");
-	ntf->ops = &rkisp1_subdev_notifier_ops;
-	ret = v4l2_async_nf_register(&rkisp1->v4l2_dev, ntf);
-	if (ret) {
-		v4l2_async_nf_cleanup(ntf);
-		return ret;
-	}
-	return 0;
 }
 
 /* ----------------------------------------------------------------------------
@@ -370,20 +228,12 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	if (ret)
 		goto err_unreg_stats;
 
+	/* TODO Make this conditional, and async add a generic CSI2 receiver */
 	ret = rkisp1_csi_register(rkisp1);
 	if (ret)
 		goto err_unreg_params;
 
-	ret = rkisp1_subdev_notifier(rkisp1);
-	if (ret) {
-		dev_err(rkisp1->dev,
-			"Failed to register subdev notifier(%d)\n", ret);
-		goto err_unreg_csi;
-	}
-
 	return 0;
-err_unreg_csi:
-	rkisp1_csi_unregister(rkisp1);
 err_unreg_params:
 	rkisp1_params_unregister(rkisp1);
 err_unreg_stats:
@@ -395,6 +245,18 @@ err_unreg_resizer_devs:
 err_unreg_isp_subdev:
 	rkisp1_isp_unregister(rkisp1);
 	return ret;
+}
+
+static irqreturn_t rkisp1_mipi_isr(int irq, void *ctx)
+{
+	struct device *dev = ctx;
+	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
+	bool handled;
+
+	v4l2_subdev_call(rkisp1->csi_subdev, core, interrupt_service_routine,
+			 irq, &handled);
+
+	return IRQ_HANDLED;
 }
 
 static irqreturn_t rkisp1_isr(int irq, void *ctx)
@@ -570,6 +432,14 @@ static int rkisp1_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_unreg_media_dev;
 
+	ret = rkisp1_create_links(rkisp1);
+	if (ret)
+		goto err_unreg_media_dev;
+
+	ret = v4l2_device_register_subdev_nodes(&rkisp1->v4l2_dev);
+	if (ret)
+		goto err_unreg_media_dev;
+
 	rkisp1_debug_init(rkisp1);
 
 	return 0;
@@ -585,9 +455,6 @@ err_unreg_v4l2_dev:
 static int rkisp1_remove(struct platform_device *pdev)
 {
 	struct rkisp1_device *rkisp1 = platform_get_drvdata(pdev);
-
-	v4l2_async_nf_unregister(&rkisp1->notifier);
-	v4l2_async_nf_cleanup(&rkisp1->notifier);
 
 	rkisp1_csi_unregister(rkisp1);
 	rkisp1_params_unregister(rkisp1);
