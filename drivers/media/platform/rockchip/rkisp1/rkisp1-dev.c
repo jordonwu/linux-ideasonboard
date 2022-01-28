@@ -330,6 +330,7 @@ static const struct dev_pm_ops rkisp1_pm_ops = {
 
 static void rkisp1_entities_unregister(struct rkisp1_device *rkisp1)
 {
+	rkisp1_csi_unregister(rkisp1);
 	rkisp1_params_unregister(rkisp1);
 	rkisp1_stats_unregister(rkisp1);
 	rkisp1_capture_devs_unregister(rkisp1);
@@ -358,6 +359,10 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 		goto error;
 
 	ret = rkisp1_params_register(rkisp1);
+	if (ret)
+		goto error;
+
+	ret = rkisp1_csi_register(rkisp1);
 	if (ret)
 		goto error;
 
