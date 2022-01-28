@@ -87,10 +87,11 @@ int rkisp1_csi_link_sensor(struct rkisp1_device *rkisp1, struct v4l2_subdev *sd,
 	return 0;
 }
 
-int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
+static int rkisp1_config_mipi(struct rkisp1_csi *csi)
 {
+	struct rkisp1_device *rkisp1 = csi->rkisp1;
 	const struct rkisp1_mbus_info *sink_fmt = rkisp1->isp.sink_fmt;
-	unsigned int lanes = rkisp1->active_sensor->lanes;
+	unsigned int lanes = csi->active_sensor->lanes;
 	u32 mipi_ctrl;
 
 	if (lanes < 1 || lanes > 4)
@@ -138,7 +139,7 @@ int rkisp1_config_mipi(struct rkisp1_device *rkisp1)
 	return 0;
 }
 
-void rkisp1_mipi_start(struct rkisp1_device *rkisp1)
+static void rkisp1_mipi_start(struct rkisp1_device *rkisp1)
 {
 	u32 val;
 
@@ -153,7 +154,7 @@ static void rkisp1_mipi_clear_interrupts(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, ~0, RKISP1_CIF_MIPI_ICR);
 }
 
-void rkisp1_mipi_stop(struct rkisp1_device *rkisp1)
+static void rkisp1_mipi_stop(struct rkisp1_device *rkisp1)
 {
 	u32 val;
 
@@ -164,10 +165,8 @@ void rkisp1_mipi_stop(struct rkisp1_device *rkisp1)
 		     RKISP1_CIF_MIPI_CTRL);
 }
 
-irqreturn_t rkisp1_mipi_isr(int irq, void *ctx)
+static irqreturn_t rkisp1_mipi_isr(int irq, struct rkisp1_device *rkisp1)
 {
-	struct device *dev = ctx;
-	struct rkisp1_device *rkisp1 = dev_get_drvdata(dev);
 	u32 val, status;
 
 	status = rkisp1_read(rkisp1, RKISP1_CIF_MIPI_MIS);
@@ -216,8 +215,7 @@ static int rkisp1_csi_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
 	struct rkisp1_csi *csi = container_of(sd, struct rkisp1_csi, sd);
 	struct rkisp1_device *rkisp1 = csi->rkisp1;
 
-	rkisp1_mipi_isr(rkisp1);
-	*handled = true;
+	*handled = rkisp1_mipi_isr(status, rkisp1) == IRQ_HANDLED;
 
 	return 0;
 }
@@ -409,7 +407,7 @@ static int rkisp1_csi_s_stream(struct v4l2_subdev *sd, int enable)
 		return ret;
 	}
 
-	ret = rkisp1_config_mipi(rkisp1);
+	ret = rkisp1_config_mipi(csi);
 	if (ret)
 		return ret;
 

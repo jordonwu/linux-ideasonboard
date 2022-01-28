@@ -59,20 +59,6 @@
  * Helpers
  */
 
-static struct v4l2_subdev *rkisp1_get_remote_sensor(struct v4l2_subdev *sd)
-{
-	struct media_pad *local, *remote;
-	struct media_entity *sensor_me;
-
-	local = &sd->entity.pads[RKISP1_ISP_PAD_SINK_VIDEO];
-	remote = media_entity_remote_pad(local);
-	if (!remote)
-		return NULL;
-
-	sensor_me = remote->entity;
-	return media_entity_to_v4l2_subdev(sensor_me);
-}
-
 static struct v4l2_mbus_framefmt *
 rkisp1_isp_get_pad_fmt(struct rkisp1_isp *isp,
 		       struct v4l2_subdev_state *sd_state,
@@ -144,8 +130,10 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	struct rkisp1_sensor_async *sensor;
 	struct v4l2_mbus_framefmt *sink_frm;
 	struct v4l2_rect *sink_crop;
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 
-	sensor = rkisp1->active_sensor;
+	sensor = csi->active_sensor;
 	sink_fmt = rkisp1->isp.sink_fmt;
 	src_fmt = rkisp1->isp.src_fmt;
 	sink_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
@@ -268,7 +256,9 @@ static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 /* Configure MUX */
 static int rkisp1_config_path(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_sensor_async *sensor = rkisp1->active_sensor;
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
+	struct rkisp1_sensor_async *sensor = csi->active_sensor;
 	u32 dpcl = rkisp1_read(rkisp1, RKISP1_CIF_VI_DPCL);
 	int ret = 0;
 
@@ -277,7 +267,6 @@ static int rkisp1_config_path(struct rkisp1_device *rkisp1)
 		ret = rkisp1_config_dvp(rkisp1);
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_PARALLEL;
 	} else if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY) {
-		ret = rkisp1_config_mipi(rkisp1);
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_MIPI;
 	}
 
@@ -321,7 +310,7 @@ static void rkisp1_isp_stop(struct rkisp1_device *rkisp1)
 	rkisp1_write(rkisp1, 0, RKISP1_CIF_MI_IMSC);
 	rkisp1_write(rkisp1, ~0, RKISP1_CIF_MI_ICR);
 
-	rkisp1_mipi_stop(rkisp1);
+	v4l2_subdev_call(rkisp1->csi_subdev, video, s_stream, 0);
 
 	/* stop ISP */
 	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
@@ -362,16 +351,22 @@ static void rkisp1_config_clk(struct rkisp1_device *rkisp1)
 	}
 }
 
-static void rkisp1_isp_start(struct rkisp1_device *rkisp1)
+static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_sensor_async *sensor = rkisp1->active_sensor;
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
+	struct rkisp1_sensor_async *sensor = csi->active_sensor;
 	u32 val;
+	int ret;
 
 	rkisp1_config_clk(rkisp1);
 
 	/* Activate MIPI */
-	if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY)
-		rkisp1_mipi_start(rkisp1);
+	if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY) {
+		ret = v4l2_subdev_call(rkisp1->csi_subdev, video, s_stream, 1);
+		if (ret)
+			return ret;
+	}
 
 	/* Activate ISP */
 	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
@@ -385,6 +380,8 @@ static void rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	 * the MIPI interface and before starting the sensor output.
 	 */
 	usleep_range(1000, 1200);
+
+	return ret;
 }
 
 /* ----------------------------------------------------------------------------
@@ -765,67 +762,21 @@ static const struct v4l2_subdev_pad_ops rkisp1_isp_pad_ops = {
  * Stream operations
  */
 
-static int rkisp1_mipi_csi2_start(struct rkisp1_isp *isp,
-				  struct rkisp1_sensor_async *sensor)
-{
-	struct rkisp1_device *rkisp1 =
-		container_of(isp->sd.v4l2_dev, struct rkisp1_device, v4l2_dev);
-	union phy_configure_opts opts;
-	struct phy_configure_opts_mipi_dphy *cfg = &opts.mipi_dphy;
-	s64 pixel_clock;
-
-	if (!sensor->pixel_rate_ctrl) {
-		dev_warn(rkisp1->dev, "No pixel rate control in sensor subdev\n");
-		return -EPIPE;
-	}
-
-	pixel_clock = v4l2_ctrl_g_ctrl_int64(sensor->pixel_rate_ctrl);
-	if (!pixel_clock) {
-		dev_err(rkisp1->dev, "Invalid pixel rate value\n");
-		return -EINVAL;
-	}
-
-	phy_mipi_dphy_get_default_config(pixel_clock, isp->sink_fmt->bus_width,
-					 sensor->lanes, cfg);
-	phy_set_mode(sensor->dphy, PHY_MODE_MIPI_DPHY);
-	phy_configure(sensor->dphy, &opts);
-	phy_power_on(sensor->dphy);
-
-	return 0;
-}
-
-static void rkisp1_mipi_csi2_stop(struct rkisp1_sensor_async *sensor)
-{
-	phy_power_off(sensor->dphy);
-}
-
 static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct rkisp1_device *rkisp1 =
 		container_of(sd->v4l2_dev, struct rkisp1_device, v4l2_dev);
+	struct rkisp1_csi *csi =
+		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 	struct rkisp1_isp *isp = &rkisp1->isp;
-	struct v4l2_subdev *sensor_sd;
 	int ret = 0;
 
 	if (!enable) {
-		v4l2_subdev_call(rkisp1->active_sensor->sd, video, s_stream,
-				 false);
-
 		rkisp1_isp_stop(rkisp1);
-		rkisp1_mipi_csi2_stop(rkisp1->active_sensor);
 		return 0;
 	}
 
-	sensor_sd = rkisp1_get_remote_sensor(sd);
-	if (!sensor_sd) {
-		dev_warn(rkisp1->dev, "No link between isp and sensor\n");
-		return -ENODEV;
-	}
-
-	rkisp1->active_sensor = container_of(sensor_sd->asd,
-					     struct rkisp1_sensor_async, asd);
-
-	if (rkisp1->active_sensor->mbus_type != V4L2_MBUS_CSI2_DPHY)
+	if (csi->active_sensor->mbus_type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
 	rkisp1->isp.frame_sequence = -1;
@@ -834,19 +785,9 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	if (ret)
 		goto mutex_unlock;
 
-	ret = rkisp1_mipi_csi2_start(&rkisp1->isp, rkisp1->active_sensor);
+	ret = rkisp1_isp_start(rkisp1);
 	if (ret)
 		goto mutex_unlock;
-
-	rkisp1_isp_start(rkisp1);
-
-	ret = v4l2_subdev_call(rkisp1->active_sensor->sd, video, s_stream,
-			       true);
-	if (ret) {
-		rkisp1_isp_stop(rkisp1);
-		rkisp1_mipi_csi2_stop(rkisp1->active_sensor);
-		goto mutex_unlock;
-	}
 
 mutex_unlock:
 	mutex_unlock(&isp->ops_lock);
