@@ -523,7 +523,7 @@ static void imx7_csi_configure(struct imx7_csi *csi)
 	cr18 &= ~(BIT_CSI_HW_ENABLE | BIT_MIPI_DATA_FORMAT_MASK |
 		  BIT_DATA_FROM_MIPI | BIT_BASEADDR_CHG_ERR_EN |
 		  BIT_BASEADDR_SWITCH_EN | BIT_BASEADDR_SWITCH_SEL |
-		  BIT_DEINTERLACE_EN);
+		  BIT_DEINTERLACE_EN | BIT_MIPI_DOUBLE_CMPNT);
 
 	if (out_pix->field == V4L2_FIELD_INTERLACED) {
 		cr18 |= BIT_DEINTERLACE_EN;
@@ -605,6 +605,8 @@ static void imx7_csi_configure(struct imx7_csi *csi)
 		case MEDIA_BUS_FMT_UYVY8_2X8:
 		case MEDIA_BUS_FMT_YUYV8_2X8:
 			cr18 |= BIT_MIPI_DATA_FORMAT_YUV422_8B;
+			cr18 |= BIT_MIPI_DOUBLE_CMPNT;
+			cr3 |= BIT_TWO_8BIT_SENSOR;
 			break;
 		case MEDIA_BUS_FMT_UYVY8_1X16:
 		case MEDIA_BUS_FMT_YUYV8_1X16:
