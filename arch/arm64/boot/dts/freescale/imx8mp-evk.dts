@@ -294,6 +294,16 @@
 	};
 };
 
+&isp_0 {
+	status = "okay";
+};
+
+/*
+&isp_1 {
+	status = "okay";
+};
+*/
+
 &snvs_pwrkey {
 	status = "okay";
 };

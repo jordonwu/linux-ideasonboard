@@ -313,6 +313,27 @@ static const struct rkisp1_match_data rk3399_isp_match_data = {
 	.isp_ver = RKISP1_V10,
 };
 
+static const char * const imx8mp_isp_clks[] = {
+	"clk"
+	"sclk",
+	"hclk",
+	"m_hclk",
+};
+
+static const struct rkisp1_isr_data imx8mp_isp_isrs[] = {
+	{ "isp", rkisp1_isp_isr },
+	{ "mi", rkisp1_capture_isr },
+	{ "mipi", rkisp1_mipi_isr },
+};
+
+static const struct rkisp1_match_data imx8mp_isp_match_data = {
+	.clks = imx8mp_isp_clks,
+	.clk_size = ARRAY_SIZE(imx8mp_isp_clks),
+	.isrs = imx8mp_isp_isrs,
+	.isr_size = ARRAY_SIZE(imx8mp_isp_isrs),
+	.isp_ver = IMX8MP_V10,
+};
+
 static const struct of_device_id rkisp1_of_match[] = {
 	{
 		.compatible = "rockchip,px30-cif-isp",
@@ -321,6 +342,10 @@ static const struct of_device_id rkisp1_of_match[] = {
 	{
 		.compatible = "rockchip,rk3399-cif-isp",
 		.data = &rk3399_isp_match_data,
+	},
+	{
+		.compatible = "fsl,imx8mp-isp",
+		.data = &imx8mp_isp_match_data,
 	},
 	{},
 };
@@ -365,13 +390,19 @@ static int rkisp1_probe(struct platform_device *pdev)
 	unsigned int i;
 	int ret, irq;
 
+	dev_err(dev, "help im stuck\n");
+
 	match_data = of_device_get_match_data(&pdev->dev);
-	if (!match_data)
+	if (!match_data) {
+		dev_err(dev, "failed to match\n");
 		return -ENODEV;
+	}
 
 	rkisp1 = devm_kzalloc(dev, sizeof(*rkisp1), GFP_KERNEL);
-	if (!rkisp1)
+	if (!rkisp1) {
+		dev_err(dev, "failed to alloc\n");
 		return -ENOMEM;
+	}
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;
@@ -379,8 +410,10 @@ static int rkisp1_probe(struct platform_device *pdev)
 	mutex_init(&rkisp1->stream_lock);
 
 	rkisp1->base_addr = devm_platform_ioremap_resource(pdev, 0);
-	if (IS_ERR(rkisp1->base_addr))
+	if (IS_ERR(rkisp1->base_addr)) {
+		dev_err(dev, "failed to map\n");
 		return PTR_ERR(rkisp1->base_addr);
+	}
 
 	for (i = 0; i < match_data->isr_size; i++) {
 		irq = (match_data->isrs[i].name) ?
@@ -419,8 +452,10 @@ static int rkisp1_probe(struct platform_device *pdev)
 	strscpy(v4l2_dev->name, RKISP1_DRIVER_NAME, sizeof(v4l2_dev->name));
 
 	ret = v4l2_device_register(rkisp1->dev, &rkisp1->v4l2_dev);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "failed to get register v4l2 device\n");
 		return ret;
+	}
 
 	ret = media_device_register(&rkisp1->media_dev);
 	if (ret) {

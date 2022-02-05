@@ -188,7 +188,6 @@ static int rkisp1_csi_isr(struct v4l2_subdev *sd, u32 status, bool *handled)
 {
 	struct rkisp1_csi *csi = container_of(sd, struct rkisp1_csi, sd);
 	struct rkisp1_device *rkisp1 = csi->rkisp1;
-	bool ret;
 
 	*handled = rkisp1_mipi_isr(status, rkisp1) == IRQ_HANDLED;
 
