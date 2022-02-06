@@ -2266,6 +2266,12 @@ static int mt9m114_ifp_init(struct mt9m114 *sensor)
 	if (ret < 0)
 		return ret;
 
+	/* Initialize the pads formats and selection rectangles. */
+	mt9m114_ifp_init_cfg(sd, NULL);
+
+	sensor->ifp.frame_rate = MT9M114_MAX_FRAME_RATE;
+	sensor->ifp.info = mt9m114_default_format_info(sensor);
+
 	/* Initialize the control handler. */
 	v4l2_ctrl_handler_init(hdl, 8 + ARRAY_SIZE(mt9m114_ifp_ctrls));
 	v4l2_ctrl_new_std(hdl, &mt9m114_ifp_ctrl_ops,
@@ -2319,11 +2325,6 @@ static int mt9m114_ifp_init(struct mt9m114 *sensor)
 		return ret;
 
 	sd->ctrl_handler = hdl;
-
-	/* Initialize the pads formats and selection rectangles. */
-	mt9m114_ifp_init_cfg(sd, NULL);
-
-	sensor->ifp.frame_rate = MT9M114_MAX_FRAME_RATE;
 
 	return 0;
 }
