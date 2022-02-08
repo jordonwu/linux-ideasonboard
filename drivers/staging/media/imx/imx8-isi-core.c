@@ -264,10 +264,8 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 };
 
 static const struct clk_bulk_data mxc_imx8mn_clks[] = {
-	{ .id = "disp_axi" },
-	{ .id = "disp_apb" },
-	{ .id = "disp_axi_root" },
-	{ .id = "disp_apb_root" },
+	{ .id = "axi" },
+	{ .id = "apb" },
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mn_data = {
