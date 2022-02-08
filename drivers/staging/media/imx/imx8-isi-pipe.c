@@ -27,10 +27,11 @@
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
 
-static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
+static struct v4l2_subdev *mxc_get_source_subdev(struct mxc_isi_pipe *pipe,
 						 u32 *pad,
 						 const char * const label)
 {
+	struct v4l2_subdev *subdev = &pipe->sd;
 	struct media_pad *source_pad = NULL;
 	struct v4l2_subdev *sen_sd;
 	unsigned int i;
@@ -50,14 +51,14 @@ static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
 	}
 
 	if (!source_pad) {
-		v4l2_err(subdev, "%s, No remote pad found!\n", label);
+		dev_err(pipe->isi->dev, "%s, No remote pad found!\n", label);
 		return NULL;
 	}
 
 	/* Get remote source pad subdev */
 	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
 	if (!sen_sd) {
-		v4l2_err(subdev, "%s, No remote subdev found!\n", label);
+		dev_err(pipe->isi->dev, "%s, No remote subdev found!\n", label);
 		return NULL;
 	}
 
@@ -72,17 +73,17 @@ static struct v4l2_subdev *mxc_get_source_subdev(struct v4l2_subdev *subdev,
  */
 int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 {
-	struct device *dev = pipe->isi->dev;
 	struct v4l2_subdev *src_sd;
 	int ret;
 
-	src_sd = mxc_get_source_subdev(&pipe->sd, NULL, __func__);
+	src_sd = mxc_get_source_subdev(pipe, NULL, __func__);
 	if (!src_sd)
 		return -EPIPE;
 
 	ret = v4l2_subdev_call(src_sd, video, s_stream, enable);
 	if (ret < 0 && ret != -ENOIOCTLCMD) {
-		dev_err(dev, "subdev %s s_stream failed\n", src_sd->name);
+		dev_err(pipe->isi->dev, "subdev %s s_stream failed\n",
+			src_sd->name);
 		return ret;
 	}
 
