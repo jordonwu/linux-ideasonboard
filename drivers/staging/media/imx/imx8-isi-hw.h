@@ -6,15 +6,6 @@
 #ifndef __MXC_ISI_HW_H__
 #define __MXC_ISI_HW_H__
 
-#include <linux/bug.h>
-#include <linux/delay.h>
-#include <linux/errno.h>
-#include <linux/platform_device.h>
-#include <linux/types.h>
-#include <linux/videodev2.h>
-
-#include "imx8-isi-core.h"
-
 /* ISI Registers Define  */
 /* Channel Control Register */
 #define  CHNL_CTRL				0x0
@@ -419,32 +410,5 @@
 #define  CHNL_FLOW_CTRL_FC_DENOM_OFFSET		0
 #define  CHNL_FLOW_CTRL_FC_NUMER_MASK		0xFF0000
 #define  CHNL_FLOW_CTRL_FC_NUMER_OFFSET		0
-
-enum isi_csi_coeff {
-	YUV2RGB = 0,
-	RGB2YUV,
-};
-
-void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe);
-
-void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf);
-
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
-			    const struct mxc_isi_frame *src_f,
-			    const struct mxc_isi_frame *dst_f,
-			    unsigned int pitch);
-
-void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
-
-u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe);
-bool is_buf_active(struct mxc_isi_pipe *pipe, int buf_id);
 
 #endif /* __MXC_ISI_HW_H__ */
