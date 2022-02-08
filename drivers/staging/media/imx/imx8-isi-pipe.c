@@ -23,6 +23,7 @@
 
 #include <media/v4l2-device.h>
 
+#include "imx8-isi-core.h"
 #include "imx8-isi-hw.h"
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
