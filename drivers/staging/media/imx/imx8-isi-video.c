@@ -758,13 +758,9 @@ static int mxc_isi_capture_open(struct file *file)
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	int ret;
 
-	mutex_lock(&pipe->lock);
 	ret = v4l2_fh_open(file);
-	if (ret) {
-		mutex_unlock(&pipe->lock);
+	if (ret)
 		return ret;
-	}
-	mutex_unlock(&pipe->lock);
 
 	pm_runtime_get_sync(pipe->isi->dev);
 
@@ -781,22 +777,19 @@ static int mxc_isi_capture_release(struct file *file)
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	int ret;
 
-	mutex_lock(&pipe->lock);
-	ret = _vb2_fop_release(file, NULL);
+	ret = vb2_fop_release(file);
 	if (ret) {
 		dev_err(pipe->isi->dev, "%s fail\n", __func__);
-		mutex_unlock(&pipe->lock);
-		goto label;
+		goto done;
 	}
-	mutex_unlock(&pipe->lock);
 
 	if (atomic_read(&pipe->usage_count) > 0 &&
 	    atomic_dec_and_test(&pipe->usage_count))
 		mxc_isi_channel_deinit(pipe);
 
-label:
+done:
 	pm_runtime_put(pipe->isi->dev);
-	return (ret) ? ret : 0;
+	return ret;
 }
 
 static const struct v4l2_file_operations mxc_isi_capture_fops = {
