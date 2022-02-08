@@ -266,7 +266,7 @@ static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v0 = {
 static const struct mxc_isi_set_thd mxc_imx8_isi_thd_v0 = {
 	.panic_set_thd_y = { .mask = 0x03, .offset = 0, .threshold = 0x2 },
 	.panic_set_thd_u = { .mask = 0x18, .offset = 3, .threshold = 0x2 },
-	.panic_set_thd_v = { .mask = 0xC0, .offset = 6, .threshold = 0x2 },
+	.panic_set_thd_v = { .mask = 0xc0, .offset = 6, .threshold = 0x2 },
 };
 
 /* For i.MX8QXP C0 and i.MX8MN ISI IER version */
@@ -293,9 +293,9 @@ static const struct mxc_isi_ier_reg mxc_imx8_isi_ier_v2 = {
 
 /* Panic will assert when the buffers are 50% full */
 static const struct mxc_isi_set_thd mxc_imx8_isi_thd_v1 = {
-	.panic_set_thd_y = { .mask = 0x0000F, .offset = 0,  .threshold = 0x7 },
-	.panic_set_thd_u = { .mask = 0x00F00, .offset = 8,  .threshold = 0x7 },
-	.panic_set_thd_v = { .mask = 0xF0000, .offset = 16, .threshold = 0x7 },
+	.panic_set_thd_y = { .mask = 0x0000f, .offset = 0,  .threshold = 0x7 },
+	.panic_set_thd_u = { .mask = 0x00f00, .offset = 8,  .threshold = 0x7 },
+	.panic_set_thd_v = { .mask = 0xf0000, .offset = 16, .threshold = 0x7 },
 };
 
 static const struct clk_bulk_data mxc_imx8_clks[] = {
