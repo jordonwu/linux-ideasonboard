@@ -14,7 +14,6 @@
 #include <linux/pm.h>
 #include <linux/pm_runtime.h>
 #include <linux/property.h>
-#include <linux/reset.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/sys_soc.h>
@@ -26,30 +25,6 @@
 #include <media/v4l2-mc.h>
 
 #include "imx8-isi-core.h"
-
-static int disp_mix_sft_rstn(struct reset_control *reset, bool enable)
-{
-	int ret;
-
-	if (!reset)
-		return 0;
-
-	ret = enable ? reset_control_assert(reset) :
-			 reset_control_deassert(reset);
-	return ret;
-}
-
-static int disp_mix_clks_enable(struct reset_control *reset, bool enable)
-{
-	int ret;
-
-	if (!reset)
-		return 0;
-
-	ret = enable ? reset_control_assert(reset) :
-			 reset_control_deassert(reset);
-	return ret;
-}
 
 /* -----------------------------------------------------------------------------
  * Clocks
@@ -435,7 +410,6 @@ static int mxc_isi_runtime_suspend(struct device *dev)
 {
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 
-	disp_mix_clks_enable(isi->clk_enable, false);
 	mxc_isi_clk_disable(isi);
 
 	return 0;
@@ -451,8 +425,6 @@ static int mxc_isi_runtime_resume(struct device *dev)
 		dev_err(dev, "%s clk enable fail\n", __func__);
 		return ret;
 	}
-	disp_mix_sft_rstn(isi->soft_resetn, false);
-	disp_mix_clks_enable(isi->clk_enable, true);
 
 	return 0;
 }
@@ -465,53 +437,6 @@ static const struct dev_pm_ops mxc_isi_pm_ops = {
 /* -----------------------------------------------------------------------------
  * Probe, remove & driver
  */
-
-static int mxc_isi_of_parse_resets(struct mxc_isi_dev *isi)
-{
-	int ret;
-	struct device *dev = isi->dev;
-	struct device_node *np = dev->of_node;
-	struct device_node *parent, *child;
-	struct of_phandle_args args;
-	struct reset_control *rstc;
-	const char *compat;
-	uint32_t len, rstc_num = 0;
-
-	ret = of_parse_phandle_with_args(np, "resets", "#reset-cells",
-					 0, &args);
-	if (ret)
-		return ret;
-
-	parent = args.np;
-	for_each_child_of_node(parent, child) {
-		compat = of_get_property(child, "compatible", NULL);
-		if (!compat)
-			continue;
-
-		rstc = of_reset_control_array_get(child, false, false, true);
-		if (IS_ERR(rstc))
-			continue;
-
-		len = strlen(compat);
-		if (!of_compat_cmp("isi,soft-resetn", compat, len)) {
-			isi->soft_resetn = rstc;
-			rstc_num++;
-		} else if (!of_compat_cmp("isi,clk-enable", compat, len)) {
-			isi->clk_enable = rstc;
-			rstc_num++;
-		} else {
-			dev_warn(dev, "invalid isi reset node: %s\n", compat);
-		}
-	}
-
-	if (!rstc_num) {
-		dev_err(dev, "no invalid reset control exists\n");
-		return -EINVAL;
-	}
-
-	of_node_put(parent);
-	return 0;
-}
 
 static int mxc_isi_probe(struct platform_device *pdev)
 {
@@ -541,14 +466,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	if (IS_ERR(isi->chain))
 		isi->chain = NULL;
 
-	if (!of_property_read_bool(dev->of_node, "no-reset-control")) {
-		ret = mxc_isi_of_parse_resets(isi);
-		if (ret) {
-			dev_warn(dev, "Can not parse reset control\n");
-			return ret;
-		}
-	}
-
 	ret = mxc_isi_clk_get(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to get clocks\n");
@@ -566,8 +483,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		dev_err(dev, "Failed to enable clocks\n");
 		return ret;
 	}
-	disp_mix_sft_rstn(isi->soft_resetn, false);
-	disp_mix_clks_enable(isi->clk_enable, true);
 
 	mxc_isi_clk_disable(isi);
 
@@ -593,8 +508,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	return 0;
 
 err:
-	disp_mix_clks_enable(isi->clk_enable, false);
-	disp_mix_sft_rstn(isi->soft_resetn, true);
 	mxc_isi_clk_disable(isi);
 	return -ENXIO;
 }
