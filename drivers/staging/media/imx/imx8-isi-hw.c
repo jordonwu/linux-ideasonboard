@@ -162,7 +162,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
-	if (framecount == 0 || ((mxc_isi_is_buf_active(pipe, 2)) && (framecount != 1))) {
+	if (framecount == 0 || (mxc_isi_is_buf_active(pipe, 2) && framecount != 1)) {
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, paddr->y);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, paddr->cb);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, paddr->cr);
