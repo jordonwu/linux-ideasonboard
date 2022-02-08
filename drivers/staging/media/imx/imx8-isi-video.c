@@ -295,9 +295,9 @@ static int cap_vb2_buffer_prepare(struct vb2_buffer *vb2)
 		unsigned long size = pipe->video.pix.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
-			v4l2_err(&pipe->video.vdev,
-				 "User buffer too small (%ld < %ld)\n",
-				 vb2_plane_size(vb2, i), size);
+			dev_err(pipe->isi->dev,
+				"User buffer too small (%ld < %ld)\n",
+				vb2_plane_size(vb2, i), size);
 			return -EINVAL;
 		}
 
@@ -879,7 +879,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 
 	vdev->ctrl_handler = &pipe->video.ctrls.handler;
 	v4l2_dev->ctrl_handler = &pipe->video.ctrls.handler;
-	v4l2_info(v4l2_dev, "Registered %s as /dev/%s\n",
+	dev_info(pipe->isi->dev, "Registered %s as /dev/%s\n",
 		  vdev->name, video_device_node_name(vdev));
 
 	return 0;
