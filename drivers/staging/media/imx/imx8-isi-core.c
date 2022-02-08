@@ -59,8 +59,6 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct media_pad *pad = &isi->pipes[masd->port].pads[MXC_ISI_SD_PAD_SINK];
 
 	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
-	dev_info(isi->dev, "Creating links %s -> ISI:%u\n",
-		 sd->name, masd->port);
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
 }
@@ -482,7 +480,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	dev_info(dev, "mxc_isi registered successfully\n");
 	return 0;
 }
 
