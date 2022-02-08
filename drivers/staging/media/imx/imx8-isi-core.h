@@ -304,4 +304,11 @@ struct mxc_isi_dev {
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
 
+const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code);
+int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable);
+
+int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
+			   struct v4l2_device *v4l2_dev);
+void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe);
+
 #endif /* __MXC_ISI_CORE_H__ */
