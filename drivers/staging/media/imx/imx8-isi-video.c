@@ -620,8 +620,7 @@ static int mxc_isi_enum_fmt(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_g_fmt_mplane(struct file *file, void *fh,
-				struct v4l2_format *f)
+static int mxc_isi_g_fmt(struct file *file, void *fh, struct v4l2_format *f)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 
@@ -630,8 +629,8 @@ static int mxc_isi_g_fmt_mplane(struct file *file, void *fh,
 	return 0;
 }
 
-static void __mxc_isi_try_fmt_mplane(struct v4l2_pix_format_mplane *pix,
-				     const struct mxc_isi_format_info **info)
+static void __mxc_isi_try_fmt(struct v4l2_pix_format_mplane *pix,
+			      const struct mxc_isi_format_info **info)
 {
 	const struct mxc_isi_format_info *fmt;
 	unsigned int i;
@@ -676,15 +675,13 @@ static void __mxc_isi_try_fmt_mplane(struct v4l2_pix_format_mplane *pix,
 		*info = fmt;
 }
 
-static int mxc_isi_try_fmt_mplane(struct file *file, void *fh,
-				  struct v4l2_format *f)
+static int mxc_isi_try_fmt(struct file *file, void *fh, struct v4l2_format *f)
 {
-	__mxc_isi_try_fmt_mplane(&f->fmt.pix_mp, NULL);
+	__mxc_isi_try_fmt(&f->fmt.pix_mp, NULL);
 	return 0;
 }
 
-static int mxc_isi_s_fmt_mplane(struct file *file, void *priv,
-				struct v4l2_format *f)
+static int mxc_isi_s_fmt(struct file *file, void *priv, struct v4l2_format *f)
 {
 	struct mxc_isi_pipe *pipe = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
@@ -693,7 +690,7 @@ static int mxc_isi_s_fmt_mplane(struct file *file, void *priv,
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	__mxc_isi_try_fmt_mplane(pix, &fmt);
+	__mxc_isi_try_fmt(pix, &fmt);
 
 	pipe->video.pix = *pix;
 
@@ -731,9 +728,9 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
 	.vidioc_querycap		= mxc_isi_querycap,
 
 	.vidioc_enum_fmt_vid_cap	= mxc_isi_enum_fmt,
-	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_try_fmt_mplane,
-	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_s_fmt_mplane,
-	.vidioc_g_fmt_vid_cap_mplane	= mxc_isi_g_fmt_mplane,
+	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_try_fmt,
+	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_s_fmt,
+	.vidioc_g_fmt_vid_cap_mplane	= mxc_isi_g_fmt,
 
 	.vidioc_reqbufs			= vb2_ioctl_reqbufs,
 	.vidioc_querybuf		= vb2_ioctl_querybuf,
@@ -812,7 +809,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = V4L2_PIX_FMT_YUYV;
-	__mxc_isi_try_fmt_mplane(pix, NULL);
+	__mxc_isi_try_fmt(pix, NULL);
 
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
