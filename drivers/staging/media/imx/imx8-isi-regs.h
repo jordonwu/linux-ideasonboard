@@ -3,8 +3,8 @@
  * Copyright 2019-2020 NXP
  */
 
-#ifndef __MXC_ISI_HW_H__
-#define __MXC_ISI_HW_H__
+#ifndef __IMX8_ISI_REGS_H__
+#define __IMX8_ISI_REGS_H__
 
 /* ISI Registers Define  */
 /* Channel Control Register */
@@ -411,4 +411,4 @@
 #define CHNL_FLOW_CTRL_FC_NUMER_MASK				0xff0000
 #define CHNL_FLOW_CTRL_FC_NUMER_OFFSET				0
 
-#endif /* __MXC_ISI_HW_H__ */
+#endif /* __IMX8_ISI_REGS_H__ */

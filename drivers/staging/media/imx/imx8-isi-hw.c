@@ -8,7 +8,7 @@
 #include <linux/module.h>
 
 #include "imx8-isi-core.h"
-#include "imx8-isi-hw.h"
+#include "imx8-isi-regs.h"
 
 #define	ISI_DOWNSCALE_THRESHOLD		0x4000
 
