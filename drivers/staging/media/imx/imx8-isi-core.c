@@ -25,7 +25,6 @@
 #include <media/v4l2-subdev.h>
 
 #include "imx8-isi-core.h"
-#include "imx8-isi-hw.h"
 
 static int disp_mix_sft_rstn(struct reset_control *reset, bool enable)
 {
