@@ -478,14 +478,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return PTR_ERR(isi->regs);
 	}
 
-	ret = mxc_isi_clk_enable(isi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to enable clocks\n");
-		return ret;
-	}
-
-	mxc_isi_clk_disable(isi);
-
 	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
@@ -494,22 +486,18 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		if (ret < 0) {
 			dev_err(dev, "Failed to initialize pipe%u: %d\n", i,
 				ret);
-			goto err;
+			return ret;
 		}
 	}
 
 	ret = mxc_isi_v4l2_init(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize V4L2: %d\n", ret);
-		goto err;
+		return ret;
 	}
 
 	dev_info(dev, "mxc_isi registered successfully\n");
 	return 0;
-
-err:
-	mxc_isi_clk_disable(isi);
-	return -ENXIO;
 }
 
 static int mxc_isi_remove(struct platform_device *pdev)
