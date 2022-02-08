@@ -517,7 +517,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct mxc_isi_dev *isi;
-	struct resource *res;
 	unsigned int i;
 	int ret = 0;
 
@@ -556,8 +555,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	isi->regs = devm_ioremap_resource(dev, res);
+	isi->regs = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(isi->regs)) {
 		dev_err(dev, "Failed to get ISI register map\n");
 		return PTR_ERR(isi->regs);
