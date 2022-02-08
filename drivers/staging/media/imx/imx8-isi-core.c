@@ -1,28 +1,29 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright 2019-2020 NXP
- *
  */
 
+#include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
-#include <linux/list.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
-#include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/of_graph.h>
-#include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm.h>
 #include <linux/pm_runtime.h>
+#include <linux/property.h>
+#include <linux/reset.h>
 #include <linux/slab.h>
+#include <linux/string.h>
+#include <linux/sys_soc.h>
+#include <linux/types.h>
 
 #include <media/media-device.h>
 #include <media/v4l2-async.h>
 #include <media/v4l2-device.h>
-#include <media/v4l2-fwnode.h>
 #include <media/v4l2-mc.h>
-#include <media/v4l2-subdev.h>
 
 #include "imx8-isi-core.h"
 

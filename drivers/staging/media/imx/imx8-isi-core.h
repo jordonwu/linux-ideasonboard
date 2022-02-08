@@ -10,34 +10,27 @@
 #ifndef __MXC_ISI_CORE_H__
 #define __MXC_ISI_CORE_H__
 
-#include <linux/bug.h>
-#include <linux/clk.h>
-#include <linux/device.h>
-#include <linux/errno.h>
-#include <linux/interrupt.h>
-#include <linux/io.h>
-#include <linux/kernel.h>
+#include <linux/atomic.h>
 #include <linux/list.h>
-#include <linux/mfd/syscon.h>
-#include <linux/module.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
-#include <linux/pm_runtime.h>
-#include <linux/regmap.h>
-#include <linux/reset.h>
-#include <linux/slab.h>
-#include <linux/sys_soc.h>
+#include <linux/mutex.h>
+#include <linux/spinlock.h>
 #include <linux/types.h>
+#include <linux/videodev2.h>
 
 #include <media/media-device.h>
 #include <media/media-entity.h>
 #include <media/v4l2-async.h>
 #include <media/v4l2-ctrls.h>
+#include <media/v4l2-dev.h>
 #include <media/v4l2-device.h>
-#include <media/v4l2-ioctl.h>
 #include <media/v4l2-subdev.h>
 #include <media/videobuf2-core.h>
-#include <media/videobuf2-dma-contig.h>
+#include <media/videobuf2-v4l2.h>
+
+struct clk_bulk_data;
+struct device;
+struct regmap;
+struct reset_control;
 
 /* ISI PADS */
 #define MXC_ISI_SD_PAD_SINK		0
