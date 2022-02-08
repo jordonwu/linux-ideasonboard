@@ -25,7 +25,6 @@
 #include <media/videobuf2-dma-contig.h>
 
 #include "imx8-isi-core.h"
-#include "imx8-isi-hw.h"
 
 static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	/*
