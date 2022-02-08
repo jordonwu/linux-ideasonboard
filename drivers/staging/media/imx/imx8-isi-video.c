@@ -11,18 +11,22 @@
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
-#include <linux/interrupt.h>
 #include <linux/kernel.h>
-#include <linux/list.h>
+#include <linux/media-bus-format.h>
+#include <linux/minmax.h>
 #include <linux/pm_runtime.h>
-#include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/types.h>
 #include <linux/videodev2.h>
 
-#include <media/v4l2-device.h>
+#include <media/media-entity.h>
+#include <media/v4l2-ctrls.h>
+#include <media/v4l2-dev.h>
+#include <media/v4l2-fh.h>
 #include <media/v4l2-ioctl.h>
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
+#include <media/videobuf2-v4l2.h>
 
 #include "imx8-isi-core.h"
 
