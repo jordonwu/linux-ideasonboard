@@ -325,6 +325,6 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe);
-bool is_buf_active(struct mxc_isi_pipe *pipe, int buf_id);
+bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id);
 
 #endif /* __MXC_ISI_CORE_H__ */

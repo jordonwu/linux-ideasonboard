@@ -27,9 +27,9 @@
 
 #define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
 
-static struct v4l2_subdev *mxc_get_source_subdev(struct mxc_isi_pipe *pipe,
-						 u32 *pad,
-						 const char * const label)
+static struct v4l2_subdev *mxc_isi_get_source_subdev(struct mxc_isi_pipe *pipe,
+						     u32 *pad,
+						     const char * const label)
 {
 	struct v4l2_subdev *subdev = &pipe->sd;
 	struct media_pad *source_pad = NULL;
@@ -76,7 +76,7 @@ int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 	struct v4l2_subdev *src_sd;
 	int ret;
 
-	src_sd = mxc_get_source_subdev(pipe, NULL, __func__);
+	src_sd = mxc_isi_get_source_subdev(pipe, NULL, __func__);
 	if (!src_sd)
 		return -EPIPE;
 
@@ -107,8 +107,8 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 	 * Skip frame when buffer number is not match ISI trigger
 	 * buffer
 	 */
-	if ((is_buf_active(pipe, 1) && buf->id == MXC_ISI_BUF1) ||
-	    (is_buf_active(pipe, 2) && buf->id == MXC_ISI_BUF2)) {
+	if ((mxc_isi_is_buf_active(pipe, 1) && buf->id == MXC_ISI_BUF1) ||
+	    (mxc_isi_is_buf_active(pipe, 2) && buf->id == MXC_ISI_BUF2)) {
 		dev_dbg(dev, "status=0x%x id=%d\n", pipe->status, buf->id);
 		return;
 	}
