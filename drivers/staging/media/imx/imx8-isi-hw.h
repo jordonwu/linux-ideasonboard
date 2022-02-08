@@ -45,9 +45,9 @@
 /* Channel Image Control Register */
 #define  CHNL_IMG_CTRL				0x4
 #define  CHNL_IMG_CTRL_FORMAT_OFFSET		24
-#define  CHNL_IMG_CTRL_FORMAT_MASK		0x3F000000
+#define  CHNL_IMG_CTRL_FORMAT_MASK		0x3f000000
 #define  CHNL_IMG_CTRL_GBL_ALPHA_VAL_OFFSET	16
-#define  CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK	0xFF0000
+#define  CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK	0xff0000
 #define  CHNL_IMG_CTRL_GBL_ALPHA_EN_OFFSET	15
 #define  CHNL_IMG_CTRL_GBL_ALPHA_EN_ENABLE	1
 #define  CHNL_IMG_CTRL_GBL_ALPHA_EN_MASK	0x8000
@@ -60,7 +60,7 @@
 #define  CHNL_IMG_CTRL_DEINT_LDOUBLE_ODD_EVEN	6
 #define  CHNL_IMG_CTRL_DEINT_LDOUBLE_EVEN_ODD	7
 #define  CHNL_IMG_CTRL_DEC_X_OFFSET		10
-#define  CHNL_IMG_CTRL_DEC_X_MASK		0xC00
+#define  CHNL_IMG_CTRL_DEC_X_MASK		0xc00
 #define  CHNL_IMG_CTRL_DEC_X_0			0
 #define  CHNL_IMG_CTRL_DEC_X_2			1
 #define  CHNL_IMG_CTRL_DEC_X_4			2
@@ -100,7 +100,7 @@
 #define  CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR_OFFSET		14
 #define  CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR_MASK			0x4000
 #define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_OFFSET		6
-#define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_MASK		0xC0
+#define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_MASK		0xc0
 #define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_NO_PANIC	0
 #define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_PANIC_25	1
 #define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_V_PANIC_50	2
@@ -119,11 +119,11 @@
 #define  CHNL_OUT_BUF_CTRL_OFLW_PANIC_SET_THD_Y_PANIC_75	3
 
 /* Channel Image Configuration */
-#define  CHNL_IMG_CFG				0xC
+#define  CHNL_IMG_CFG				0xc
 #define  CHNL_IMG_CFG_HEIGHT_OFFSET		16
-#define  CHNL_IMG_CFG_HEIGHT_MASK		0x1FFF0000
+#define  CHNL_IMG_CFG_HEIGHT_MASK		0x1fff0000
 #define  CHNL_IMG_CFG_WIDTH_OFFSET		0
-#define  CHNL_IMG_CFG_WIDTH_MASK		0x1FFF
+#define  CHNL_IMG_CFG_WIDTH_MASK		0x1fff
 
 /* Channel Interrupt Enable Register */
 #define  CHNL_IER				0x10
@@ -200,161 +200,161 @@
 #define  CHNL_STS_OFLW_Y_BUF_MASK		0x10000
 #define  CHNL_STS_OFLW_Y_BUF_ENABLE		1
 #define  CHNL_STS_OFLW_BYTES_OFFSET		0
-#define  CHNL_STS_OFLW_BYTES_MASK		0xFF
+#define  CHNL_STS_OFLW_BYTES_MASK		0xff
 
 /* Channel Scale Factor Register */
 #define  CHNL_SCALE_FACTOR			0x18
 #define  CHNL_SCALE_FACTOR_Y_SCALE_OFFSET	16
-#define  CHNL_SCALE_FACTOR_Y_SCALE_MASK		0x3FFF0000
+#define  CHNL_SCALE_FACTOR_Y_SCALE_MASK		0x3fff0000
 #define  CHNL_SCALE_FACTOR_X_SCALE_OFFSET	0
-#define  CHNL_SCALE_FACTOR_X_SCALE_MASK		0x3FFF
+#define  CHNL_SCALE_FACTOR_X_SCALE_MASK		0x3fff
 
 /* Channel Scale Offset Register */
-#define  CHNL_SCALE_OFFSET			0x1C
+#define  CHNL_SCALE_OFFSET			0x1c
 #define  CHNL_SCALE_OFFSET_Y_SCALE_OFFSET	16
-#define  CHNL_SCALE_OFFSET_Y_SCALE_MASK		0xFFF0000
+#define  CHNL_SCALE_OFFSET_Y_SCALE_MASK		0xfff0000
 #define  CHNL_SCALE_OFFSET_X_SCALE_OFFSET	0
-#define  CHNL_SCALE_OFFSET_X_SCALE_MASK		0xFFF
+#define  CHNL_SCALE_OFFSET_X_SCALE_MASK		0xfff
 
 /* Channel Crop Upper Left Corner Coordinate Register */
 #define  CHNL_CROP_ULC				0x20
 #define  CHNL_CROP_ULC_X_OFFSET			16
-#define  CHNL_CROP_ULC_X_MASK			0xFFF0000
+#define  CHNL_CROP_ULC_X_MASK			0xfff0000
 #define  CHNL_CROP_ULC_Y_OFFSET			0
-#define  CHNL_CROP_ULC_Y_MASK			0xFFF
+#define  CHNL_CROP_ULC_Y_MASK			0xfff
 
 /* Channel Crop Lower Right Corner Coordinate Register */
 #define  CHNL_CROP_LRC				0x24
 #define  CHNL_CROP_LRC_X_OFFSET			16
-#define  CHNL_CROP_LRC_X_MASK			0xFFF0000
+#define  CHNL_CROP_LRC_X_MASK			0xfff0000
 #define  CHNL_CROP_LRC_Y_OFFSET			0
-#define  CHNL_CROP_LRC_Y_MASK			0xFFF
+#define  CHNL_CROP_LRC_Y_MASK			0xfff
 
 /* Channel Color Space Conversion Coefficient Register 0 */
 #define  CHNL_CSC_COEFF0			0x28
 #define  CHNL_CSC_COEFF0_A2_OFFSET		16
-#define  CHNL_CSC_COEFF0_A2_MASK		0x7FF0000
+#define  CHNL_CSC_COEFF0_A2_MASK		0x7ff0000
 #define  CHNL_CSC_COEFF0_A1_OFFSET		0
-#define  CHNL_CSC_COEFF0_A1_MASK		0x7FF
+#define  CHNL_CSC_COEFF0_A1_MASK		0x7ff
 
 /* Channel Color Space Conversion Coefficient Register 1 */
-#define  CHNL_CSC_COEFF1			0x2C
+#define  CHNL_CSC_COEFF1			0x2c
 #define  CHNL_CSC_COEFF1_B1_OFFSET		16
-#define  CHNL_CSC_COEFF1_B1_MASK		0x7FF0000
+#define  CHNL_CSC_COEFF1_B1_MASK		0x7ff0000
 #define  CHNL_CSC_COEFF1_A3_OFFSET		0
-#define  CHNL_CSC_COEFF1_A3_MASK		0x7FF
+#define  CHNL_CSC_COEFF1_A3_MASK		0x7ff
 
 /* Channel Color Space Conversion Coefficient Register 2 */
 #define  CHNL_CSC_COEFF2			0x30
 #define  CHNL_CSC_COEFF2_B3_OFFSET		16
-#define  CHNL_CSC_COEFF2_B3_MASK		0x7FF0000
+#define  CHNL_CSC_COEFF2_B3_MASK		0x7ff0000
 #define  CHNL_CSC_COEFF2_B2_OFFSET		0
-#define  CHNL_CSC_COEFF2_B2_MASK		0x7FF
+#define  CHNL_CSC_COEFF2_B2_MASK		0x7ff
 
 /* Channel Color Space Conversion Coefficient Register 3 */
 #define  CHNL_CSC_COEFF3			0x34
 #define  CHNL_CSC_COEFF3_C2_OFFSET		16
-#define  CHNL_CSC_COEFF3_C2_MASK		0x7FF0000
+#define  CHNL_CSC_COEFF3_C2_MASK		0x7ff0000
 #define  CHNL_CSC_COEFF3_C1_OFFSET		0
-#define  CHNL_CSC_COEFF3_C1_MASK		0x7FF
+#define  CHNL_CSC_COEFF3_C1_MASK		0x7ff
 
 /* Channel Color Space Conversion Coefficient Register 4 */
 #define  CHNL_CSC_COEFF4			0x38
 #define  CHNL_CSC_COEFF4_D1_OFFSET		16
-#define  CHNL_CSC_COEFF4_D1_MASK		0x1FF0000
+#define  CHNL_CSC_COEFF4_D1_MASK		0x1ff0000
 #define  CHNL_CSC_COEFF4_C3_OFFSET		0
-#define  CHNL_CSC_COEFF4_C3_MASK		0x7FF
+#define  CHNL_CSC_COEFF4_C3_MASK		0x7ff
 
 /* Channel Color Space Conversion Coefficient Register 5 */
-#define  CHNL_CSC_COEFF5			0x3C
+#define  CHNL_CSC_COEFF5			0x3c
 #define  CHNL_CSC_COEFF5_D3_OFFSET		16
-#define  CHNL_CSC_COEFF5_D3_MASK		0x1FF0000
+#define  CHNL_CSC_COEFF5_D3_MASK		0x1ff0000
 #define  CHNL_CSC_COEFF5_D2_OFFSET		0
-#define  CHNL_CSC_COEFF5_D2_MASK		0x1FF
+#define  CHNL_CSC_COEFF5_D2_MASK		0x1ff
 
 /* Channel Alpha Value Register for ROI 0 */
 #define  CHNL_ROI_0_ALPHA			0x40
 #define  CHNL_ROI_0_ALPHA_OFFSET		24
-#define  CHNL_ROI_0_ALPHA_MASK			0xFF000000
+#define  CHNL_ROI_0_ALPHA_MASK			0xff000000
 #define  CHNL_ROI_0_ALPHA_EN_OFFSET		16
 #define  CHNL_ROI_0_ALPHA_EN_MASK		0x10000
 
 /* Channel Upper Left Coordinate Register for ROI 0 */
 #define  CHNL_ROI_0_ULC				0x44
 #define  CHNL_ROI_0_ULC_X_OFFSET		16
-#define  CHNL_ROI_0_ULC_X_MASK			0xFFF0000
+#define  CHNL_ROI_0_ULC_X_MASK			0xfff0000
 #define  CHNL_ROI_0_ULC_Y_OFFSET		0
-#define  CHNL_ROI_0_ULC_Y_MASK			0xFFF
+#define  CHNL_ROI_0_ULC_Y_MASK			0xfff
 
 /* Channel Lower Right Coordinate Register for ROI 0 */
 #define  CHNL_ROI_0_LRC				0x48
 #define  CHNL_ROI_0_LRC_X_OFFSET		16
-#define  CHNL_ROI_0_LRC_X_MASK			0xFFF0000
+#define  CHNL_ROI_0_LRC_X_MASK			0xfff0000
 #define  CHNL_ROI_0_LRC_Y_OFFSET		0
-#define  CHNL_ROI_0_LRC_Y_MASK			0xFFF
+#define  CHNL_ROI_0_LRC_Y_MASK			0xfff
 
 /* Channel Alpha Value Register for ROI 1 */
-#define  CHNL_ROI_1_ALPHA			0x4C
+#define  CHNL_ROI_1_ALPHA			0x4c
 #define  CHNL_ROI_1_ALPHA_OFFSET		24
-#define  CHNL_ROI_1_ALPHA_MASK			0xFF000000
+#define  CHNL_ROI_1_ALPHA_MASK			0xff000000
 #define  CHNL_ROI_1_ALPHA_EN_OFFSET		16
 #define  CHNL_ROI_1_ALPHA_EN_MASK		0x10000
 
 /* Channel Upper Left Coordinate Register for ROI 1 */
 #define  CHNL_ROI_1_ULC				0x50
 #define  CHNL_ROI_1_ULC_X_OFFSET		16
-#define  CHNL_ROI_1_ULC_X_MASK			0xFFF0000
+#define  CHNL_ROI_1_ULC_X_MASK			0xfff0000
 #define  CHNL_ROI_1_ULC_Y_OFFSET		0
-#define  CHNL_ROI_1_ULC_Y_MASK			0xFFF
+#define  CHNL_ROI_1_ULC_Y_MASK			0xfff
 
 /* Channel Lower Right Coordinate Register for ROI 1 */
 #define  CHNL_ROI_1_LRC				0x54
 #define  CHNL_ROI_1_LRC_X_OFFSET		16
-#define  CHNL_ROI_1_LRC_X_MASK			0xFFF0000
+#define  CHNL_ROI_1_LRC_X_MASK			0xfff0000
 #define  CHNL_ROI_1_LRC_Y_OFFSET		0
-#define  CHNL_ROI_1_LRC_Y_MASK			0xFFF
+#define  CHNL_ROI_1_LRC_Y_MASK			0xfff
 
 /* Channel Alpha Value Register for ROI 2 */
 #define  CHNL_ROI_2_ALPHA			0x58
 #define  CHNL_ROI_2_ALPHA_OFFSET		24
-#define  CHNL_ROI_2_ALPHA_MASK			0xFF000000
+#define  CHNL_ROI_2_ALPHA_MASK			0xff000000
 #define  CHNL_ROI_2_ALPHA_EN_OFFSET		16
 #define  CHNL_ROI_2_ALPHA_EN_MASK		0x10000
 
 /* Channel Upper Left Coordinate Register for ROI 2 */
-#define  CHNL_ROI_2_ULC				0x5C
+#define  CHNL_ROI_2_ULC				0x5c
 #define  CHNL_ROI_2_ULC_X_OFFSET		16
-#define  CHNL_ROI_2_ULC_X_MASK			0xFFF0000
+#define  CHNL_ROI_2_ULC_X_MASK			0xfff0000
 #define  CHNL_ROI_2_ULC_Y_OFFSET		0
-#define  CHNL_ROI_2_ULC_Y_MASK			0xFFF
+#define  CHNL_ROI_2_ULC_Y_MASK			0xfff
 
 /* Channel Lower Right Coordinate Register for ROI 2 */
 #define  CHNL_ROI_2_LRC				0x60
 #define  CHNL_ROI_2_LRC_X_OFFSET		16
-#define  CHNL_ROI_2_LRC_X_MASK			0xFFF0000
+#define  CHNL_ROI_2_LRC_X_MASK			0xfff0000
 #define  CHNL_ROI_2_LRC_Y_OFFSET		0
-#define  CHNL_ROI_2_LRC_Y_MASK			0xFFF
+#define  CHNL_ROI_2_LRC_Y_MASK			0xfff
 
 /* Channel Alpha Value Register for ROI 3 */
 #define  CHNL_ROI_3_ALPHA			0x64
 #define  CHNL_ROI_3_ALPHA_OFFSET		24
-#define  CHNL_ROI_3_ALPHA_MASK			0xFF000000
+#define  CHNL_ROI_3_ALPHA_MASK			0xff000000
 #define  CHNL_ROI_3_ALPHA_EN_OFFSET		16
 #define  CHNL_ROI_3_ALPHA_EN_MASK		0x10000
 
 /* Channel Upper Left Coordinate Register for ROI 3 */
 #define  CHNL_ROI_3_ULC				0x68
 #define  CHNL_ROI_3_ULC_X_OFFSET		16
-#define  CHNL_ROI_3_ULC_X_MASK			0xFFF0000
+#define  CHNL_ROI_3_ULC_X_MASK			0xfff0000
 #define  CHNL_ROI_3_ULC_Y_OFFSET		0
-#define  CHNL_ROI_3_ULC_Y_MASK			0xFFF
+#define  CHNL_ROI_3_ULC_Y_MASK			0xfff
 
 /* Channel Lower Right Coordinate Register for ROI 3 */
-#define  CHNL_ROI_3_LRC				0x6C
+#define  CHNL_ROI_3_LRC				0x6c
 #define  CHNL_ROI_3_LRC_X_OFFSET		16
-#define  CHNL_ROI_3_LRC_X_MASK			0xFFF0000
+#define  CHNL_ROI_3_LRC_X_MASK			0xfff0000
 #define  CHNL_ROI_3_LRC_Y_OFFSET		0
-#define  CHNL_ROI_3_LRC_Y_MASK			0xFFF
+#define  CHNL_ROI_3_LRC_Y_MASK			0xfff
 
 /* Channel RGB or Luma (Y) Output Buffer 1 Address */
 #define  CHNL_OUT_BUF1_ADDR_Y			0x70
@@ -366,9 +366,9 @@
 #define  CHNL_OUT_BUF1_ADDR_V			0x78
 
 /* Channel Output Buffer Pitch */
-#define  CHNL_OUT_BUF_PITCH			0x7C
+#define  CHNL_OUT_BUF_PITCH			0x7c
 #define  CHNL_OUT_BUF_PITCH_LINE_PITCH_OFFSET	0
-#define  CHNL_OUT_BUF_PITCH_LINE_PITCH_MASK	0xFFFF
+#define  CHNL_OUT_BUF_PITCH_LINE_PITCH_MASK	0xffff
 
 /* Channel Input Buffer Address */
 #define  CHNL_IN_BUF_ADDR			0x80
@@ -376,20 +376,20 @@
 /* Channel Input Buffer Pitch */
 #define  CHNL_IN_BUF_PITCH			0x84
 #define  CHNL_IN_BUF_PITCH_FRM_PITCH_OFFSET	16
-#define  CHNL_IN_BUF_PITCH_FRM_PITCH_MASK	0xFFFF0000
+#define  CHNL_IN_BUF_PITCH_FRM_PITCH_MASK	0xffff0000
 #define  CHNL_IN_BUF_PITCH_LINE_PITCH_OFFSET	0
-#define  CHNL_IN_BUF_PITCH_LINE_PITCH_MASK	0xFFFF
+#define  CHNL_IN_BUF_PITCH_LINE_PITCH_MASK	0xffff
 
 /* Channel Memory Read Control */
 #define  CHNL_MEM_RD_CTRL			0x88
 #define  CHNL_MEM_RD_CTRL_IMG_TYPE_OFFSET	28
-#define  CHNL_MEM_RD_CTRL_IMG_TYPE_MASK		0xF0000000
+#define  CHNL_MEM_RD_CTRL_IMG_TYPE_MASK		0xf0000000
 #define  CHNL_MEM_RD_CTRL_READ_MEM_OFFSET	0
 #define  CHNL_MEM_RD_CTRL_READ_MEM_MASK		1
 #define  CHNL_MEM_RD_CTRL_READ_MEM_ENABLE	1
 
 /* Channel RGB or Luma (Y) Output Buffer 2 Address */
-#define  CHNL_OUT_BUF2_ADDR_Y		0x8C
+#define  CHNL_OUT_BUF2_ADDR_Y		0x8c
 
 /* Channel Chroma (U/Cb/UV/CbCr) Output Buffer 2 Address  */
 #define  CHNL_OUT_BUF2_ADDR_U		0x90
@@ -400,15 +400,15 @@
 /* Channel scale image config */
 #define  CHNL_SCL_IMG_CFG			0x98
 #define  CHNL_SCL_IMG_CFG_HEIGHT_OFFSET		16
-#define  CHNL_SCL_IMG_CFG_HEIGHT_MASK		0x1FFF0000
+#define  CHNL_SCL_IMG_CFG_HEIGHT_MASK		0x1fff0000
 #define  CHNL_SCL_IMG_CFG_WIDTH_OFFSET		0
-#define  CHNL_SCL_IMG_CFG_WIDTH_MASK		0x1FFF
+#define  CHNL_SCL_IMG_CFG_WIDTH_MASK		0x1fff
 
 /* Channel Flow Control Register */
-#define  CHNL_FLOW_CTRL				0x9C
-#define  CHNL_FLOW_CTRL_FC_DENOM_MASK		0xFF
+#define  CHNL_FLOW_CTRL				0x9c
+#define  CHNL_FLOW_CTRL_FC_DENOM_MASK		0xff
 #define  CHNL_FLOW_CTRL_FC_DENOM_OFFSET		0
-#define  CHNL_FLOW_CTRL_FC_NUMER_MASK		0xFF0000
+#define  CHNL_FLOW_CTRL_FC_NUMER_MASK		0xff0000
 #define  CHNL_FLOW_CTRL_FC_NUMER_OFFSET		0
 
 #endif /* __MXC_ISI_HW_H__ */
