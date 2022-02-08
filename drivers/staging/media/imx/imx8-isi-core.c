@@ -27,43 +27,6 @@
 #include "imx8-isi-core.h"
 
 /* -----------------------------------------------------------------------------
- * Clocks
- */
-
-static int mxc_isi_clk_get(struct mxc_isi_dev *isi)
-{
-	unsigned int size = isi->pdata->num_clks
-			  * sizeof(*isi->clks);
-	int ret;
-
-	isi->clks = devm_kmalloc(isi->dev, size, GFP_KERNEL);
-	if (!isi->clks)
-		return -ENOMEM;
-
-	memcpy(isi->clks, isi->pdata->clks, size);
-
-	ret = devm_clk_bulk_get(isi->dev, isi->pdata->num_clks,
-				isi->clks);
-	if (ret < 0) {
-		dev_err(isi->dev, "Failed to acquire clocks: %d\n",
-			ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int mxc_isi_clk_enable(struct mxc_isi_dev *isi)
-{
-	return clk_bulk_prepare_enable(isi->pdata->num_clks, isi->clks);
-}
-
-static void mxc_isi_clk_disable(struct mxc_isi_dev *isi)
-{
-	clk_bulk_disable_unprepare(isi->pdata->num_clks, isi->clks);
-}
-
-/* -----------------------------------------------------------------------------
  * V4L2 async subdevs
  */
 
@@ -410,7 +373,7 @@ static int mxc_isi_runtime_suspend(struct device *dev)
 {
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 
-	mxc_isi_clk_disable(isi);
+	clk_bulk_disable_unprepare(isi->pdata->num_clks, isi->clks);
 
 	return 0;
 }
@@ -420,9 +383,9 @@ static int mxc_isi_runtime_resume(struct device *dev)
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 	int ret;
 
-	ret = mxc_isi_clk_enable(isi);
+	ret = clk_bulk_prepare_enable(isi->pdata->num_clks, isi->clks);
 	if (ret) {
-		dev_err(dev, "%s clk enable fail\n", __func__);
+		dev_err(dev, "Failed to enable clocks (%d)\n", ret);
 		return ret;
 	}
 
@@ -437,6 +400,29 @@ static const struct dev_pm_ops mxc_isi_pm_ops = {
 /* -----------------------------------------------------------------------------
  * Probe, remove & driver
  */
+
+static int mxc_isi_clk_get(struct mxc_isi_dev *isi)
+{
+	unsigned int size = isi->pdata->num_clks
+			  * sizeof(*isi->clks);
+	int ret;
+
+	isi->clks = devm_kmalloc(isi->dev, size, GFP_KERNEL);
+	if (!isi->clks)
+		return -ENOMEM;
+
+	memcpy(isi->clks, isi->pdata->clks, size);
+
+	ret = devm_clk_bulk_get(isi->dev, isi->pdata->num_clks,
+				isi->clks);
+	if (ret < 0) {
+		dev_err(isi->dev, "Failed to acquire clocks: %d\n",
+			ret);
+		return ret;
+	}
+
+	return 0;
+}
 
 static int mxc_isi_probe(struct platform_device *pdev)
 {
