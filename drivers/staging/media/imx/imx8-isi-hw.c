@@ -91,7 +91,7 @@ static void mxc_isi_pipe_dump_regs(struct mxc_isi_pipe *pipe)
  * A2,A1,      B1, A3,     B3, B2,
  * C2, C1,     D1, C3,     D3, D2
  */
-static const u32 coeffs[2][6] = {
+static const u32 mxc_isi_coeffs[2][6] = {
 	/* YUV2RGB */
 	{ 0x0000012a, 0x012A0198, 0x0730079C,
 	  0x0204012a, 0x01F00000, 0x01800180 },
@@ -101,7 +101,7 @@ static const u32 coeffs[2][6] = {
 	  0x07a20070, 0x001007ee, 0x00800080 },
 };
 
-bool is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
+bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
 {
 	u32 status = pipe->status;
 	bool reverse = pipe->isi->pdata->buf_active_reverse;
@@ -110,7 +110,8 @@ bool is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
 			       ((reverse) ? (status & 0x200) : (status & 0x100));
 }
 
-static void chain_buf(struct mxc_isi_pipe *pipe, const struct mxc_isi_frame *frm)
+static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
+			      const struct mxc_isi_frame *frm)
 {
 	u32 val;
 
@@ -161,13 +162,13 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
-	if (framecount == 0 || ((is_buf_active(pipe, 2)) && (framecount != 1))) {
+	if (framecount == 0 || ((mxc_isi_is_buf_active(pipe, 2)) && (framecount != 1))) {
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, paddr->y);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, paddr->cb);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, paddr->cr);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR_MASK;
 		buf->id = MXC_ISI_BUF1;
-	} else if (framecount == 1 || is_buf_active(pipe, 1)) {
+	} else if (framecount == 1 || mxc_isi_is_buf_active(pipe, 1)) {
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, paddr->y);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, paddr->cb);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, paddr->cr);
@@ -265,12 +266,12 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	pr_info("output fmt %p4cc", &dst_fmt->fourcc);
 
 	if (pipe->cscen) {
-		mxc_isi_write(pipe, CHNL_CSC_COEFF0, coeffs[csc][0]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF1, coeffs[csc][1]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF2, coeffs[csc][2]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF3, coeffs[csc][3]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF4, coeffs[csc][4]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF5, coeffs[csc][5]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF1, mxc_isi_coeffs[csc][1]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF2, mxc_isi_coeffs[csc][2]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF3, mxc_isi_coeffs[csc][3]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF4, mxc_isi_coeffs[csc][4]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF5, mxc_isi_coeffs[csc][5]);
 	}
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
@@ -489,7 +490,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	u32 val;
 
 	/* images having higher than 2048 horizontal resolution */
-	chain_buf(pipe, src_f);
+	mxc_isi_chain_buf(pipe, src_f);
 
 	/* config output frame size and format */
 	val = (src_f->format.height << CHNL_IMG_CFG_HEIGHT_OFFSET)
