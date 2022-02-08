@@ -879,8 +879,6 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 
 	vdev->ctrl_handler = &pipe->video.ctrls.handler;
 	v4l2_dev->ctrl_handler = &pipe->video.ctrls.handler;
-	dev_info(pipe->isi->dev, "Registered %s as /dev/%s\n",
-		  vdev->name, video_device_node_name(vdev));
 
 	return 0;
 
