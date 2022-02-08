@@ -8,20 +8,19 @@
  * Copyright (c) 2019 NXP Semiconductor
  */
 
-#include <linux/bug.h>
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
-#include <linux/list.h>
-#include <linux/module.h>
-#include <linux/of_graph.h>
-#include <linux/pm_runtime.h>
-#include <linux/slab.h>
+#include <linux/minmax.h>
+#include <linux/of.h>
+#include <linux/platform_device.h>
 #include <linux/types.h>
 #include <linux/videodev2.h>
 
-#include <media/v4l2-device.h>
+#include <media/media-entity.h>
+#include <media/v4l2-subdev.h>
+#include <media/videobuf2-v4l2.h>
 
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"

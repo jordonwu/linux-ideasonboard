@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright 2019-2020 NXP
- *
  */
-#include <dt-bindings/pinctrl/pads-imx8qxp.h>
 
-#include <linux/module.h>
+#include <linux/delay.h>
+#include <linux/device.h>
+#include <linux/io.h>
+#include <linux/regmap.h>
+#include <linux/types.h>
+
+#include <media/videobuf2-dma-contig.h>
 
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
