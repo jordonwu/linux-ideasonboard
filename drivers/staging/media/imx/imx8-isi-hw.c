@@ -101,15 +101,6 @@ static const u32 coeffs[2][6] = {
 	  0x07a20070, 0x001007ee, 0x00800080 },
 };
 
-static void printk_pixelformat(char *prefix, int val)
-{
-	pr_info("%s %c%c%c%c\n", prefix ? prefix : "pixelformat",
-		val & 0xff,
-		(val >> 8)  & 0xff,
-		(val >> 16) & 0xff,
-		(val >> 24) & 0xff);
-}
-
 bool is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
 {
 	u32 status = pipe->status;
@@ -271,7 +262,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	}
 
 	pr_info("input colorspace %u", src_fmt->colorspace);
-	printk_pixelformat("output fmt", dst_fmt->fourcc);
+	pr_info("output fmt %p4cc", &dst_fmt->fourcc);
 
 	if (pipe->cscen) {
 		mxc_isi_write(pipe, CHNL_CSC_COEFF0, coeffs[csc][0]);
