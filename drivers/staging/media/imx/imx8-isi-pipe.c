@@ -693,11 +693,11 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static const struct v4l2_subdev_video_ops mxc_isi_subdev_video_ops = {
+static const struct v4l2_subdev_video_ops mxc_isi_pipe_subdev_video_ops = {
 	.s_stream = mxc_isi_pipe_s_stream,
 };
 
-static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
+static const struct v4l2_subdev_pad_ops mxc_isi_pipe_subdev_pad_ops = {
 	.init_cfg = mxc_isi_pipe_init_cfg,
 	.enum_mbus_code = mxc_isi_pipe_enum_mbus_code,
 	.get_fmt = v4l2_subdev_get_fmt,
@@ -706,9 +706,9 @@ static const struct v4l2_subdev_pad_ops mxc_isi_subdev_pad_ops = {
 	.set_selection = mxc_isi_pipe_set_selection,
 };
 
-static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
-	.video = &mxc_isi_subdev_video_ops,
-	.pad = &mxc_isi_subdev_pad_ops,
+static const struct v4l2_subdev_ops mxc_isi_pipe_subdev_ops = {
+	.video = &mxc_isi_pipe_subdev_video_ops,
+	.pad = &mxc_isi_pipe_subdev_pad_ops,
 };
 
 /* -----------------------------------------------------------------------------
@@ -779,7 +779,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	spin_lock_init(&pipe->slock);
 
 	sd = &pipe->sd;
-	v4l2_subdev_init(sd, &mxc_isi_subdev_ops);
+	v4l2_subdev_init(sd, &mxc_isi_pipe_subdev_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 	snprintf(sd->name, sizeof(sd->name), "mxc_isi.%d", pipe->id);
 	sd->dev = isi->dev;
