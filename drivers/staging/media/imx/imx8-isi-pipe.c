@@ -25,8 +25,6 @@
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
 
-#define sd_to_cap_dev(ptr)	container_of(ptr, struct mxc_isi_pipe, sd)
-
 static struct v4l2_subdev *mxc_isi_get_source_subdev(struct mxc_isi_pipe *pipe,
 						     u32 *pad,
 						     const char * const label)
@@ -544,36 +542,6 @@ static const struct v4l2_subdev_ops mxc_isi_subdev_ops = {
 	.pad = &mxc_isi_subdev_pad_ops,
 };
 
-static int mxc_isi_subdev_registered(struct v4l2_subdev *sd)
-{
-	struct mxc_isi_pipe *pipe = sd_to_cap_dev(sd);
-	int ret;
-
-	if (!pipe)
-		return -ENXIO;
-
-	ret = mxc_isi_video_register(pipe, sd->v4l2_dev);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-static void mxc_isi_subdev_unregistered(struct v4l2_subdev *sd)
-{
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
-
-	if (!pipe)
-		return;
-
-	mxc_isi_video_unregister(pipe);
-}
-
-static const struct v4l2_subdev_internal_ops mxc_isi_capture_sd_internal_ops = {
-	.registered = mxc_isi_subdev_registered,
-	.unregistered = mxc_isi_subdev_unregistered,
-};
-
 /* -----------------------------------------------------------------------------
  * IRQ handling
  */
@@ -657,8 +625,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	if (ret)
 		return ret;
 
-	sd->internal_ops = &mxc_isi_capture_sd_internal_ops;
-
 	v4l2_set_subdevdata(sd, pipe);
 
 	sd->fwnode = of_fwnode_handle(pipe->isi->dev->of_node);
@@ -705,4 +671,20 @@ void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe)
 
 	media_entity_cleanup(&sd->entity);
 	v4l2_set_subdevdata(sd, NULL);
+}
+
+int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe)
+{
+	int ret;
+
+	ret = v4l2_device_register_subdev(&pipe->isi->v4l2_dev, &pipe->sd);
+	if (ret < 0)
+		return ret;
+
+	return mxc_isi_video_register(pipe, &pipe->isi->v4l2_dev);
+}
+
+void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_video_unregister(pipe);
 }
