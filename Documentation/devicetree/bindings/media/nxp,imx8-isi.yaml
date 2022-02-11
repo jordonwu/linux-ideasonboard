@@ -29,15 +29,14 @@ properties:
     items:
       - description: The AXI clock
       - description: The APB clock
-      - description: The AXI root clock
-      - description: The APB root clock
+      # TODO: Check if the per-channel ipg_proc_clk clocks need to be specified
+      # as well, in case some SoCs have the ability to control them separately.
+      # This may be the case of the i.MX8[DQ]X(P)
 
   clock-names:
     items:
-      - const: disp_axi
-      - const: disp_apb
-      - const: disp_axi_root
-      - const: disp_apb_root
+      - const: axi
+      - const: apb
 
   power-domains: true
 
@@ -111,11 +110,9 @@ examples:
         reg = <0x32e00000 0x4000>;
         interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>,
                      <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-        clocks = <&clk IMX8MP_CLK_MEDIA_AXI>,
-                 <&clk IMX8MP_CLK_MEDIA_APB>,
-                 <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
+        clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
                  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
-        clock-names = "disp_axi", "disp_apb", "disp_axi_root", "disp_apb_root";
+        clock-names = "axi", "apb";
         power-domains = <&mediamix_pd>;
 
         ports {
