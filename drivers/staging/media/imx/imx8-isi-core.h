@@ -109,14 +109,6 @@ struct frame_addr {
 	u32	cr;
 };
 
-/**
- * struct mxc_isi_frame - source/target frame properties
- * @info:	Format information
- */
-struct mxc_isi_frame {
-	const struct mxc_isi_bus_format_info *info;
-};
-
 struct mxc_isi_buffer {
 	struct vb2_v4l2_buffer  v4l2_buf;
 	struct list_head	list;
@@ -210,7 +202,6 @@ struct mxc_isi_pipe {
 
 	struct v4l2_subdev		sd;
 	struct media_pad		pads[MXC_ISI_SD_PADS_NUM];
-	struct mxc_isi_frame		formats[MXC_ISI_SD_PADS_NUM];
 	struct v4l2_subdev		*source;
 
 	struct mxc_isi_video		video;

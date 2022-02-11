@@ -202,7 +202,10 @@ static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 
 int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 {
-	const struct v4l2_mbus_framefmt *format;
+	const struct mxc_isi_bus_format_info *sink_info;
+	const struct mxc_isi_bus_format_info *src_info;
+	const struct v4l2_mbus_framefmt *sink_fmt;
+	const struct v4l2_mbus_framefmt *src_fmt;
 	const struct v4l2_rect *compose;
 	struct v4l2_subdev_state *state;
 	struct v4l2_subdev *sd = &pipe->sd;
@@ -213,12 +216,17 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 
 	state = v4l2_subdev_lock_active_state(sd);
 
-	format = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SINK);
+	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SINK);
+	src_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SOURCE);
 	compose = v4l2_subdev_get_try_compose(sd, state, MXC_ISI_SD_PAD_SINK);
 
-	mxc_isi_channel_config(pipe, format, compose,
-			       pipe->formats[MXC_ISI_SD_PAD_SINK].info->encoding,
-			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info->encoding);
+	sink_info = mxc_isi_bus_format_by_code(sink_fmt->code,
+					       MXC_ISI_SD_PAD_SINK);
+	src_info = mxc_isi_bus_format_by_code(src_fmt->code,
+					      MXC_ISI_SD_PAD_SOURCE);
+
+	mxc_isi_channel_config(pipe, sink_fmt, compose, sink_info->encoding,
+			       src_info->encoding);
 
 	v4l2_subdev_unlock_state(state);
 
@@ -530,9 +538,6 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->pad);
 	*format = *mf;
 
-	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		pipe->formats[fmt->pad].info = info;
-
 	dev_dbg(pipe->isi->dev, "pad%u: code: 0x%04x, %ux%u",
 		fmt->pad, mf->code, mf->width, mf->height);
 
@@ -792,13 +797,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	ret = v4l2_subdev_init_finalize(sd);
 	if (ret < 0)
 		goto error;
-
-	pipe->formats[MXC_ISI_SD_PAD_SINK].info =
-		mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
-					   MXC_ISI_SD_PAD_SINK);
-	pipe->formats[MXC_ISI_SD_PAD_SOURCE].info =
-		mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SOURCE,
-					   MXC_ISI_SD_PAD_SOURCE);
 
 	/* Register IRQ handler. */
 	mxc_isi_clean_registers(pipe);
