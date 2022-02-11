@@ -314,7 +314,9 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe);
+void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
+			      const struct v4l2_rect *src,
+			      const struct v4l2_rect *dst);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				struct mxc_isi_buffer *buf);
