@@ -304,6 +304,44 @@ static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
 	return 0;
 }
 
+static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
+					 enum vb2_buffer_state state)
+{
+	struct mxc_isi_buffer *buf;
+	unsigned long flags;
+
+	spin_lock_irqsave(&pipe->slock, flags);
+
+	while (!list_empty(&pipe->video.out_active)) {
+		buf = list_entry(pipe->video.out_active.next,
+				 struct mxc_isi_buffer, list);
+		list_del_init(&buf->list);
+		if (buf->discard)
+			continue;
+
+		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, state);
+	}
+
+	while (!list_empty(&pipe->video.out_pending)) {
+		buf = list_entry(pipe->video.out_pending.next,
+				 struct mxc_isi_buffer, list);
+		list_del_init(&buf->list);
+		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, state);
+	}
+
+	while (!list_empty(&pipe->video.out_discard)) {
+		buf = list_entry(pipe->video.out_discard.next,
+				 struct mxc_isi_buffer, list);
+		list_del_init(&buf->list);
+	}
+
+	INIT_LIST_HEAD(&pipe->video.out_active);
+	INIT_LIST_HEAD(&pipe->video.out_pending);
+	INIT_LIST_HEAD(&pipe->video.out_discard);
+
+	spin_unlock_irqrestore(&pipe->slock, flags);
+}
+
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
 {
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
@@ -391,7 +429,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	ret = media_pipeline_start(&pipe->video.vdev.entity, &pipe->pipe);
 	if (ret < 0)
-		return ret;
+		goto err_bufs;
 
 	/*
 	 * Verify that the configured format matches the output of the
@@ -459,50 +497,19 @@ err_free:
 	mxc_isi_video_free_discard_buffer(pipe);
 err_stop:
 	media_pipeline_stop(&pipe->video.vdev.entity);
-	/* FIXME: Return vb2 buffers to vb2 */
+err_bufs:
+	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_QUEUED);
 	return ret;
 }
 
 static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_buffer *buf;
-	unsigned long flags;
 
 	mxc_isi_pipeline_enable(pipe, 0);
 	mxc_isi_channel_disable(pipe);
 
-	spin_lock_irqsave(&pipe->slock, flags);
-
-	while (!list_empty(&pipe->video.out_active)) {
-		buf = list_entry(pipe->video.out_active.next,
-				 struct mxc_isi_buffer, list);
-		list_del_init(&buf->list);
-		if (buf->discard)
-			continue;
-
-		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_ERROR);
-	}
-
-	while (!list_empty(&pipe->video.out_pending)) {
-		buf = list_entry(pipe->video.out_pending.next,
-				 struct mxc_isi_buffer, list);
-		list_del_init(&buf->list);
-		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_ERROR);
-	}
-
-	while (!list_empty(&pipe->video.out_discard)) {
-		buf = list_entry(pipe->video.out_discard.next,
-				 struct mxc_isi_buffer, list);
-		list_del_init(&buf->list);
-	}
-
-	INIT_LIST_HEAD(&pipe->video.out_active);
-	INIT_LIST_HEAD(&pipe->video.out_pending);
-	INIT_LIST_HEAD(&pipe->video.out_discard);
-
-	spin_unlock_irqrestore(&pipe->slock, flags);
-
+	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_ERROR);
 	mxc_isi_video_free_discard_buffer(pipe);
 
 	media_pipeline_stop(&pipe->video.vdev.entity);
