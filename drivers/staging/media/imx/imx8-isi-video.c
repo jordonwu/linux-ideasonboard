@@ -241,6 +241,50 @@ static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
  * videobuf2 queue operations
  */
 
+static void mxc_isi_video_free_discard_buffer(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_video *video = &pipe->video;
+	unsigned int i;
+
+	for (i = 0; i < video->pix.num_planes; i++) {
+		if (!video->discard_buffer[i])
+			continue;
+
+		dma_free_coherent(pipe->isi->dev,
+				  PAGE_ALIGN(video->discard_size[i]),
+				  video->discard_buffer[i],
+				  video->discard_buffer_dma[i]);
+		video->discard_buffer[i] = NULL;
+	}
+}
+
+static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_video *video = &pipe->video;
+	unsigned int i;
+
+	for (i = 0; i < video->pix.num_planes; i++) {
+		video->discard_size[i] = video->pix.plane_fmt[i].sizeimage;
+		video->discard_buffer[i] =
+			dma_alloc_coherent(pipe->isi->dev,
+					   PAGE_ALIGN(video->discard_size[i]),
+					   &video->discard_buffer_dma[i],
+					   GFP_DMA | GFP_KERNEL);
+		if (!video->discard_buffer[i]) {
+			mxc_isi_video_free_discard_buffer(pipe);
+			return -ENOMEM;
+		}
+
+		dev_dbg(pipe->isi->dev,
+			"%s: num_plane=%d discard_size=%d discard_buffer=%p\n"
+			, __func__, i,
+			PAGE_ALIGN((int)video->discard_size[i]),
+			video->discard_buffer[i]);
+	}
+
+	return 0;
+}
+
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
 {
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
@@ -327,7 +371,6 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	struct mxc_isi_frame *fmt;
 	struct vb2_buffer *vb2;
 	unsigned long flags;
-	int i, j;
 	int ret;
 
 	ret = media_pipeline_start(&pipe->video.vdev.entity, &pipe->pipe);
@@ -350,7 +393,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 			fmt->format.height, info->mbus_code,
 			pipe->video.pix.width, pipe->video.pix.height);
                 ret = -EINVAL;
-		goto error;
+		goto err_stop;
 	}
 
 	mxc_isi_channel_init(pipe);
@@ -362,32 +405,9 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 			       pipe->video.pix.plane_fmt[0].bytesperline);
 
 	/* Create a buffer for discard operation */
-	for (i = 0; i < pipe->video.pix.num_planes; i++) {
-		pipe->video.discard_size[i] = pipe->video.pix.plane_fmt[i].sizeimage;
-		pipe->video.discard_buffer[i] =
-			dma_alloc_coherent(pipe->isi->dev,
-					   PAGE_ALIGN(pipe->video.discard_size[i]),
-					   &pipe->video.discard_buffer_dma[i],
-					   GFP_DMA | GFP_KERNEL);
-		if (!pipe->video.discard_buffer[i]) {
-			for (j = 0; j < i; j++) {
-				dma_free_coherent(pipe->isi->dev,
-						  PAGE_ALIGN(pipe->video.discard_size[j]),
-						  pipe->video.discard_buffer[j],
-						  pipe->video.discard_buffer_dma[j]);
-				dev_err(pipe->isi->dev,
-					"alloc dma buffer(%d) fail\n", j);
-			}
-
-			ret = -ENOMEM;
-			goto error;
-		}
-		dev_dbg(pipe->isi->dev,
-			"%s: num_plane=%d discard_size=%d discard_buffer=%p\n"
-			, __func__, i,
-			PAGE_ALIGN((int)pipe->video.discard_size[i]),
-			pipe->video.discard_buffer[i]);
-	}
+	ret = mxc_isi_video_alloc_discard_buffer(pipe);
+	if (ret)
+		goto err_stop;
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
@@ -421,15 +441,17 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	mxc_isi_channel_enable(pipe);
 	ret = mxc_isi_pipeline_enable(pipe, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD)
-		goto error;
+		goto err_free;
 
 	pipe->is_streaming = 1;
 
 	return 0;
 
-error:
-	/* FIXME: Free discard buffer, return vb2 buffers to vb2 */
+err_free:
+	mxc_isi_video_free_discard_buffer(pipe);
+err_stop:
 	media_pipeline_stop(&pipe->video.vdev.entity);
+	/* FIXME: Return vb2 buffers to vb2 */
 	return ret;
 }
 
@@ -438,7 +460,6 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
-	int i;
 
 	mxc_isi_pipeline_enable(pipe, 0);
 	mxc_isi_channel_disable(pipe);
@@ -474,11 +495,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	for (i = 0; i < pipe->video.pix.num_planes; i++)
-		dma_free_coherent(pipe->isi->dev,
-				  PAGE_ALIGN(pipe->video.discard_size[i]),
-				  pipe->video.discard_buffer[i],
-				  pipe->video.discard_buffer_dma[i]);
+	mxc_isi_video_free_discard_buffer(pipe);
 
 	media_pipeline_stop(&pipe->video.vdev.entity);
 
