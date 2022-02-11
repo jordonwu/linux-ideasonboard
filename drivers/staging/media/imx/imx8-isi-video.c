@@ -354,13 +354,9 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 				   struct device *alloc_devs[])
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	const struct mxc_isi_format_info *fmt = dst_f->info;
+	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
 	unsigned long wh;
 	int i;
-
-	if (!fmt)
-		return -EINVAL;
 
 	for (i = 0; i < fmt->memplanes; i++)
 		alloc_devs[i] = pipe->isi->dev;
@@ -386,13 +382,10 @@ static int mxc_isi_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *q = vb2->vb2_queue;
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
 	int i;
 
-	if (!dst_f->info)
-		return -EINVAL;
-
-	for (i = 0; i < dst_f->info->memplanes; i++) {
+	for (i = 0; i < fmt->memplanes; i++) {
 		unsigned long size = pipe->video.pix.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
@@ -725,6 +718,7 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 	__mxc_isi_video_try_fmt(pix, &fmt);
 
 	pipe->video.pix = *pix;
+	pipe->video.fmtinfo = fmt;
 
 	return 0;
 }
@@ -836,12 +830,15 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	struct v4l2_pix_format_mplane *pix = &pipe->video.pix;
 	struct video_device *vdev = &pipe->video.vdev;
 	struct vb2_queue *q = &pipe->video.vb2_q;
+	const struct mxc_isi_format_info *fmt;
 	int ret = -ENOMEM;
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
-	__mxc_isi_video_try_fmt(pix, NULL);
+	__mxc_isi_video_try_fmt(pix, &fmt);
+
+	pipe->video.fmtinfo = fmt;
 
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
