@@ -139,7 +139,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 	u32 framecount = buf->v4l2_buf.sequence;
 	struct frame_addr *paddr = &buf->paddr;
 	struct v4l2_pix_format_mplane *pix;
-	int val = 0;
+	int val;
 
 	if (buf->discard) {
 		pix = &pipe->video.pix;
@@ -355,15 +355,15 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 
 static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
 {
-	u32 val0;
+	u32 val;
 
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
 		      CHNL_SCALE_FACTOR_Y_SCALE(0x1000) |
 		      CHNL_SCALE_FACTOR_X_SCALE(0x1000));
 
-	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val0 &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val0);
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
@@ -373,7 +373,7 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	u32 decx, decy;
 	u32 xscale, yscale;
 	u32 xdec = 0, ydec = 0;
-	u32 val0, val1;
+	u32 val;
 
 	dev_dbg(pipe->isi->dev, "input_size %ux%u, output_size %ux%u\n",
 		format->width, format->height, compose->width, compose->height);
@@ -427,26 +427,25 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 		yscale = format->height * 0x1000 / compose->height;
 	}
 
-	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val0 |= CHNL_IMG_CTRL_YCBCR_MODE;//YCbCr  Sandor???
-	val0 &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
-	val0 |= CHNL_IMG_CTRL_DEC_X(xdec) | CHNL_IMG_CTRL_DEC_Y(ydec);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val0);
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val |= CHNL_IMG_CTRL_YCBCR_MODE; //YCbCr  Sandor???
+	val &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
+	val |= CHNL_IMG_CTRL_DEC_X(xdec) | CHNL_IMG_CTRL_DEC_Y(ydec);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 
 	if (xscale > ISI_DOWNSCALE_THRESHOLD)
 		xscale = ISI_DOWNSCALE_THRESHOLD;
 	if (yscale > ISI_DOWNSCALE_THRESHOLD)
 		yscale = ISI_DOWNSCALE_THRESHOLD;
 
-	val1 = CHNL_SCALE_FACTOR_Y_SCALE(yscale)
-	     | CHNL_SCALE_FACTOR_X_SCALE(xscale);
-
-	mxc_isi_write(pipe, CHNL_SCALE_FACTOR, val1);
+	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
+		      CHNL_SCALE_FACTOR_Y_SCALE(yscale) |
+		      CHNL_SCALE_FACTOR_X_SCALE(xscale));
 
 	/* Update scale config if scaling enabled */
-	val1 = CHNL_SCL_IMG_CFG_HEIGHT(compose->height)
-	     | CHNL_SCL_IMG_CFG_WIDTH(compose->width);
-	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val1);
+	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
+		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
+		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
 
