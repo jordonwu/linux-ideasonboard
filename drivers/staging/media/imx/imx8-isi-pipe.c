@@ -222,7 +222,7 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 
 	fmt_sink->width = MXC_ISI_DEF_WIDTH;
 	fmt_sink->height = MXC_ISI_DEF_HEIGHT;
-	fmt_sink->code = MEDIA_BUS_FMT_UYVY8_1X16;
+	fmt_sink->code = MXC_ISI_DEF_MBUS_CODE;
 	fmt_sink->field = V4L2_FIELD_NONE;
 	fmt_sink->colorspace = V4L2_COLORSPACE_JPEG;
 	fmt_sink->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt_sink->colorspace);
@@ -286,7 +286,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 	info = mxc_isi_format_by_code(mf->code);
 	if (!info)
-		info = mxc_isi_format_by_code(MEDIA_BUS_FMT_UYVY8_1X16);
+		info = mxc_isi_format_by_code(MXC_ISI_DEF_MBUS_CODE);
 
 	mutex_lock(&pipe->lock);
 
@@ -636,7 +636,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	for (i = 0; i < ARRAY_SIZE(pipe->formats); ++i) {
 		struct mxc_isi_frame *frame = &pipe->formats[i];
 
-		frame->info = mxc_isi_format_by_code(frame->format.code);
+		frame->info = mxc_isi_format_by_code(MXC_ISI_DEF_MBUS_CODE);
 	}
 
 	/* Register IRQ handler. */
