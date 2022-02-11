@@ -111,11 +111,11 @@ bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
 }
 
 static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
-			      const struct mxc_isi_frame *frm)
+			      const struct v4l2_mbus_framefmt *format)
 {
 	u32 val;
 
-	if (frm->format.width > ISI_2K) {
+	if (format->width > ISI_2K) {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		val |= (CHNL_CTRL_CHAIN_BUF_2_CHAIN << CHNL_CTRL_CHAIN_BUF_OFFSET);
@@ -488,7 +488,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	u32 val;
 
 	/* images having higher than 2048 horizontal resolution */
-	mxc_isi_chain_buf(pipe, src_f);
+	mxc_isi_chain_buf(pipe, &src_f->format);
 
 	/* config output frame size and format */
 	val = (src_f->format.height << CHNL_IMG_CFG_HEIGHT_OFFSET)
