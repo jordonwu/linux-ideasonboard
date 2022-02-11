@@ -22,10 +22,6 @@
 #define CHNL_CTRL_BLANK_PXL(n)					((n) << 16)
 #define CHNL_CTRL_MIPI_VC_ID(n)					((n) << 6)
 #define CHNL_CTRL_MIPI_VC_ID_MASK				GENMASK(7, 6)
-#define CHNL_CTRL_MIPI_VC_ID_VC0				0
-#define CHNL_CTRL_MIPI_VC_ID_VC1				1
-#define CHNL_CTRL_MIPI_VC_ID_VC2				2
-#define CHNL_CTRL_MIPI_VC_ID_VC3				3
 #define CHNL_CTRL_SRC_TYPE(n)					((n) << 4)
 #define CHNL_CTRL_SRC_TYPE_MASK					BIT(4)
 #define CHNL_CTRL_SRC_TYPE_DEVICE				0
@@ -51,16 +47,8 @@
 #define CHNL_IMG_CTRL_DEINT_LDOUBLE_EVEN_ODD			7
 #define CHNL_IMG_CTRL_DEC_X(n)					((n) << 10)
 #define CHNL_IMG_CTRL_DEC_X_MASK				GENMASK(11, 10)
-#define CHNL_IMG_CTRL_DEC_X_0					0
-#define CHNL_IMG_CTRL_DEC_X_2					1
-#define CHNL_IMG_CTRL_DEC_X_4					2
-#define CHNL_IMG_CTRL_DEC_X_8					3
 #define CHNL_IMG_CTRL_DEC_Y(n)					((n) << 8)
 #define CHNL_IMG_CTRL_DEC_Y_MASK				GENMASK(9, 8)
-#define CHNL_IMG_CTRL_DEC_Y_0					0
-#define CHNL_IMG_CTRL_DEC_Y_2					1
-#define CHNL_IMG_CTRL_DEC_Y_4					2
-#define CHNL_IMG_CTRL_DEC_Y_8					3
 #define CHNL_IMG_CTRL_CROP_EN					BIT(7)
 #define CHNL_IMG_CTRL_VFLIP_EN					BIT(6)
 #define CHNL_IMG_CTRL_HFLIP_EN					BIT(5)
