@@ -30,24 +30,41 @@ static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 	return container_of(sd, struct mxc_isi_pipe, sd);
 }
 
-/*
- * mxc_isi_pipeline_enable() - Enable streaming on a pipeline
- */
-int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
+int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 {
 	int ret;
 
 	if (!pipe->source)
 		return -EPIPE;
 
-	ret = v4l2_subdev_call(pipe->source, video, s_stream, enable);
+	mxc_isi_channel_config(pipe,
+			       &pipe->formats[MXC_ISI_SD_PAD_SINK].format,
+			       &pipe->formats[MXC_ISI_SD_PAD_SINK].compose,
+			       pipe->formats[MXC_ISI_SD_PAD_SINK].info,
+			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info);
+
+	mxc_isi_channel_enable(pipe);
+
+	ret = v4l2_subdev_call(pipe->source, video, s_stream, 1);
 	if (ret < 0 && ret != -ENOIOCTLCMD) {
-		dev_err(pipe->isi->dev, "subdev %s s_stream failed\n",
-			pipe->source->name);
+		dev_err(pipe->isi->dev, "subdev %s s_stream(%u) failed\n",
+			pipe->source->name, 1);
 		return ret;
 	}
 
 	return 0;
+}
+
+void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe)
+{
+	int ret;
+
+	ret = v4l2_subdev_call(pipe->source, video, s_stream, 0);
+	if (ret < 0 && ret != -ENOIOCTLCMD)
+		dev_err(pipe->isi->dev, "subdev %s s_stream(%u) failed\n",
+			pipe->source->name, 0);
+
+	mxc_isi_channel_disable(pipe);
 }
 
 static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
