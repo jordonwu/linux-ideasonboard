@@ -118,7 +118,7 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 	if (format->width > ISI_2K) {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
-		val |= (CHNL_CTRL_CHAIN_BUF_2_CHAIN << CHNL_CTRL_CHAIN_BUF_OFFSET);
+		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
 		mxc_isi_write(pipe, CHNL_CTRL, val);
 		if (pipe->isi->chain)
 			regmap_write(pipe->isi->chain, CHNL_CTRL, CHNL_CTRL_CLK_EN);
@@ -200,10 +200,10 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe)
 
 	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
 	val |= pipe->id;
-	val |= 0 << CHNL_CTRL_MIPI_VC_ID_OFFSET; /* FIXME: For CSI-2 only */
+	val |= CHNL_CTRL_MIPI_VC_ID(0); /* FIXME: For CSI-2 only */
 	/*
 	 * FIXME: Support memory input
-	 * val |= (CHNL_CTRL_SRC_TYPE_MEMORY << CHNL_CTRL_SRC_TYPE_OFFSET);
+	 * val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_MEMORY);
 	 */
 
 	mxc_isi_write(pipe, CHNL_CTRL, val);
@@ -237,7 +237,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		 CHNL_IMG_CTRL_CSC_MODE_MASK);
 
 	/* set outbuf format */
-	val |= dst_fmt->color << CHNL_IMG_CTRL_FORMAT_OFFSET;
+	val |= CHNL_IMG_CTRL_FORMAT(dst_fmt->color);
 
 	pipe->cscen = 1;
 
@@ -246,13 +246,13 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		/* YUV2RGB */
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
-		val |= (CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB << CHNL_IMG_CTRL_CSC_MODE_OFFSET);
+		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
 		val |= CHNL_IMG_CTRL_YCBCR_MODE;
 	} else if (src_fmt->colorspace == MXC_ISI_CS_RGB &&
 		   dst_fmt->colorspace == MXC_ISI_CS_YUV) {
 		/* RGB2YUV */
 		csc = RGB2YUV;
-		val |= (CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR << CHNL_IMG_CTRL_CSC_MODE_OFFSET);
+		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
 	} else {
 		/* Bypass CSC */
 		pr_info("bypass csc\n");
@@ -283,7 +283,7 @@ void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
 	val &= ~(CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK | CHNL_IMG_CTRL_GBL_ALPHA_EN);
 
 	if (pipe->alphaen)
-		val |= ((pipe->alpha << CHNL_IMG_CTRL_GBL_ALPHA_VAL_OFFSET) |
+		val |= (CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
 			CHNL_IMG_CTRL_GBL_ALPHA_EN);
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
@@ -315,7 +315,7 @@ void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe)
 	if (pipe->chain_buf) {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
-		val |= (CHNL_CTRL_CHAIN_BUF_2_CHAIN << CHNL_CTRL_CHAIN_BUF_OFFSET);
+		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
 
 		mxc_isi_write(pipe, CHNL_CTRL, val);
 	}
@@ -344,8 +344,8 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 
 	pipe->crop = 1;
 	val |= CHNL_IMG_CTRL_CROP_EN;
-	val0 = dst->top | (dst->left << CHNL_CROP_ULC_X_OFFSET);
-	val1 = dst->height | (dst->width << CHNL_CROP_LRC_X_OFFSET);
+	val0 = dst->top | CHNL_CROP_ULC_X(dst->left);
+	val1 = dst->height | CHNL_CROP_LRC_X(dst->width);
 
 	mxc_isi_write(pipe, CHNL_CROP_ULC, val0);
 	mxc_isi_write(pipe, CHNL_CROP_LRC, val1 + val0);
@@ -427,8 +427,7 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val0 |= CHNL_IMG_CTRL_YCBCR_MODE;//YCbCr  Sandor???
 	val0 &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
-	val0 |= (xdec << CHNL_IMG_CTRL_DEC_X_OFFSET) |
-			(ydec << CHNL_IMG_CTRL_DEC_Y_OFFSET);
+	val0 |= CHNL_IMG_CTRL_DEC_X(xdec) | CHNL_IMG_CTRL_DEC_Y(ydec);
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val0);
 
 	if (xscale > ISI_DOWNSCALE_THRESHOLD)
@@ -436,13 +435,13 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	if (yscale > ISI_DOWNSCALE_THRESHOLD)
 		yscale = ISI_DOWNSCALE_THRESHOLD;
 
-	val1 = xscale | (yscale << CHNL_SCALE_FACTOR_Y_SCALE_OFFSET);
+	val1 = xscale | CHNL_SCALE_FACTOR_Y_SCALE(yscale);
 
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR, val1);
 
 	/* Update scale config if scaling enabled */
-	val1 = (compose->height << CHNL_SCL_IMG_CFG_HEIGHT_OFFSET)
-	     | compose->width;
+	val1 = CHNL_SCL_IMG_CFG_HEIGHT(compose->height)
+	     | CHNL_SCL_IMG_CFG_WIDTH(compose->width);
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val1);
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
@@ -488,8 +487,8 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_chain_buf(pipe, src_format);
 
 	/* config output frame size and format */
-	val = (src_format->height << CHNL_IMG_CFG_HEIGHT_OFFSET)
-	    | src_format->width;
+	val = CHNL_IMG_CFG_HEIGHT(src_format->height)
+	    | CHNL_IMG_CFG_WIDTH(src_format->width);
 	mxc_isi_write(pipe, CHNL_IMG_CFG, val);
 
 	/* scale size need to equal input size when scaling disabled*/
@@ -566,7 +565,7 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val |= 0xff << CHNL_CTRL_BLANK_PXL_OFFSET;
+	val |= CHNL_CTRL_BLANK_PXL(0xff);
 
 	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
