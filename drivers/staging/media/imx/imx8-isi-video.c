@@ -364,10 +364,9 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 	const struct mxc_isi_format_info *info;
-	struct mxc_isi_buffer *buf;
 	struct mxc_isi_frame *fmt;
-	struct vb2_buffer *vb2;
 	unsigned long flags;
+	unsigned int i;
 	int ret;
 
 	ret = media_pipeline_start(&pipe->video.vdev.entity, &pipe->pipe);
@@ -408,28 +407,30 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
-	/* add two list member to out_discard list head */
-	pipe->video.buf_discard[0].discard = true;
-	list_add_tail(&pipe->video.buf_discard[0].list, &pipe->video.out_discard);
+	/* Add the discard buffers to the out_discard list. */
+	for (i = 0; i < ARRAY_SIZE(pipe->video.buf_discard); ++i) {
+		struct mxc_isi_buffer *buf = &pipe->video.buf_discard[i];
 
-	pipe->video.buf_discard[1].discard = true;
-	list_add_tail(&pipe->video.buf_discard[1].list, &pipe->video.out_discard);
+		buf->discard = true;
+		list_add_tail(&buf->list, &pipe->video.out_discard);
+	}
 
-	/* ISI channel output buffer 1 */
-	buf = list_first_entry(&pipe->video.out_discard, struct mxc_isi_buffer, list);
-	buf->v4l2_buf.sequence = 0;
-	vb2 = &buf->v4l2_buf.vb2_buf;
-	vb2->state = VB2_BUF_STATE_ACTIVE;
-	mxc_isi_channel_set_outbuf(pipe, buf);
-	list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
+	/*
+	 * Queue two ISI channel output buffers, a discard buffer first, and a
+	 * pending buffer next.
+	 */
+	for (i = 0; i < 2; ++i) {
+		struct list_head *list = i == 0 ? &pipe->video.out_discard
+				       : &pipe->video.out_pending;
+		struct mxc_isi_buffer *buf =
+			list_first_entry(list, struct mxc_isi_buffer, list);
 
-	/* ISI channel output buffer 2 */
-	buf = list_first_entry(&pipe->video.out_pending, struct mxc_isi_buffer, list);
-	buf->v4l2_buf.sequence = 1;
-	vb2 = &buf->v4l2_buf.vb2_buf;
-	vb2->state = VB2_BUF_STATE_ACTIVE;
-	mxc_isi_channel_set_outbuf(pipe, buf);
-	list_move_tail(pipe->video.out_pending.next, &pipe->video.out_active);
+		buf->v4l2_buf.sequence = i;
+		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
+
+		mxc_isi_channel_set_outbuf(pipe, buf);
+		list_move_tail(&buf->list, &pipe->video.out_active);
+	}
 
 	/* Clear frame count */
 	pipe->video.frame_count = 1;
