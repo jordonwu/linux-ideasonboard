@@ -56,9 +56,12 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
 	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
-	struct media_pad *pad = &isi->pipes[masd->port].pads[MXC_ISI_SD_PAD_SINK];
+	struct mxc_isi_pipe *pipe = &isi->pipes[masd->port];
+	struct media_pad *pad = &pipe->pads[MXC_ISI_SD_PAD_SINK];
 
-	dev_dbg(isi->dev, "Bound subdev %s\n", sd->name);
+	dev_dbg(isi->dev, "Bound subdev %s to pipe %u\n", sd->name, masd->port);
+
+	pipe->source = sd;
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
 }
