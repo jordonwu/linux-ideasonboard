@@ -282,6 +282,28 @@ static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
 	return 0;
 }
 
+static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
+{
+	const struct mxc_isi_format_info *info;
+	struct mxc_isi_frame *fmt;
+
+	fmt = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
+
+	if (fmt->format.code != info->mbus_code ||
+	    fmt->format.width != pipe->video.pix.width ||
+	    fmt->format.height != pipe->video.pix.height) {
+		dev_dbg(pipe->isi->dev,
+			"%s: configuration mismatch, 0x%04x/%ux%u != 0x%04x/%ux%u\n",
+			__func__, fmt->format.code, fmt->format.width,
+			fmt->format.height, info->mbus_code,
+			pipe->video.pix.width, pipe->video.pix.height);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
 {
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
@@ -363,8 +385,6 @@ static void mxc_isi_vb2_buffer_queue(struct vb2_buffer *vb2)
 static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	const struct mxc_isi_format_info *info;
-	struct mxc_isi_frame *fmt;
 	unsigned long flags;
 	unsigned int i;
 	int ret;
@@ -377,20 +397,9 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	 * Verify that the configured format matches the output of the
 	 * subdev.
 	 */
-	fmt = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
-	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
-
-        if (fmt->format.code != info->mbus_code ||
-	    fmt->format.width != pipe->video.pix.width ||
-            fmt->format.height != pipe->video.pix.height) {
-		dev_dbg(pipe->isi->dev,
-			"%s: configuration mismatch, 0x%04x/%ux%u != 0x%04x/%ux%u\n",
-			__func__, fmt->format.code, fmt->format.width,
-			fmt->format.height, info->mbus_code,
-			pipe->video.pix.width, pipe->video.pix.height);
-                ret = -EINVAL;
+	ret = mxc_isi_video_validate_format(pipe);
+	if (ret)
 		goto err_stop;
-	}
 
 	/* Create a buffer for discard operation. */
 	ret = mxc_isi_video_alloc_discard_buffer(pipe);
