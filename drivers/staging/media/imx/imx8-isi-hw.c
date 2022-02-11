@@ -479,27 +479,29 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 }
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
-			    const struct mxc_isi_frame *src_f,
-			    const struct mxc_isi_frame *dst_f,
+			    const struct v4l2_mbus_framefmt *src_format,
+			    const struct v4l2_rect *src_compose,
+			    const struct mxc_isi_format_info *src_info,
+			    const struct mxc_isi_format_info *dst_info,
 			    unsigned int pitch)
 {
 	u32 val;
 
 	/* images having higher than 2048 horizontal resolution */
-	mxc_isi_chain_buf(pipe, &src_f->format);
+	mxc_isi_chain_buf(pipe, src_format);
 
 	/* config output frame size and format */
-	val = (src_f->format.height << CHNL_IMG_CFG_HEIGHT_OFFSET)
-	    | src_f->format.width;
+	val = (src_format->height << CHNL_IMG_CFG_HEIGHT_OFFSET)
+	    | src_format->width;
 	mxc_isi_write(pipe, CHNL_IMG_CFG, val);
 
 	/* scale size need to equal input size when scaling disabled*/
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val);
 
 	/* check csc and scaling  */
-	mxc_isi_channel_set_csc(pipe, src_f->info, dst_f->info);
+	mxc_isi_channel_set_csc(pipe, src_info, dst_info);
 
-	mxc_isi_channel_set_scaling(pipe, &src_f->format, &src_f->compose);
+	mxc_isi_channel_set_scaling(pipe, src_format, src_compose);
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe);
