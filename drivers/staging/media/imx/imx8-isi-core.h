@@ -179,6 +179,8 @@ struct mxc_isi_video {
 	struct video_device		vdev;
 	struct media_pad		pad;
 
+	struct mutex			lock;
+
 	struct v4l2_pix_format_mplane	pix;
 	const struct mxc_isi_format_info *fmtinfo;
 	struct mxc_isi_ctrls		ctrls;
@@ -206,7 +208,6 @@ struct mxc_isi_pipe {
 
 	struct mxc_isi_video		video;
 
-	struct mutex			lock;
 	spinlock_t			slock;
 
 	/* manage share ISI channel resource */
