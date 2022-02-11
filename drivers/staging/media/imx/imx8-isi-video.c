@@ -825,9 +825,9 @@ static int mxc_isi_video_open(struct file *file)
 	pm_runtime_get_sync(pipe->isi->dev);
 
 	/* increase usage count for ISI channel */
-	mutex_lock(&pipe->lock);
+	mutex_lock(&pipe->video.lock);
 	atomic_inc(&pipe->usage_count);
-	mutex_unlock(&pipe->lock);
+	mutex_unlock(&pipe->video.lock);
 
 	return 0;
 }
@@ -870,6 +870,8 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	const struct mxc_isi_format_info *fmt;
 	int ret = -ENOMEM;
 
+	mutex_init(&pipe->video.lock);
+
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
@@ -886,7 +888,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	vdev->minor	= -1;
 	vdev->release	= video_device_release_empty;
 	vdev->queue	= q;
-	vdev->lock	= &pipe->lock;
+	vdev->lock	= &pipe->video.lock;
 
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE
 			  | V4L2_CAP_IO_MC;
@@ -905,7 +907,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	q->buf_struct_size = sizeof(struct mxc_isi_buffer);
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->min_buffers_needed = 2;
-	q->lock = &pipe->lock;
+	q->lock = &pipe->video.lock;
 
 	ret = vb2_queue_init(q);
 	if (ret)
@@ -950,7 +952,7 @@ void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
 {
 	struct video_device *vdev = &pipe->video.vdev;
 
-	mutex_lock(&pipe->lock);
+	mutex_lock(&pipe->video.lock);
 
 	if (video_is_registered(vdev)) {
 		video_unregister_device(vdev);
@@ -958,5 +960,5 @@ void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
 		media_entity_cleanup(&vdev->entity);
 	}
 
-	mutex_unlock(&pipe->lock);
+	mutex_unlock(&pipe->video.lock);
 }
