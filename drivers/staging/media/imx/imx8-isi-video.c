@@ -449,7 +449,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	unsigned int i;
 	int ret;
 
-	ret = media_pipeline_start(&pipe->video.vdev.entity, &pipe->pipe);
+	ret = media_pipeline_start(pipe->video.vdev.entity.pads, &pipe->pipe);
 	if (ret < 0)
 		goto err_bufs;
 
@@ -513,7 +513,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 err_free:
 	mxc_isi_video_free_discard_buffer(pipe);
 err_stop:
-	media_pipeline_stop(&pipe->video.vdev.entity);
+	media_pipeline_stop(pipe->video.vdev.entity.pads);
 err_bufs:
 	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_QUEUED);
 	return ret;
@@ -528,7 +528,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_ERROR);
 	mxc_isi_video_free_discard_buffer(pipe);
 
-	media_pipeline_stop(&pipe->video.vdev.entity);
+	media_pipeline_stop(pipe->video.vdev.entity.pads);
 
 	pipe->is_streaming = 0;
 }
