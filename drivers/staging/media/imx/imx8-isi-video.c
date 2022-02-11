@@ -392,6 +392,12 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		goto err_stop;
 	}
 
+	/* Create a buffer for discard operation. */
+	ret = mxc_isi_video_alloc_discard_buffer(pipe);
+	if (ret)
+		goto err_stop;
+
+	/* Initialize the ISI channel. */
 	mxc_isi_channel_init(pipe);
 	mxc_isi_channel_config(pipe,
 			       &pipe->formats[MXC_ISI_SD_PAD_SINK].format,
@@ -399,11 +405,6 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 			       pipe->formats[MXC_ISI_SD_PAD_SINK].info,
 			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info,
 			       pipe->video.pix.plane_fmt[0].bytesperline);
-
-	/* Create a buffer for discard operation */
-	ret = mxc_isi_video_alloc_discard_buffer(pipe);
-	if (ret)
-		goto err_stop;
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
