@@ -808,7 +808,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
-	pix->pixelformat = V4L2_PIX_FMT_YUYV;
+	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
 	__mxc_isi_try_fmt(pix, NULL);
 
 	memset(vdev, 0, sizeof(*vdev));
