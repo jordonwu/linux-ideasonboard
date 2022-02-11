@@ -30,63 +30,20 @@ static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 	return container_of(sd, struct mxc_isi_pipe, sd);
 }
 
-static struct v4l2_subdev *mxc_isi_get_source_subdev(struct mxc_isi_pipe *pipe,
-						     u32 *pad,
-						     const char * const label)
-{
-	struct v4l2_subdev *subdev = &pipe->sd;
-	struct media_pad *source_pad = NULL;
-	struct v4l2_subdev *sen_sd;
-	unsigned int i;
-
-	/* Get remote source pad */
-	for (i = 0; i < subdev->entity.num_pads; i++) {
-		struct media_pad *pad = &subdev->entity.pads[i];
-
-		if (!(pad->flags & MEDIA_PAD_FL_SINK))
-			continue;
-
-		pad = media_entity_remote_pad(pad);
-		if (pad) {
-			source_pad = pad;
-			break;
-		}
-	}
-
-	if (!source_pad) {
-		dev_err(pipe->isi->dev, "%s, No remote pad found!\n", label);
-		return NULL;
-	}
-
-	/* Get remote source pad subdev */
-	sen_sd = media_entity_to_v4l2_subdev(source_pad->entity);
-	if (!sen_sd) {
-		dev_err(pipe->isi->dev, "%s, No remote subdev found!\n", label);
-		return NULL;
-	}
-
-	if (pad)
-		*pad = source_pad->index;
-
-	return sen_sd;
-}
-
 /*
  * mxc_isi_pipeline_enable() - Enable streaming on a pipeline
  */
 int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable)
 {
-	struct v4l2_subdev *src_sd;
 	int ret;
 
-	src_sd = mxc_isi_get_source_subdev(pipe, NULL, __func__);
-	if (!src_sd)
+	if (!pipe->source)
 		return -EPIPE;
 
-	ret = v4l2_subdev_call(src_sd, video, s_stream, enable);
+	ret = v4l2_subdev_call(pipe->source, video, s_stream, enable);
 	if (ret < 0 && ret != -ENOIOCTLCMD) {
 		dev_err(pipe->isi->dev, "subdev %s s_stream failed\n",
-			src_sd->name);
+			pipe->source->name);
 		return ret;
 	}
 
