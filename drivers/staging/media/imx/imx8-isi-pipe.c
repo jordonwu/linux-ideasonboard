@@ -627,8 +627,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 
 	v4l2_set_subdevdata(sd, pipe);
 
-	sd->fwnode = of_fwnode_handle(pipe->isi->dev->of_node);
-
 	/* Default configuration. */
 	mxc_isi_pipe_init_cfg(sd, NULL);
 
