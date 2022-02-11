@@ -777,7 +777,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	atomic_set(&pipe->usage_count, 0);
 
 	spin_lock_init(&pipe->slock);
-	mutex_init(&pipe->lock);
 
 	sd = &pipe->sd;
 	v4l2_subdev_init(sd, &mxc_isi_subdev_ops);
