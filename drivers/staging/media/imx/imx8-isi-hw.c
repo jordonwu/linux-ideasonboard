@@ -225,11 +225,9 @@ void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
 }
 
 static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
-				    const struct mxc_isi_frame *src_f,
-				    const struct mxc_isi_frame *dst_f)
+				    const struct mxc_isi_format_info *src_fmt,
+				    const struct mxc_isi_format_info *dst_fmt)
 {
-	const struct mxc_isi_format_info *src_fmt = src_f->info;
-	const struct mxc_isi_format_info *dst_fmt = dst_f->info;
 	u32 val, csc = 0;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
@@ -367,7 +365,7 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 					const struct v4l2_mbus_framefmt *format,
-					const struct v4l2_rect *compose);
+					const struct v4l2_rect *compose)
 {
 	u32 decx, decy;
 	u32 xscale, yscale;
@@ -499,7 +497,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val);
 
 	/* check csc and scaling  */
-	mxc_isi_channel_set_csc(pipe, src_f, dst_f);
+	mxc_isi_channel_set_csc(pipe, src_f->info, dst_f->info);
 
 	mxc_isi_channel_set_scaling(pipe, &src_f->format, &src_f->compose);
 
