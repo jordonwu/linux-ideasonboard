@@ -345,8 +345,8 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 
 	pipe->crop = 1;
 	val |= CHNL_IMG_CTRL_CROP_EN;
-	val0 = dst->top | CHNL_CROP_ULC_X(dst->left);
-	val1 = dst->height | CHNL_CROP_LRC_X(dst->width);
+	val0 = CHNL_CROP_ULC_X(dst->left) | CHNL_CROP_ULC_Y(dst->top);
+	val1 = CHNL_CROP_LRC_X(dst->width) | CHNL_CROP_LRC_Y(dst->height);
 
 	mxc_isi_write(pipe, CHNL_CROP_ULC, val0);
 	mxc_isi_write(pipe, CHNL_CROP_LRC, val1 + val0);
@@ -357,7 +357,9 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
 {
 	u32 val0;
 
-	mxc_isi_write(pipe, CHNL_SCALE_FACTOR, 0x10001000);
+	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
+		      CHNL_SCALE_FACTOR_Y_SCALE(0x1000) |
+		      CHNL_SCALE_FACTOR_X_SCALE(0x1000));
 
 	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val0 &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
@@ -436,7 +438,8 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	if (yscale > ISI_DOWNSCALE_THRESHOLD)
 		yscale = ISI_DOWNSCALE_THRESHOLD;
 
-	val1 = xscale | CHNL_SCALE_FACTOR_Y_SCALE(yscale);
+	val1 = CHNL_SCALE_FACTOR_Y_SCALE(yscale)
+	     | CHNL_SCALE_FACTOR_X_SCALE(xscale);
 
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR, val1);
 
@@ -472,7 +475,7 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_CTRL, 0);
 
 	if (pipe->chain_buf && pipe->isi->chain)
-		regmap_write(pipe->isi->chain, CHNL_CTRL, 0x0);
+		regmap_write(pipe->isi->chain, CHNL_CTRL, 0);
 }
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
