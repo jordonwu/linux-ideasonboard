@@ -323,10 +323,10 @@ void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe)
 	}
 }
 
-void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe)
+void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
+			      const struct v4l2_rect *src,
+			      const struct v4l2_rect *dst)
 {
-	const struct mxc_isi_frame *src_f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
-	const struct mxc_isi_frame *dst_f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 	u32 val, val0, val1;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
@@ -338,8 +338,7 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe)
 	 * sink pad and convert it to the post-scaler crop rectangle
 	 * internally.
 	 */
-	if ((src_f->compose.height == dst_f->crop.height) &&
-	    (src_f->compose.width == dst_f->crop.width)) {
+	if (src->height == dst->height && src->width == dst->width) {
 		pipe->crop = 0;
 		mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 		return;
@@ -347,8 +346,8 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe)
 
 	pipe->crop = 1;
 	val |= (CHNL_IMG_CTRL_CROP_EN_ENABLE << CHNL_IMG_CTRL_CROP_EN_OFFSET);
-	val0 = dst_f->crop.top | (dst_f->crop.left << CHNL_CROP_ULC_X_OFFSET);
-	val1 = dst_f->crop.height | (dst_f->crop.width << CHNL_CROP_LRC_X_OFFSET);
+	val0 = dst->top | (dst->left << CHNL_CROP_ULC_X_OFFSET);
+	val1 = dst->height | (dst->width << CHNL_CROP_LRC_X_OFFSET);
 
 	mxc_isi_write(pipe, CHNL_CROP_ULC, val0);
 	mxc_isi_write(pipe, CHNL_CROP_LRC, val1 + val0);
