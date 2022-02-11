@@ -103,11 +103,12 @@ static const u32 mxc_isi_coeffs[2][6] = {
 
 bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
 {
-	u32 status = pipe->status;
 	bool reverse = pipe->isi->pdata->buf_active_reverse;
 
-	return (buf_id == 1) ? ((reverse) ? (status & 0x100) : (status & 0x200)) :
-			       ((reverse) ? (status & 0x200) : (status & 0x100));
+	if ((buf_id == 1 && reverse) || (buf_id != 1 && !reverse))
+		return pipe->status & CHNL_STS_BUF1_ACTIVE;
+	else
+		return pipe->status & CHNL_STS_BUF2_ACTIVE;
 }
 
 static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
