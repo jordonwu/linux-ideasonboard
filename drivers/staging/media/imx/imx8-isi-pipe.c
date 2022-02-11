@@ -402,7 +402,6 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_selection *sel)
 {
 	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
-	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *rect;
 	unsigned long flags;
@@ -445,8 +444,6 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 			ret = -EINVAL;
 			break;
 		}
-
-		f = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
 
 		/* The sink crop is bound by the sink format downscaling only). */
 		format = mxc_isi_pipe_get_pad_format(pipe, state, sel->which,
