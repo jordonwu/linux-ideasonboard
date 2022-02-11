@@ -239,6 +239,7 @@ struct mxc_isi_video {
 	struct media_pad		pad;
 
 	struct v4l2_pix_format_mplane	pix;
+	const struct mxc_isi_format_info *fmtinfo;
 	struct mxc_isi_ctrls		ctrls;
 
 	struct vb2_queue		vb2_q;
