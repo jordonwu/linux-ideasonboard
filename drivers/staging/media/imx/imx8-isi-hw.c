@@ -367,8 +367,7 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
 }
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
-					const struct mxc_isi_frame *src_f,
-					const struct mxc_isi_frame *dst_f)
+					const struct mxc_isi_frame *src_f)
 {
 	u32 decx, decy;
 	u32 xscale, yscale;
@@ -503,7 +502,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	/* check csc and scaling  */
 	mxc_isi_channel_set_csc(pipe, src_f, dst_f);
 
-	mxc_isi_channel_set_scaling(pipe, src_f, dst_f);
+	mxc_isi_channel_set_scaling(pipe, src_f);
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe);
