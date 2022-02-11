@@ -324,8 +324,10 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				struct mxc_isi_buffer *buf);
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
-			    const struct mxc_isi_frame *src_f,
-			    const struct mxc_isi_frame *dst_f,
+			    const struct v4l2_mbus_framefmt *src_format,
+			    const struct v4l2_rect *src_compose,
+			    const struct mxc_isi_format_info *src_info,
+			    const struct mxc_isi_format_info *dst_info,
 			    unsigned int pitch);
 
 void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
