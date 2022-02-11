@@ -112,15 +112,9 @@ struct frame_addr {
 /**
  * struct mxc_isi_frame - source/target frame properties
  * @info:	Format information
- * @format:	Media bus format
- * @crop:	Crop rectangle
- * @compose:	Compose rectangle
  */
 struct mxc_isi_frame {
 	const struct mxc_isi_bus_format_info *info;
-	struct v4l2_mbus_framefmt format;
-	struct v4l2_rect crop;
-	struct v4l2_rect compose;
 };
 
 struct mxc_isi_buffer {
