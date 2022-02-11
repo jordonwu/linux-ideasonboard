@@ -354,8 +354,11 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	}
 
 	mxc_isi_channel_init(pipe);
-	mxc_isi_channel_config(pipe, &pipe->formats[MXC_ISI_SD_PAD_SINK],
-			       &pipe->formats[MXC_ISI_SD_PAD_SOURCE],
+	mxc_isi_channel_config(pipe,
+			       &pipe->formats[MXC_ISI_SD_PAD_SINK].format,
+			       &pipe->formats[MXC_ISI_SD_PAD_SINK].compose,
+			       pipe->formats[MXC_ISI_SD_PAD_SINK].info,
+			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info,
 			       pipe->video.pix.plane_fmt[0].bytesperline);
 
 	/* Create a buffer for discard operation */
