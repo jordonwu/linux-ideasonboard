@@ -25,6 +25,11 @@
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
 
+static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
+{
+	return container_of(sd, struct mxc_isi_pipe, sd);
+}
+
 static struct v4l2_subdev *mxc_isi_get_source_subdev(struct mxc_isi_pipe *pipe,
 						     u32 *pad,
 						     const char * const label)
@@ -204,7 +209,7 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 {
 	enum v4l2_subdev_format_whence which = state ? V4L2_SUBDEV_FORMAT_TRY
 					     : V4L2_SUBDEV_FORMAT_ACTIVE;
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct v4l2_mbus_framefmt *fmt_source;
 	struct v4l2_mbus_framefmt *fmt_sink;
 	struct v4l2_rect *compose;
@@ -254,7 +259,7 @@ static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
 				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_format *fmt)
 {
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct v4l2_mbus_framefmt *format;
 
 	format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which, fmt->pad);
@@ -270,7 +275,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 				struct v4l2_subdev_state *state,
 				struct v4l2_subdev_format *fmt)
 {
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
 	const struct mxc_isi_format_info *info;
 	struct v4l2_mbus_framefmt *format;
@@ -348,7 +353,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_state *state,
 				      struct v4l2_subdev_selection *sel)
 {
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	const struct v4l2_mbus_framefmt *format;
 	const struct v4l2_rect *rect;
 	int ret = 0;
@@ -422,7 +427,7 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 				      struct v4l2_subdev_state *state,
 				      struct v4l2_subdev_selection *sel)
 {
-	struct mxc_isi_pipe *pipe = v4l2_get_subdevdata(sd);
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct mxc_isi_frame *f = &pipe->formats[MXC_ISI_SD_PAD_SINK];
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *rect;
@@ -625,8 +630,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	if (ret)
 		return ret;
 
-	v4l2_set_subdevdata(sd, pipe);
-
 	/* Default configuration. */
 	mxc_isi_pipe_init_cfg(sd, NULL);
 
@@ -658,7 +661,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 
 error:
 	media_entity_cleanup(&sd->entity);
-	v4l2_set_subdevdata(sd, NULL);
 
 	return ret;
 }
@@ -668,7 +670,6 @@ void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe)
 	struct v4l2_subdev *sd = &pipe->sd;
 
 	media_entity_cleanup(&sd->entity);
-	v4l2_set_subdevdata(sd, NULL);
 }
 
 int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe)
