@@ -24,6 +24,7 @@
 #include <media/v4l2-dev.h>
 #include <media/v4l2-fh.h>
 #include <media/v4l2-ioctl.h>
+#include <media/v4l2-subdev.h>
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 #include <media/videobuf2-v4l2.h>
@@ -313,24 +314,31 @@ static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
 
 static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
 {
+	const struct v4l2_mbus_framefmt *format;
 	const struct mxc_isi_format_info *info;
-	struct mxc_isi_frame *fmt;
+	struct v4l2_subdev_state *state;
+	struct v4l2_subdev *sd = &pipe->sd;
+	int ret = 0;
 
-	fmt = &pipe->formats[MXC_ISI_SD_PAD_SOURCE];
+	state = v4l2_subdev_lock_active_state(sd);
+
 	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
+	format = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SOURCE);
 
-	if (fmt->format.code != info->mbus_code ||
-	    fmt->format.width != pipe->video.pix.width ||
-	    fmt->format.height != pipe->video.pix.height) {
+	if (format->code != info->mbus_code ||
+	    format->width != pipe->video.pix.width ||
+	    format->height != pipe->video.pix.height) {
 		dev_dbg(pipe->isi->dev,
 			"%s: configuration mismatch, 0x%04x/%ux%u != 0x%04x/%ux%u\n",
-			__func__, fmt->format.code, fmt->format.width,
-			fmt->format.height, info->mbus_code,
-			pipe->video.pix.width, pipe->video.pix.height);
-		return -EINVAL;
+			__func__, format->code, format->width, format->height,
+			info->mbus_code, pipe->video.pix.width,
+			pipe->video.pix.height);
+		ret = -EINVAL;
 	}
 
-	return 0;
+	v4l2_subdev_unlock_state(state);
+
+	return ret;
 }
 
 static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
