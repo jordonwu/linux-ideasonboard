@@ -446,12 +446,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Initialize the ISI channel. */
 	mxc_isi_channel_init(pipe);
-	mxc_isi_channel_config(pipe,
-			       &pipe->formats[MXC_ISI_SD_PAD_SINK].format,
-			       &pipe->formats[MXC_ISI_SD_PAD_SINK].compose,
-			       pipe->formats[MXC_ISI_SD_PAD_SINK].info,
-			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info,
-			       pipe->video.pix.plane_fmt[0].bytesperline);
+	mxc_isi_channel_set_stride(pipe,
+				   pipe->video.pix.plane_fmt[0].bytesperline);
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
@@ -484,9 +480,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	pipe->video.frame_count = 1;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	mxc_isi_channel_enable(pipe);
-	ret = mxc_isi_pipeline_enable(pipe, 1);
-	if (ret < 0 && ret != -ENOIOCTLCMD)
+	ret = mxc_isi_pipe_enable(pipe);
+	if (ret)
 		goto err_free;
 
 	pipe->is_streaming = 1;
@@ -506,8 +501,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 
-	mxc_isi_pipeline_enable(pipe, 0);
-	mxc_isi_channel_disable(pipe);
+	mxc_isi_pipe_disable(pipe);
 
 	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_ERROR);
 	mxc_isi_video_free_discard_buffer(pipe);

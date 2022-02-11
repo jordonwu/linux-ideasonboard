@@ -452,6 +452,12 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	return;
 }
 
+void mxc_isi_channel_set_stride(struct mxc_isi_pipe *pipe, u32 stride)
+{
+	/* line pitch */
+	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH, stride);
+}
+
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
 {
 	u32 val;
@@ -481,8 +487,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    const struct mxc_isi_format_info *src_info,
-			    const struct mxc_isi_format_info *dst_info,
-			    unsigned int pitch)
+			    const struct mxc_isi_format_info *dst_info)
 {
 	u32 val;
 
@@ -504,9 +509,6 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe);
-
-	/* line pitch */
-	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH, pitch);
 
 	/* TODO */
 	mxc_isi_channel_set_flip(pipe);
