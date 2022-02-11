@@ -121,7 +121,7 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 		val |= (CHNL_CTRL_CHAIN_BUF_2_CHAIN << CHNL_CTRL_CHAIN_BUF_OFFSET);
 		mxc_isi_write(pipe, CHNL_CTRL, val);
 		if (pipe->isi->chain)
-			regmap_write(pipe->isi->chain, CHNL_CTRL, CHNL_CTRL_CLK_EN_MASK);
+			regmap_write(pipe->isi->chain, CHNL_CTRL, CHNL_CTRL_CLK_EN);
 		pipe->chain_buf = 1;
 	} else {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
@@ -166,13 +166,13 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, paddr->y);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, paddr->cb);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, paddr->cr);
-		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR_MASK;
+		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR;
 		buf->id = MXC_ISI_BUF1;
 	} else if (framecount == 1 || mxc_isi_is_buf_active(pipe, 1)) {
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, paddr->y);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, paddr->cb);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, paddr->cr);
-		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR_MASK;
+		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR;
 		buf->id = MXC_ISI_BUF2;
 	}
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
@@ -214,12 +214,12 @@ void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_VFLIP_EN_MASK | CHNL_IMG_CTRL_HFLIP_EN_MASK);
+	val &= ~(CHNL_IMG_CTRL_VFLIP_EN | CHNL_IMG_CTRL_HFLIP_EN);
 
 	if (pipe->vflip)
-		val |= (CHNL_IMG_CTRL_VFLIP_EN_ENABLE << CHNL_IMG_CTRL_VFLIP_EN_OFFSET);
+		val |= CHNL_IMG_CTRL_VFLIP_EN;
 	if (pipe->hflip)
-		val |= (CHNL_IMG_CTRL_HFLIP_EN_ENABLE << CHNL_IMG_CTRL_HFLIP_EN_OFFSET);
+		val |= CHNL_IMG_CTRL_HFLIP_EN;
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
@@ -232,8 +232,8 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~(CHNL_IMG_CTRL_FORMAT_MASK |
-		 CHNL_IMG_CTRL_YCBCR_MODE_MASK |
-		 CHNL_IMG_CTRL_CSC_BYPASS_MASK |
+		 CHNL_IMG_CTRL_YCBCR_MODE |
+		 CHNL_IMG_CTRL_CSC_BYPASS |
 		 CHNL_IMG_CTRL_CSC_MODE_MASK);
 
 	/* set outbuf format */
@@ -247,7 +247,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
 		val |= (CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB << CHNL_IMG_CTRL_CSC_MODE_OFFSET);
-		val |= (CHNL_IMG_CTRL_YCBCR_MODE_ENABLE << CHNL_IMG_CTRL_YCBCR_MODE_OFFSET);
+		val |= CHNL_IMG_CTRL_YCBCR_MODE;
 	} else if (src_fmt->colorspace == MXC_ISI_CS_RGB &&
 		   dst_fmt->colorspace == MXC_ISI_CS_YUV) {
 		/* RGB2YUV */
@@ -257,7 +257,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		/* Bypass CSC */
 		pr_info("bypass csc\n");
 		pipe->cscen = 0;
-		val |= CHNL_IMG_CTRL_CSC_BYPASS_ENABLE;
+		val |= CHNL_IMG_CTRL_CSC_BYPASS;
 	}
 
 	pr_info("input colorspace %u", src_fmt->colorspace);
@@ -280,11 +280,11 @@ void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK | CHNL_IMG_CTRL_GBL_ALPHA_EN_MASK);
+	val &= ~(CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK | CHNL_IMG_CTRL_GBL_ALPHA_EN);
 
 	if (pipe->alphaen)
 		val |= ((pipe->alpha << CHNL_IMG_CTRL_GBL_ALPHA_VAL_OFFSET) |
-			(CHNL_IMG_CTRL_GBL_ALPHA_EN_ENABLE << CHNL_IMG_CTRL_GBL_ALPHA_EN_OFFSET));
+			CHNL_IMG_CTRL_GBL_ALPHA_EN);
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
@@ -328,7 +328,7 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 	u32 val, val0, val1;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_CROP_EN_MASK;
+	val &= ~CHNL_IMG_CTRL_CROP_EN;
 
 	/*
 	 * FIXME: To take advantage of scaler phase configuration, and to allow
@@ -343,7 +343,7 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 	}
 
 	pipe->crop = 1;
-	val |= (CHNL_IMG_CTRL_CROP_EN_ENABLE << CHNL_IMG_CTRL_CROP_EN_OFFSET);
+	val |= CHNL_IMG_CTRL_CROP_EN;
 	val0 = dst->top | (dst->left << CHNL_CROP_ULC_X_OFFSET);
 	val1 = dst->height | (dst->width << CHNL_CROP_LRC_X_OFFSET);
 
@@ -425,7 +425,7 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	}
 
 	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val0 |= CHNL_IMG_CTRL_YCBCR_MODE_MASK;//YCbCr  Sandor???
+	val0 |= CHNL_IMG_CTRL_YCBCR_MODE;//YCbCr  Sandor???
 	val0 &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
 	val0 |= (xdec << CHNL_IMG_CTRL_DEC_X_OFFSET) |
 			(ydec << CHNL_IMG_CTRL_DEC_Y_OFFSET);
@@ -459,20 +459,17 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
 
 	/* Init channel clk first */
 	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val |= (CHNL_CTRL_CLK_EN_ENABLE << CHNL_CTRL_CLK_EN_OFFSET);
+	val |= CHNL_CTRL_CLK_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 {
-	u32 val;
-
 	/* sw reset */
 	mxc_isi_channel_sw_reset(pipe);
 
 	/* deinit channel clk first */
-	val = (CHNL_CTRL_CLK_EN_DISABLE << CHNL_CTRL_CLK_EN_OFFSET);
-	mxc_isi_write(pipe, CHNL_CTRL, val);
+	mxc_isi_write(pipe, CHNL_CTRL, 0);
 
 	if (pipe->chain_buf && pipe->isi->chain)
 		regmap_write(pipe->isi->chain, CHNL_CTRL, 0x0);
@@ -517,11 +514,11 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_channel_set_panic_threshold(pipe);
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val &= ~CHNL_CTRL_CHNL_BYPASS_MASK;
+	val &= ~CHNL_CTRL_CHNL_BYPASS;
 
 	/*  Bypass channel */
 	if (!pipe->cscen && !pipe->scale)
-		val |= (CHNL_CTRL_CHNL_BYPASS_ENABLE << CHNL_CTRL_CHNL_BYPASS_OFFSET);
+		val |= CHNL_CTRL_CHNL_BYPASS;
 
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
@@ -536,10 +533,10 @@ static void mxc_isi_enable_irq(struct mxc_isi_pipe *pipe)
 	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
 	u32 val;
 
-	val = CHNL_IER_FRM_RCVD_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_U_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_V_EN_MASK |
-		CHNL_IER_AXI_WR_ERR_Y_EN_MASK;
+	val = CHNL_IER_FRM_RCVD_EN |
+		CHNL_IER_AXI_WR_ERR_U_EN |
+		CHNL_IER_AXI_WR_ERR_V_EN |
+		CHNL_IER_AXI_WR_ERR_Y_EN;
 
 	/* Y/U/V overflow enable */
 	val |= ier_reg->oflw_y_buf_en.mask |
@@ -571,8 +568,7 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val |= 0xff << CHNL_CTRL_BLANK_PXL_OFFSET;
 
-	val &= ~CHNL_CTRL_CHNL_EN_MASK;
-	val |= CHNL_CTRL_CHNL_EN_ENABLE << CHNL_CTRL_CHNL_EN_OFFSET;
+	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 
 	mxc_isi_clean_registers(pipe);
@@ -589,9 +585,8 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 	mxc_isi_disable_irq(pipe);
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val &= ~(CHNL_CTRL_CHNL_EN_MASK | CHNL_CTRL_CLK_EN_MASK);
-	val |= (CHNL_CTRL_CHNL_EN_DISABLE << CHNL_CTRL_CHNL_EN_OFFSET);
-	val |= (CHNL_CTRL_CLK_EN_DISABLE << CHNL_CTRL_CLK_EN_OFFSET);
+	val &= ~CHNL_CTRL_CHNL_EN;
+	val &= ~CHNL_CTRL_CLK_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
