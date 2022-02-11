@@ -297,6 +297,8 @@ struct mxc_isi_dev {
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
+int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe);
+void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe);
 
 const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code);
 int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable);

@@ -115,11 +115,10 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		struct mxc_isi_pipe *pipe = &isi->pipes[i];
 
-		ret = v4l2_device_register_subdev(v4l2_dev, &pipe->sd);
+		ret = mxc_isi_pipe_register(pipe);
 		if (ret < 0) {
-			dev_err(isi->dev,
-				"Failed to register ISI pipe%u subdev: %d\n", i,
-				ret);
+			dev_err(isi->dev, "Failed to register ISI pipe%u: %d\n",
+				i, ret);
 			goto err_v4l2;
 		}
 	}
@@ -171,11 +170,17 @@ err_media:
 
 static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *isi)
 {
+	unsigned int i;
+
 	v4l2_async_nf_unregister(&isi->notifier);
 	v4l2_async_nf_cleanup(&isi->notifier);
 
 	v4l2_device_unregister(&isi->v4l2_dev);
 	media_device_unregister(&isi->media_dev);
+
+	for (i = 0; i < isi->pdata->num_channels; ++i)
+		mxc_isi_pipe_unregister(&isi->pipes[i]);
+
 	media_device_cleanup(&isi->media_dev);
 }
 
