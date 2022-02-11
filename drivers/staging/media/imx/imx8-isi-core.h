@@ -228,6 +228,12 @@ struct mxc_isi_plat_data {
 	bool buf_active_reverse;
 };
 
+struct mxc_isi_dma_buffer {
+	size_t				size;
+	void				*addr;
+	dma_addr_t			dma;
+};
+
 struct mxc_isi_video {
 	struct video_device		vdev;
 	struct media_pad		pad;
@@ -242,10 +248,7 @@ struct mxc_isi_video {
 	struct list_head		out_discard;
 	u32				frame_count;
 
-	/* dirty buffer */
-	size_t				discard_size[MXC_MAX_PLANES];
-	void				*discard_buffer[MXC_MAX_PLANES];
-	dma_addr_t			discard_buffer_dma[MXC_MAX_PLANES];
+	struct mxc_isi_dma_buffer	discard_buffer[MXC_MAX_PLANES];
 };
 
 struct mxc_isi_pipe {

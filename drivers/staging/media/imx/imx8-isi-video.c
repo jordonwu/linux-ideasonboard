@@ -247,13 +247,14 @@ static void mxc_isi_video_free_discard_buffer(struct mxc_isi_pipe *pipe)
 	unsigned int i;
 
 	for (i = 0; i < video->pix.num_planes; i++) {
-		if (!video->discard_buffer[i])
+		struct mxc_isi_dma_buffer *buf = &video->discard_buffer[i];
+
+		if (!buf->addr)
 			continue;
 
-		dma_free_coherent(pipe->isi->dev, video->discard_size[i],
-				  video->discard_buffer[i],
-				  video->discard_buffer_dma[i]);
-		video->discard_buffer[i] = NULL;
+		dma_free_coherent(pipe->isi->dev, buf->size, buf->addr,
+				  buf->dma);
+		buf->addr = NULL;
 	}
 }
 
@@ -263,21 +264,19 @@ static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
 	unsigned int i;
 
 	for (i = 0; i < video->pix.num_planes; i++) {
-		video->discard_size[i] = PAGE_ALIGN(video->pix.plane_fmt[i].sizeimage);
-		video->discard_buffer[i] =
-			dma_alloc_coherent(pipe->isi->dev, video->discard_size[i],
-					   &video->discard_buffer_dma[i],
-					   GFP_DMA | GFP_KERNEL);
-		if (!video->discard_buffer[i]) {
+		struct mxc_isi_dma_buffer *buf = &video->discard_buffer[i];
+
+		buf->size = PAGE_ALIGN(video->pix.plane_fmt[i].sizeimage);
+		buf->addr = dma_alloc_coherent(pipe->isi->dev, buf->size,
+					       &buf->dma, GFP_DMA | GFP_KERNEL);
+		if (!buf->addr) {
 			mxc_isi_video_free_discard_buffer(pipe);
 			return -ENOMEM;
 		}
 
 		dev_dbg(pipe->isi->dev,
 			"%s: num_plane=%d discard_size=%zu discard_buffer=%p\n",
-			__func__, i,
-			video->discard_size[i],
-			video->discard_buffer[i]);
+			__func__, i, buf->size, buf->addr);
 	}
 
 	return 0;
