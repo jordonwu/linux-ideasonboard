@@ -305,9 +305,10 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
 int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe);
 void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe);
+int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe);
+void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe);
 
 const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code);
-int mxc_isi_pipeline_enable(struct mxc_isi_pipe *pipe, bool enable);
 
 int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 			   struct v4l2_device *v4l2_dev);
@@ -317,6 +318,7 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
+void mxc_isi_channel_set_stride(struct mxc_isi_pipe *pipe, u32 stride);
 void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe);
@@ -331,8 +333,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    const struct mxc_isi_format_info *src_info,
-			    const struct mxc_isi_format_info *dst_info,
-			    unsigned int pitch);
+			    const struct mxc_isi_format_info *dst_info);
 
 void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
 
