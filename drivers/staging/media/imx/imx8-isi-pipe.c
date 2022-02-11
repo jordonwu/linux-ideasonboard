@@ -520,14 +520,14 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 	status = mxc_isi_get_irq_status(pipe);
 	pipe->status = status;
 
-	if (status & CHNL_STS_FRM_STRD_MASK)
+	if (status & CHNL_STS_FRM_STRD)
 		mxc_isi_cap_frame_write_done(pipe);
 
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
-	if (status & (CHNL_STS_AXI_WR_ERR_Y_MASK |
-		      CHNL_STS_AXI_WR_ERR_U_MASK |
-		      CHNL_STS_AXI_WR_ERR_V_MASK))
+	if (status & (CHNL_STS_AXI_WR_ERR_Y |
+		      CHNL_STS_AXI_WR_ERR_U |
+		      CHNL_STS_AXI_WR_ERR_V))
 		dev_dbg(pipe->isi->dev, "%s: IRQ AXI Error stat=0x%X\n",
 			__func__, status);
 
