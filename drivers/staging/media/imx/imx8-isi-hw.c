@@ -366,7 +366,8 @@ static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
 }
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
-					const struct mxc_isi_frame *src_f)
+					const struct v4l2_mbus_framefmt *format,
+					const struct v4l2_rect *compose);
 {
 	u32 decx, decy;
 	u32 xscale, yscale;
@@ -374,11 +375,10 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	u32 val0, val1;
 
 	dev_dbg(pipe->isi->dev, "input_size %ux%u, output_size %ux%u\n",
-		src_f->format.width, src_f->format.height,
-		src_f->compose.width, src_f->compose.height);
+		format->width, format->height, compose->width, compose->height);
 
-	if (src_f->format.height == src_f->compose.height &&
-	    src_f->format.width == src_f->compose.width) {
+	if (format->height == compose->height &&
+	    format->width == compose->width) {
 		pipe->scale = 0;
 		mxc_isi_channel_clear_scaling(pipe);
 		dev_dbg(pipe->isi->dev, "%s: no scale\n", __func__);
@@ -387,8 +387,8 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 
 	pipe->scale = 1;
 
-	decx = src_f->format.width / src_f->compose.width;
-	decy = src_f->format.height / src_f->compose.height;
+	decx = format->width / compose->width;
+	decy = format->height / compose->height;
 
 	if (decx > 1) {
 		/* Down */
@@ -402,11 +402,11 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 			decx = 8;
 			xdec = 3;
 		}
-		xscale = src_f->format.width * 0x1000
-		       / (src_f->compose.width * decx);
+		xscale = format->width * 0x1000
+		       / (compose->width * decx);
 	} else {
 		/* Up  */
-		xscale = src_f->format.width * 0x1000 / src_f->compose.width;
+		xscale = format->width * 0x1000 / compose->width;
 	}
 
 	if (decy > 1) {
@@ -420,10 +420,10 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 			decy = 8;
 			ydec = 3;
 		}
-		yscale = src_f->format.height * 0x1000
-		       / (src_f->compose.height * decy);
+		yscale = format->height * 0x1000
+		       / (compose->height * decy);
 	} else {
-		yscale = src_f->format.height * 0x1000 / src_f->compose.height;
+		yscale = format->height * 0x1000 / compose->height;
 	}
 
 	val0 = mxc_isi_read(pipe, CHNL_IMG_CTRL);
@@ -443,8 +443,8 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR, val1);
 
 	/* Update scale config if scaling enabled */
-	val1 = (src_f->compose.height << CHNL_SCL_IMG_CFG_HEIGHT_OFFSET)
-	     | src_f->compose.width;
+	val1 = (compose->height << CHNL_SCL_IMG_CFG_HEIGHT_OFFSET)
+	     | compose->width;
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val1);
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
@@ -501,7 +501,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	/* check csc and scaling  */
 	mxc_isi_channel_set_csc(pipe, src_f, dst_f);
 
-	mxc_isi_channel_set_scaling(pipe, src_f);
+	mxc_isi_channel_set_scaling(pipe, &src_f->format, &src_f->compose);
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe);
