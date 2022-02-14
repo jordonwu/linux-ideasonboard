@@ -6,7 +6,6 @@
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/io.h>
-#include <linux/regmap.h>
 #include <linux/types.h>
 
 #include <media/videobuf2-dma-contig.h>
@@ -121,8 +120,7 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
 		mxc_isi_write(pipe, CHNL_CTRL, val);
-		if (pipe->isi->chain)
-			regmap_write(pipe->isi->chain, CHNL_CTRL, CHNL_CTRL_CLK_EN);
+		mxc_isi_write(pipe + 1, CHNL_CTRL, CHNL_CTRL_CLK_EN);
 		pipe->chain_buf = 1;
 	} else {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
@@ -479,8 +477,8 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 	/* deinit channel clk first */
 	mxc_isi_write(pipe, CHNL_CTRL, 0);
 
-	if (pipe->chain_buf && pipe->isi->chain)
-		regmap_write(pipe->isi->chain, CHNL_CTRL, 0);
+	if (pipe->chain_buf)
+		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
 }
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
