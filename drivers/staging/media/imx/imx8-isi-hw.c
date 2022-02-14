@@ -224,31 +224,27 @@ void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
 }
 
 static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
-				    const struct mxc_isi_format_info *src_fmt,
-				    const struct mxc_isi_format_info *dst_fmt,
+				    enum mxc_isi_encoding src_encoding,
+				    enum mxc_isi_encoding dst_encoding,
 				    bool *bypass)
 {
 	bool cscen = true;
 	u32 val, csc = 0;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_FORMAT_MASK |
-		 CHNL_IMG_CTRL_YCBCR_MODE |
+	val &= ~(CHNL_IMG_CTRL_YCBCR_MODE |
 		 CHNL_IMG_CTRL_CSC_BYPASS |
 		 CHNL_IMG_CTRL_CSC_MODE_MASK);
 
-	/* set outbuf format */
-	val |= CHNL_IMG_CTRL_FORMAT(dst_fmt->isi_format);
-
-	if (src_fmt->encoding == MXC_ISI_ENC_YUV &&
-	    dst_fmt->encoding == MXC_ISI_ENC_RGB) {
+	if (src_encoding == MXC_ISI_ENC_YUV &&
+	    dst_encoding == MXC_ISI_ENC_RGB) {
 		/* YUV2RGB */
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
 		val |= CHNL_IMG_CTRL_YCBCR_MODE;
-	} else if (src_fmt->encoding == MXC_ISI_ENC_RGB &&
-		   dst_fmt->encoding == MXC_ISI_ENC_YUV) {
+	} else if (src_encoding == MXC_ISI_ENC_RGB &&
+		   dst_encoding == MXC_ISI_ENC_YUV) {
 		/* RGB2YUV */
 		csc = RGB2YUV;
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
@@ -259,8 +255,8 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		val |= CHNL_IMG_CTRL_CSC_BYPASS;
 	}
 
-	pr_info("input encoding %u", src_fmt->encoding);
-	pr_info("output fmt %p4cc", &dst_fmt->fourcc);
+	pr_info("input encoding %u", src_encoding);
+	pr_info("output encoding %u", dst_encoding);
 
 	if (cscen) {
 		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
@@ -483,7 +479,8 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
-			    const struct mxc_isi_format_info *src_info,
+			    enum mxc_isi_encoding src_encoding,
+			    enum mxc_isi_encoding dst_encoding,
 			    const struct mxc_isi_format_info *dst_info)
 {
 	bool csc_bypass;
@@ -502,7 +499,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val);
 
 	/* check csc and scaling  */
-	mxc_isi_channel_set_csc(pipe, src_info, dst_info, &csc_bypass);
+	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
 
 	mxc_isi_channel_set_scaling(pipe, src_format, src_compose,
 				    &scaler_bypass);
@@ -516,6 +513,14 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_channel_set_alpha(pipe);
 
 	mxc_isi_channel_set_panic_threshold(pipe);
+
+	/* set outbuf format */
+	pr_info("output fmt %p4cc", &dst_info->fourcc);
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
+	val |= CHNL_IMG_CTRL_FORMAT(dst_info->isi_format);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val &= ~CHNL_CTRL_CHNL_BYPASS;
