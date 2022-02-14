@@ -79,7 +79,7 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.depth		= { 24 },
 		.encoding	= MXC_ISI_ENC_RGB,
 	}, {
-		.mbus_code	= MEDIA_BUS_FMT_BGR888_1X24,
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_BGR24,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_RGB888P,
 		.memplanes	= 1,
