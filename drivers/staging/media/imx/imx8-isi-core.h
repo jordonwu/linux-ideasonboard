@@ -275,7 +275,8 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
-			    const struct mxc_isi_format_info *src_info,
+			    enum mxc_isi_encoding src_encoding,
+			    enum mxc_isi_encoding dst_encoding,
 			    const struct mxc_isi_format_info *dst_info);
 
 void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
