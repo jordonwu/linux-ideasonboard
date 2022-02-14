@@ -41,8 +41,7 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 			       &pipe->formats[MXC_ISI_SD_PAD_SINK].format,
 			       &pipe->formats[MXC_ISI_SD_PAD_SINK].compose,
 			       pipe->formats[MXC_ISI_SD_PAD_SINK].info->encoding,
-			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info->encoding,
-			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info);
+			       pipe->formats[MXC_ISI_SD_PAD_SOURCE].info->encoding);
 
 	mxc_isi_channel_enable(pipe);
 

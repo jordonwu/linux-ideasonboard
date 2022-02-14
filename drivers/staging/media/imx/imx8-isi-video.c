@@ -447,8 +447,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Initialize the ISI channel. */
 	mxc_isi_channel_init(pipe);
-	mxc_isi_channel_set_stride(pipe,
-				   pipe->video.pix.plane_fmt[0].bytesperline);
+	mxc_isi_channel_set_output_format(pipe, pipe->video.fmtinfo,
+					  &pipe->video.pix);
 
 	spin_lock_irqsave(&pipe->slock, flags);
 
