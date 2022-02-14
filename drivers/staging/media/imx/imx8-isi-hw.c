@@ -338,12 +338,10 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 	 * internally.
 	 */
 	if (src->height == dst->height && src->width == dst->width) {
-		pipe->crop = 0;
 		mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 		return;
 	}
 
-	pipe->crop = 1;
 	val |= CHNL_IMG_CTRL_CROP_EN;
 	val0 = CHNL_CROP_ULC_X(dst->left) | CHNL_CROP_ULC_Y(dst->top);
 	val1 = CHNL_CROP_LRC_X(dst->width) | CHNL_CROP_LRC_Y(dst->height);
