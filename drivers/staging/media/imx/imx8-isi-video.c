@@ -131,6 +131,13 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.depth		= { 16 },
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
+		.mbus_code	= MEDIA_BUS_FMT_Y14_1X14,
+		.fourcc		= V4L2_PIX_FMT_Y14,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.fourcc		= V4L2_PIX_FMT_SBGGR8,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW8,
@@ -210,6 +217,34 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
 		.fourcc		= V4L2_PIX_FMT_SRGGB12,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR14_1X14,
+		.fourcc		= V4L2_PIX_FMT_SBGGR14,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGBRG14_1X14,
+		.fourcc		= V4L2_PIX_FMT_SGBRG14,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGRBG14_1X14,
+		.fourcc		= V4L2_PIX_FMT_SGRBG14,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SRGGB14_1X14,
+		.fourcc		= V4L2_PIX_FMT_SRGGB14,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW16,
 		.memplanes	= 1,
 		.depth		= { 16 },

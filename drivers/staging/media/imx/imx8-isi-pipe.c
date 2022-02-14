@@ -75,6 +75,12 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
+		.mbus_code	= MEDIA_BUS_FMT_Y14_1X14,
+		.output		= MEDIA_BUS_FMT_Y14_1X14,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.output		= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
@@ -143,6 +149,30 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
 		.output		= MEDIA_BUS_FMT_SRGGB12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR14_1X14,
+		.output		= MEDIA_BUS_FMT_SBGGR14_1X14,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGBRG14_1X14,
+		.output		= MEDIA_BUS_FMT_SGBRG14_1X14,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGRBG14_1X14,
+		.output		= MEDIA_BUS_FMT_SGRBG14_1X14,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SRGGB14_1X14,
+		.output		= MEDIA_BUS_FMT_SRGGB14_1X14,
 		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
 				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
