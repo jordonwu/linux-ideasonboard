@@ -228,6 +228,11 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 				    enum mxc_isi_encoding dst_encoding,
 				    bool *bypass)
 {
+	static const char * const encodings[] = {
+		[MXC_ISI_ENC_RAW] = "RAW",
+		[MXC_ISI_ENC_RGB] = "RGB",
+		[MXC_ISI_ENC_YUV] = "YUV",
+	};
 	bool cscen = true;
 	u32 val, csc = 0;
 
@@ -250,13 +255,12 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
 	} else {
 		/* Bypass CSC */
-		pr_info("bypass csc\n");
 		cscen = false;
 		val |= CHNL_IMG_CTRL_CSC_BYPASS;
 	}
 
-	pr_info("input encoding %u", src_encoding);
-	pr_info("output encoding %u", dst_encoding);
+	dev_dbg(pipe->isi->dev, "CSC: %s -> %s\n",
+		encodings[src_encoding], encodings[dst_encoding]);
 
 	if (cscen) {
 		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
@@ -515,7 +519,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_channel_set_panic_threshold(pipe);
 
 	/* set outbuf format */
-	pr_info("output fmt %p4cc", &dst_info->fourcc);
+	dev_dbg(pipe->isi->dev, "output format %p4cc", &dst_info->fourcc);
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
