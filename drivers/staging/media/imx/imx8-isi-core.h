@@ -49,7 +49,8 @@ struct device;
 
 #define MXC_ISI_DEF_WIDTH		1920U
 #define MXC_ISI_DEF_HEIGHT		1080U
-#define MXC_ISI_DEF_MBUS_CODE		MEDIA_BUS_FMT_UYVY8_1X16
+#define MXC_ISI_DEF_MBUS_CODE_SINK	MEDIA_BUS_FMT_UYVY8_1X16
+#define MXC_ISI_DEF_MBUS_CODE_SOURCE	MEDIA_BUS_FMT_YUV8_1X24
 #define MXC_ISI_DEF_PIXEL_FORMAT	V4L2_PIX_FMT_YUYV
 
 #define MXC_ISI_DRIVER_NAME		"mxc-isi"
@@ -85,6 +86,8 @@ struct mxc_isi_format_info {
 
 struct mxc_isi_bus_format_info {
 	u32	mbus_code;
+	u32	output;
+	u32	pads;
 	enum mxc_isi_encoding encoding;
 };
 
