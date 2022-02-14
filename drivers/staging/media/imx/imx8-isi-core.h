@@ -29,7 +29,6 @@
 
 struct clk_bulk_data;
 struct device;
-struct regmap;
 
 /* ISI PADS */
 #define MXC_ISI_SD_PAD_SINK		0
@@ -293,7 +292,6 @@ struct mxc_isi_dev {
 
 	void __iomem			*regs;
 	struct clk_bulk_data		*clks;
-	struct regmap			*chain;
 
 	struct mxc_isi_pipe		*pipes;
 
