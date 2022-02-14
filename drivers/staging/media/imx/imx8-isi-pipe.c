@@ -457,14 +457,10 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	info = mxc_isi_bus_format_by_code(mf->code, fmt->pad);
-	if (!info) {
-		u32 mbus_code = fmt->pad == MXC_ISI_SD_PAD_SINK
-			      ? MXC_ISI_DEF_MBUS_CODE_SINK
-			      : MXC_ISI_DEF_MBUS_CODE_SOURCE;
-
-		info = mxc_isi_bus_format_by_code(mbus_code, fmt->pad);
-	}
+	info = mxc_isi_bus_format_by_code(format->code, MXC_ISI_SD_PAD_SINK);
+	if (!info)
+		info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
+						  MXC_ISI_SD_PAD_SINK);
 
 	mutex_lock(&pipe->lock);
 
@@ -502,6 +498,22 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		format->width = mf->width;
 		format->height = mf->height;
 	} else {
+		/*
+		 * For RGB or YUV formats, the ISI supports RGB <-> YUV format
+		 * conversion. For RAW formats, the sink and source media bus
+		 * codes must match.
+		 */
+		if (info->encoding != MXC_ISI_ENC_RAW) {
+			if (mf->code != MEDIA_BUS_FMT_YUV8_1X24 &&
+			    mf->code != MEDIA_BUS_FMT_RGB888_1X24)
+				mf->code = info->output;
+
+			info = mxc_isi_bus_format_by_code(mf->code,
+							  MXC_ISI_SD_PAD_SOURCE);
+		}
+
+		mf->code = info->output;
+
 		/*
 		 * The width and height on the source can't be changed, they
 		 * must match the crop rectangle size.
