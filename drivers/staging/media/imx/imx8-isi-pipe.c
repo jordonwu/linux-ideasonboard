@@ -25,6 +25,87 @@
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
 
+static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
+	/* YUV formats */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
+		.encoding	= MXC_ISI_ENC_YUV,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
+		.encoding	= MXC_ISI_ENC_YUV,
+	},
+	/* RGB formats */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
+		.encoding	= MXC_ISI_ENC_RGB,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.encoding	= MXC_ISI_ENC_RGB,
+	},
+	/* RAW formats */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
+		.encoding	= MXC_ISI_ENC_RAW,
+	}
+};
+
+static const struct mxc_isi_bus_format_info *mxc_isi_bus_format_by_code(u32 code)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_bus_formats); i++) {
+		const struct mxc_isi_bus_format_info *info =
+			&mxc_isi_bus_formats[i];
+
+		if (info->mbus_code == code)
+			return info;
+	}
+
+	return NULL;
+}
+
 static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct mxc_isi_pipe, sd);
@@ -251,16 +332,16 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct v4l2_mbus_framefmt *mf = &fmt->format;
-	const struct mxc_isi_format_info *info;
+	const struct mxc_isi_bus_format_info *info;
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *rect;
 
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	info = mxc_isi_format_by_code(mf->code);
+	info = mxc_isi_bus_format_by_code(mf->code);
 	if (!info)
-		info = mxc_isi_format_by_code(MXC_ISI_DEF_MBUS_CODE);
+		info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE);
 
 	mutex_lock(&pipe->lock);
 
@@ -607,7 +688,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	for (i = 0; i < ARRAY_SIZE(pipe->formats); ++i) {
 		struct mxc_isi_frame *frame = &pipe->formats[i];
 
-		frame->info = mxc_isi_format_by_code(MXC_ISI_DEF_MBUS_CODE);
+		frame->info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE);
 	}
 
 	/* Register IRQ handler. */
