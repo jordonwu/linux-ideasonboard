@@ -7,7 +7,6 @@
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
-#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -451,10 +450,6 @@ static int mxc_isi_probe(struct platform_device *pdev)
 			     GFP_KERNEL);
 	if (!isi->pipes)
 		return -ENOMEM;
-
-	isi->chain = syscon_regmap_lookup_by_phandle(dev->of_node, "isi_chain");
-	if (IS_ERR(isi->chain))
-		isi->chain = NULL;
 
 	ret = mxc_isi_clk_get(isi);
 	if (ret < 0) {
