@@ -449,10 +449,23 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
 }
 
-void mxc_isi_channel_set_stride(struct mxc_isi_pipe *pipe, u32 stride)
+void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
+				       const struct mxc_isi_format_info *info,
+				       struct v4l2_pix_format_mplane *format)
 {
+	u32 val;
+
+	/* set outbuf format */
+	dev_dbg(pipe->isi->dev, "output format %p4cc", &format->pixelformat);
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
+	val |= CHNL_IMG_CTRL_FORMAT(info->isi_format);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+
 	/* line pitch */
-	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH, stride);
+	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH,
+		      format->plane_fmt[0].bytesperline);
 }
 
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
@@ -484,8 +497,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    enum mxc_isi_encoding src_encoding,
-			    enum mxc_isi_encoding dst_encoding,
-			    const struct mxc_isi_format_info *dst_info)
+			    enum mxc_isi_encoding dst_encoding)
 {
 	bool csc_bypass;
 	bool scaler_bypass;
@@ -517,14 +529,6 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_channel_set_alpha(pipe);
 
 	mxc_isi_channel_set_panic_threshold(pipe);
-
-	/* set outbuf format */
-	dev_dbg(pipe->isi->dev, "output format %p4cc", &dst_info->fourcc);
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
-	val |= CHNL_IMG_CTRL_FORMAT(dst_info->isi_format);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val &= ~CHNL_CTRL_CHNL_BYPASS;
