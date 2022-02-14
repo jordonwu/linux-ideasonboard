@@ -240,15 +240,15 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 
 	pipe->cscen = 1;
 
-	if (src_fmt->colorspace == MXC_ISI_CS_YUV &&
-	    dst_fmt->colorspace == MXC_ISI_CS_RGB) {
+	if (src_fmt->encoding == MXC_ISI_ENC_YUV &&
+	    dst_fmt->encoding == MXC_ISI_ENC_RGB) {
 		/* YUV2RGB */
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
 		val |= CHNL_IMG_CTRL_YCBCR_MODE;
-	} else if (src_fmt->colorspace == MXC_ISI_CS_RGB &&
-		   dst_fmt->colorspace == MXC_ISI_CS_YUV) {
+	} else if (src_fmt->encoding == MXC_ISI_ENC_RGB &&
+		   dst_fmt->encoding == MXC_ISI_ENC_YUV) {
 		/* RGB2YUV */
 		csc = RGB2YUV;
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
@@ -259,7 +259,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		val |= CHNL_IMG_CTRL_CSC_BYPASS;
 	}
 
-	pr_info("input colorspace %u", src_fmt->colorspace);
+	pr_info("input encoding %u", src_fmt->encoding);
 	pr_info("output fmt %p4cc", &dst_fmt->fourcc);
 
 	if (pipe->cscen) {
