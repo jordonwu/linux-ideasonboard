@@ -236,7 +236,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		 CHNL_IMG_CTRL_CSC_MODE_MASK);
 
 	/* set outbuf format */
-	val |= CHNL_IMG_CTRL_FORMAT(dst_fmt->color);
+	val |= CHNL_IMG_CTRL_FORMAT(dst_fmt->isi_format);
 
 	pipe->cscen = 1;
 
