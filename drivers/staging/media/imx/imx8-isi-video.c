@@ -217,20 +217,6 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 	}
 };
 
-const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code)
-{
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		const struct mxc_isi_format_info *fmt = &mxc_isi_out_formats[i];
-
-		if (fmt->mbus_code == code)
-			return fmt;
-	}
-
-	return NULL;
-}
-
 static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
 {
 	unsigned int i;
