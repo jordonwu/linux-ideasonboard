@@ -277,8 +277,6 @@ struct mxc_isi_pipe {
 
 	unsigned int			hflip:1;
 	unsigned int			vflip:1;
-	unsigned int			cscen:1;
-	unsigned int			scale:1;
 	unsigned int			alphaen:1;
 	unsigned int			crop:1;
 	unsigned int			is_streaming:1;
