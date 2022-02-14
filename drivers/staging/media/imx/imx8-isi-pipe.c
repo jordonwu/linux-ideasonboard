@@ -457,15 +457,16 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	info = mxc_isi_bus_format_by_code(format->code, MXC_ISI_SD_PAD_SINK);
-	if (!info)
-		info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
-						  MXC_ISI_SD_PAD_SINK);
-
 	mutex_lock(&pipe->lock);
 
 	if (fmt->pad == MXC_ISI_SD_PAD_SINK) {
 		unsigned int max_width;
+
+		info = mxc_isi_bus_format_by_code(mf->code,
+						  MXC_ISI_SD_PAD_SINK);
+		if (!info)
+			info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
+							  MXC_ISI_SD_PAD_SINK);
 
 		/*
 		 * FIXME: This needs to handled more dynamically, larger line
@@ -503,6 +504,11 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		 * conversion. For RAW formats, the sink and source media bus
 		 * codes must match.
 		 */
+		format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which,
+						     MXC_ISI_SD_PAD_SINK);
+		info = mxc_isi_bus_format_by_code(format->code,
+						  MXC_ISI_SD_PAD_SINK);
+
 		if (info->encoding != MXC_ISI_ENC_RAW) {
 			if (mf->code != MEDIA_BUS_FMT_YUV8_1X24 &&
 			    mf->code != MEDIA_BUS_FMT_RGB888_1X24)
@@ -533,7 +539,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 	mutex_unlock(&pipe->lock);
 
-	dev_dbg(pipe->isi->dev, "pad%d: code: 0x%x, %dx%d",
+	dev_dbg(pipe->isi->dev, "pad%u: code: 0x%04x, %ux%u",
 		fmt->pad, mf->code, mf->width, mf->height);
 
 	return 0;
