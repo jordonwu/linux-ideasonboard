@@ -261,7 +261,9 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_stride(struct mxc_isi_pipe *pipe, u32 stride);
+void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
+				       const struct mxc_isi_format_info *info,
+				       struct v4l2_pix_format_mplane *format);
 void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe);
@@ -276,8 +278,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    enum mxc_isi_encoding src_encoding,
-			    enum mxc_isi_encoding dst_encoding,
-			    const struct mxc_isi_format_info *dst_info);
+			    enum mxc_isi_encoding dst_encoding);
 
 void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
 
