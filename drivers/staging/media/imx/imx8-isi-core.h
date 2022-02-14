@@ -83,6 +83,11 @@ struct mxc_isi_format_info {
 	enum mxc_isi_encoding encoding;
 };
 
+struct mxc_isi_bus_format_info {
+	u32	mbus_code;
+	enum mxc_isi_encoding encoding;
+};
+
 struct mxc_isi_ctrls {
 	struct v4l2_ctrl_handler handler;
 	struct v4l2_ctrl *alpha;
@@ -109,7 +114,7 @@ struct frame_addr {
  * @compose:	Compose rectangle
  */
 struct mxc_isi_frame {
-	const struct mxc_isi_format_info *info;
+	const struct mxc_isi_bus_format_info *info;
 	struct v4l2_mbus_framefmt format;
 	struct v4l2_rect crop;
 	struct v4l2_rect compose;
@@ -250,8 +255,6 @@ int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe);
 void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe);
 int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe);
-
-const struct mxc_isi_format_info *mxc_isi_format_by_code(u32 code);
 
 int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 			   struct v4l2_device *v4l2_dev);
