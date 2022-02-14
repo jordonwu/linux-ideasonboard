@@ -25,73 +25,133 @@
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
 
+/*
+ * TODO: Add comment to explain that the pipeline subdev covers the gasket, and
+ * thus can have inputs narrower than 24 bit.
+ */
 static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	/* YUV formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
+		.output		= MEDIA_BUS_FMT_YUV8_1X24,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK),
 		.encoding	= MXC_ISI_ENC_YUV,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
+		.output		= MEDIA_BUS_FMT_YUV8_1X24,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_YUV,
 	},
 	/* RGB formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
+		.output		= MEDIA_BUS_FMT_RGB888_1X24,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK),
 		.encoding	= MXC_ISI_ENC_RGB,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.output		= MEDIA_BUS_FMT_RGB888_1X24,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RGB,
 	},
 	/* RAW formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
+		.output		= MEDIA_BUS_FMT_Y8_1X8,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
+		.output		= MEDIA_BUS_FMT_Y10_1X10,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
+		.output		= MEDIA_BUS_FMT_Y12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
+		.output		= MEDIA_BUS_FMT_SBGGR8_1X8,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
+		.output		= MEDIA_BUS_FMT_SGBRG8_1X8,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
+		.output		= MEDIA_BUS_FMT_SGRBG8_1X8,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
+		.output		= MEDIA_BUS_FMT_SRGGB8_1X8,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
+		.output		= MEDIA_BUS_FMT_SBGGR10_1X10,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
+		.output		= MEDIA_BUS_FMT_SGBRG10_1X10,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
+		.output		= MEDIA_BUS_FMT_SGRBG10_1X10,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
+		.output		= MEDIA_BUS_FMT_SRGGB10_1X10,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
+		.output		= MEDIA_BUS_FMT_SBGGR12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
+		.output		= MEDIA_BUS_FMT_SGBRG12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
+		.output		= MEDIA_BUS_FMT_SGRBG12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
+		.output		= MEDIA_BUS_FMT_SRGGB12_1X12,
+		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
+				| BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}
 };
 
-static const struct mxc_isi_bus_format_info *mxc_isi_bus_format_by_code(u32 code)
+static const struct mxc_isi_bus_format_info *
+mxc_isi_bus_format_by_code(u32 code, unsigned int pad)
 {
 	unsigned int i;
 
@@ -99,7 +159,7 @@ static const struct mxc_isi_bus_format_info *mxc_isi_bus_format_by_code(u32 code
 		const struct mxc_isi_bus_format_info *info =
 			&mxc_isi_bus_formats[i];
 
-		if (info->mbus_code == code)
+		if (info->mbus_code == code && info->pads & BIT(pad))
 			return info;
 	}
 
@@ -277,7 +337,7 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 
 	fmt_sink->width = MXC_ISI_DEF_WIDTH;
 	fmt_sink->height = MXC_ISI_DEF_HEIGHT;
-	fmt_sink->code = MXC_ISI_DEF_MBUS_CODE;
+	fmt_sink->code = MXC_ISI_DEF_MBUS_CODE_SINK;
 	fmt_sink->field = V4L2_FIELD_NONE;
 	fmt_sink->colorspace = V4L2_COLORSPACE_JPEG;
 	fmt_sink->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt_sink->colorspace);
@@ -287,6 +347,7 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 	fmt_sink->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(fmt_sink->colorspace);
 
 	*fmt_source = *fmt_sink;
+	fmt_source->code = MXC_ISI_DEF_MBUS_CODE_SOURCE;
 
 	compose = mxc_isi_pipe_get_pad_compose(pipe, state, which,
 					       MXC_ISI_SD_PAD_SINK);
@@ -339,9 +400,14 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	info = mxc_isi_bus_format_by_code(mf->code);
-	if (!info)
-		info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE);
+	info = mxc_isi_bus_format_by_code(mf->code, fmt->pad);
+	if (!info) {
+		u32 mbus_code = fmt->pad == MXC_ISI_SD_PAD_SINK
+			      ? MXC_ISI_DEF_MBUS_CODE_SINK
+			      : MXC_ISI_DEF_MBUS_CODE_SOURCE;
+
+		info = mxc_isi_bus_format_by_code(mbus_code, fmt->pad);
+	}
 
 	mutex_lock(&pipe->lock);
 
@@ -375,7 +441,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 		format = mxc_isi_pipe_get_pad_format(pipe, state, fmt->which,
 						     MXC_ISI_SD_PAD_SOURCE);
-		format->code = info->mbus_code;
+		format->code = info->output;
 		format->width = mf->width;
 		format->height = mf->height;
 	} else {
@@ -655,7 +721,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 {
 	struct mxc_isi_pipe *pipe = &isi->pipes[id];
 	struct v4l2_subdev *sd;
-	unsigned int i;
 	int irq;
 	int ret;
 
@@ -685,11 +750,12 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	/* Default configuration. */
 	mxc_isi_pipe_init_cfg(sd, NULL);
 
-	for (i = 0; i < ARRAY_SIZE(pipe->formats); ++i) {
-		struct mxc_isi_frame *frame = &pipe->formats[i];
-
-		frame->info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE);
-	}
+	pipe->formats[MXC_ISI_SD_PAD_SINK].info =
+		mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
+					   MXC_ISI_SD_PAD_SINK);
+	pipe->formats[MXC_ISI_SD_PAD_SOURCE].info =
+		mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SOURCE,
+					   MXC_ISI_SD_PAD_SOURCE);
 
 	/* Register IRQ handler. */
 	mxc_isi_clean_registers(pipe);
