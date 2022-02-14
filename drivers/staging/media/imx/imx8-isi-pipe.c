@@ -368,7 +368,64 @@ static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
 				       struct v4l2_subdev_state *state,
 				       struct v4l2_subdev_mbus_code_enum *code)
 {
-	return 0;
+	static const u32 output_codes[] = {
+		MEDIA_BUS_FMT_YUV8_1X24,
+		MEDIA_BUS_FMT_RGB888_1X24,
+	};
+	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
+	const struct mxc_isi_bus_format_info *info;
+	unsigned int index;
+	unsigned int i;
+
+	if (code->pad == MXC_ISI_SD_PAD_SOURCE) {
+		const struct v4l2_mbus_framefmt *format;
+
+		format = mxc_isi_pipe_get_pad_format(pipe, state, code->which,
+						     MXC_ISI_SD_PAD_SINK);
+		info = mxc_isi_bus_format_by_code(format->code,
+						  MXC_ISI_SD_PAD_SINK);
+
+		if (info->encoding == MXC_ISI_ENC_RAW) {
+			/*
+			 * For RAW formats, the sink and source media bus codes
+			 * must match.
+			 */
+			if (code->index)
+				return -EINVAL;
+
+			code->code = info->output;
+		} else {
+			/*
+			 * For RGB or YUV formats, the ISI supports format
+			 * conversion. Either of the two output formats can be
+			 * used regardless of the input.
+			 */
+			if (code->index > 1)
+				return -EINVAL;
+
+			code->code = output_codes[code->index];
+		}
+
+		return 0;
+	}
+
+	index = code->index;
+
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_bus_formats); ++i) {
+		info = &mxc_isi_bus_formats[i];
+
+		if (!(info->pads & BIT(MXC_ISI_SD_PAD_SINK)))
+			continue;
+
+		if (index == 0) {
+			code->code = info->mbus_code;
+			return 0;
+		}
+
+		index--;
+	}
+
+	return -EINVAL;
 }
 
 static int mxc_isi_pipe_get_fmt(struct v4l2_subdev *sd,
