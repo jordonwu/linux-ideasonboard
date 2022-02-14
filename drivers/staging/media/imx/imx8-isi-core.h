@@ -115,10 +115,10 @@ enum mxc_isi_out_fmt {
 	MXC_ISI_OUT_FMT_YUV420_3P12,
 };
 
-enum mxc_isi_colorspace {
-	MXC_ISI_CS_NONE,
-	MXC_ISI_CS_RGB,
-	MXC_ISI_CS_YUV,
+enum mxc_isi_encoding {
+	MXC_ISI_ENC_RAW,
+	MXC_ISI_ENC_RGB,
+	MXC_ISI_ENC_YUV,
 };
 
 enum isi_csi_coeff {
@@ -131,7 +131,7 @@ struct mxc_isi_format_info {
 	u32	fourcc;
 	u32	color;
 	u16	memplanes;
-	enum mxc_isi_colorspace colorspace;
+	enum mxc_isi_encoding encoding;
 	u8	depth[MXC_MAX_PLANES];
 };
 
