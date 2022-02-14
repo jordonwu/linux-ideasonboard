@@ -39,8 +39,7 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.output		= MEDIA_BUS_FMT_YUV8_1X24,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_SD_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_YUV,
 	},
 	/* RGB formats */
