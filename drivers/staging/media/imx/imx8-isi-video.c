@@ -30,8 +30,78 @@
 
 #include "imx8-isi-core.h"
 
+/* Keep the first entry matching MXC_ISI_DEF_PIXEL_FORMAT */
 static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
+	/* YUV formats */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
+		.fourcc		= V4L2_PIX_FMT_YUYV,
+		.isi_format	= MXC_ISI_OUT_FMT_YUV422_1P8P,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_YUV,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_AYUV8_1X32,
+		.fourcc		= V4L2_PIX_FMT_YUV32,
+		.isi_format	= MXC_ISI_OUT_FMT_YUV444_1P8,
+		.memplanes	= 1,
+		.depth		= { 32 },
+		.encoding	= MXC_ISI_ENC_YUV,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
+		.fourcc		= V4L2_PIX_FMT_NV12,
+		.isi_format	= MXC_ISI_OUT_FMT_YUV420_2P8P,
+		.memplanes	= 2,
+		.depth		= { 8, 8 },
+		.encoding	= MXC_ISI_ENC_YUV,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
+		.fourcc		= V4L2_PIX_FMT_YUV444M,
+		.isi_format	= MXC_ISI_OUT_FMT_YUV444_3P8P,
+		.memplanes	= 3,
+		.depth		= { 8, 8, 8 },
+		.encoding	= MXC_ISI_ENC_YUV,
+	},
+	/* RGB formats */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
+		.fourcc		= V4L2_PIX_FMT_RGB565,
+		.isi_format	= MXC_ISI_OUT_FMT_RGB565,
+		.memplanes	= 1,
+		.depth		= { 16 },
+		.encoding	= MXC_ISI_ENC_RGB,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fourcc		= V4L2_PIX_FMT_RGB24,
+		.isi_format	= MXC_ISI_OUT_FMT_BGR32P,
+		.memplanes	= 1,
+		.depth		= { 24 },
+		.encoding	= MXC_ISI_ENC_RGB,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_BGR888_1X24,
+		.fourcc		= V4L2_PIX_FMT_BGR24,
+		.isi_format	= MXC_ISI_OUT_FMT_RGB32P,
+		.memplanes	= 1,
+		.depth		= { 24 },
+		.encoding	= MXC_ISI_ENC_RGB,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fourcc		= V4L2_PIX_FMT_XBGR32,
+		.isi_format	= MXC_ISI_OUT_FMT_XRGB32,
+		.memplanes	= 1,
+		.depth		= { 32 },
+		.encoding	= MXC_ISI_ENC_RGB,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fourcc		= V4L2_PIX_FMT_ABGR32,
+		.isi_format	= MXC_ISI_OUT_FMT_ARGB32,
+		.memplanes	= 1,
+		.depth		= { 32 },
+		.encoding	= MXC_ISI_ENC_RGB,
+	},
 	/*
+	 * RAW formats
+	 *
 	 * The ISI shifts the 10-bit and 12-bit formats left by 6 and 4 bits
 	 * when using MXC_ISI_OUT_FMT_RAW10 or MXC_ISI_OUT_FMT_RAW12
 	 * respectively, to align the bits to the left and pad with zeros in
@@ -143,69 +213,6 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.memplanes	= 1,
 		.depth		= { 16 },
 		.encoding	= MXC_ISI_ENC_RAW,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
-		.fourcc		= V4L2_PIX_FMT_RGB565,
-		.isi_format	= MXC_ISI_OUT_FMT_RGB565,
-		.memplanes	= 1,
-		.depth		= { 16 },
-		.encoding	= MXC_ISI_ENC_RGB,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
-		.fourcc		= V4L2_PIX_FMT_RGB24,
-		.isi_format	= MXC_ISI_OUT_FMT_BGR32P,
-		.memplanes	= 1,
-		.depth		= { 24 },
-		.encoding	= MXC_ISI_ENC_RGB,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_BGR888_1X24,
-		.fourcc		= V4L2_PIX_FMT_BGR24,
-		.isi_format	= MXC_ISI_OUT_FMT_RGB32P,
-		.memplanes	= 1,
-		.depth		= { 24 },
-		.encoding	= MXC_ISI_ENC_RGB,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
-		.fourcc		= V4L2_PIX_FMT_YUYV,
-		.isi_format	= MXC_ISI_OUT_FMT_YUV422_1P8P,
-		.memplanes	= 1,
-		.depth		= { 16 },
-		.encoding	= MXC_ISI_ENC_YUV,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_AYUV8_1X32,
-		.fourcc		= V4L2_PIX_FMT_YUV32,
-		.isi_format	= MXC_ISI_OUT_FMT_YUV444_1P8,
-		.memplanes	= 1,
-		.depth		= { 32 },
-		.encoding	= MXC_ISI_ENC_YUV,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
-		.fourcc		= V4L2_PIX_FMT_NV12,
-		.isi_format	= MXC_ISI_OUT_FMT_YUV420_2P8P,
-		.memplanes	= 2,
-		.depth		= { 8, 8 },
-		.encoding	= MXC_ISI_ENC_YUV,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
-		.fourcc		= V4L2_PIX_FMT_YUV444M,
-		.isi_format	= MXC_ISI_OUT_FMT_YUV444_3P8P,
-		.memplanes	= 3,
-		.depth		= { 8, 8, 8 },
-		.encoding	= MXC_ISI_ENC_YUV,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
-		.fourcc		= V4L2_PIX_FMT_XBGR32,
-		.isi_format	= MXC_ISI_OUT_FMT_XRGB32,
-		.memplanes	= 1,
-		.depth		= { 32 },
-		.encoding	= MXC_ISI_ENC_RGB,
-	}, {
-		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
-		.fourcc		= V4L2_PIX_FMT_ABGR32,
-		.isi_format	= MXC_ISI_OUT_FMT_ARGB32,
-		.memplanes	= 1,
-		.depth		= { 32 },
-		.encoding	= MXC_ISI_ENC_RGB,
 	}
 };
 
