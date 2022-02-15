@@ -30,10 +30,10 @@
 struct clk_bulk_data;
 struct device;
 
-/* ISI PADS */
-#define MXC_ISI_SD_PAD_SINK		0
-#define MXC_ISI_SD_PAD_SOURCE		1
-#define MXC_ISI_SD_PADS_NUM		2
+/* Pipeline pads */
+#define MXC_ISI_PIPE_PAD_SINK		0
+#define MXC_ISI_PIPE_PAD_SOURCE		1
+#define MXC_ISI_PIPE_PADS_NUM		2
 
 #define ISI_2K				2048
 
@@ -203,7 +203,7 @@ struct mxc_isi_pipe {
 	struct media_pipeline		pipe;
 
 	struct v4l2_subdev		sd;
-	struct media_pad		pads[MXC_ISI_SD_PADS_NUM];
+	struct media_pad		pads[MXC_ISI_PIPE_PADS_NUM];
 	struct v4l2_subdev		*source;
 
 	struct mxc_isi_video		video;
