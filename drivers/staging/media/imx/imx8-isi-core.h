@@ -175,6 +175,16 @@ struct mxc_isi_dma_buffer {
 	dma_addr_t			dma;
 };
 
+struct mxc_isi_crossbar {
+	struct mxc_isi_dev		*isi;
+
+	unsigned int			num_sinks;
+	unsigned int			num_sources;
+
+	struct v4l2_subdev		sd;
+	struct media_pad		*pads;
+};
+
 struct mxc_isi_video {
 	struct video_device		vdev;
 	struct media_pad		pad;
@@ -231,12 +241,21 @@ struct mxc_isi_dev {
 	void __iomem			*regs;
 	struct clk_bulk_data		*clks;
 
+	struct mxc_isi_crossbar		crossbar;
 	struct mxc_isi_pipe		*pipes;
 
 	struct media_device		media_dev;
 	struct v4l2_device		v4l2_dev;
 	struct v4l2_async_notifier	notifier;
 };
+
+int mxc_isi_crossbar_init(struct mxc_isi_dev *isi);
+void mxc_isi_crossbar_cleanup(struct mxc_isi_crossbar *xbar);
+int mxc_isi_crossbar_register(struct mxc_isi_crossbar *xbar);
+void mxc_isi_crossbar_unregister(struct mxc_isi_crossbar *xbar);
+
+const struct mxc_isi_bus_format_info *
+mxc_isi_bus_format_by_index(unsigned int index, unsigned int pad);
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);

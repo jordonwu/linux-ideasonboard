@@ -195,6 +195,27 @@ mxc_isi_bus_format_by_code(u32 code, unsigned int pad)
 	return NULL;
 }
 
+const struct mxc_isi_bus_format_info *
+mxc_isi_bus_format_by_index(unsigned int index, unsigned int pad)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_bus_formats); i++) {
+		const struct mxc_isi_bus_format_info *info =
+			&mxc_isi_bus_formats[i];
+
+		if (!(info->pads & BIT(pad)))
+			continue;
+
+		if (!index)
+			return info;
+
+		index--;
+	}
+
+	return NULL;
+}
+
 static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct mxc_isi_pipe, sd);
