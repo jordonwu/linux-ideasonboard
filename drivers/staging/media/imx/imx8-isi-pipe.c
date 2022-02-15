@@ -223,6 +223,7 @@ static inline struct mxc_isi_pipe *to_isi_pipe(struct v4l2_subdev *sd)
 
 int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 {
+	struct mxc_isi_crossbar *xbar = &pipe->isi->crossbar;
 	const struct mxc_isi_bus_format_info *sink_info;
 	const struct mxc_isi_bus_format_info *src_info;
 	const struct v4l2_mbus_framefmt *sink_fmt;
@@ -231,9 +232,6 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	struct v4l2_subdev_state *state;
 	struct v4l2_subdev *sd = &pipe->sd;
 	int ret;
-
-	if (!pipe->source)
-		return -EPIPE;
 
 	state = v4l2_subdev_lock_active_state(sd);
 
@@ -253,10 +251,12 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 
 	mxc_isi_channel_enable(pipe);
 
-	ret = v4l2_subdev_call(pipe->source, video, s_stream, 1);
-	if (ret < 0 && ret != -ENOIOCTLCMD) {
-		dev_err(pipe->isi->dev, "subdev %s s_stream(%u) failed\n",
-			pipe->source->name, 1);
+	ret = v4l2_subdev_enable_streams(&xbar->sd, xbar->num_sinks + pipe->id,
+					 BIT(0));
+	if (ret) {
+		mxc_isi_channel_disable(pipe);
+		dev_err(pipe->isi->dev, "Failed to enable pipe %u\n",
+			pipe->id);
 		return ret;
 	}
 
@@ -265,12 +265,14 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 
 void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe)
 {
+	struct mxc_isi_crossbar *xbar = &pipe->isi->crossbar;
 	int ret;
 
-	ret = v4l2_subdev_call(pipe->source, video, s_stream, 0);
-	if (ret < 0 && ret != -ENOIOCTLCMD)
-		dev_err(pipe->isi->dev, "subdev %s s_stream(%u) failed\n",
-			pipe->source->name, 0);
+	ret = v4l2_subdev_disable_streams(&xbar->sd, xbar->num_sinks + pipe->id,
+					  BIT(0));
+	if (ret)
+		dev_err(pipe->isi->dev, "Failed to disable pipe %u\n",
+			pipe->id);
 
 	mxc_isi_channel_disable(pipe);
 }
