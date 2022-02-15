@@ -8,8 +8,8 @@ imx6-media-objs := imx-media-dev.o imx-media-internal-sd.o \
 
 imx6-media-csi-objs := imx-media-csi.o imx-media-fim.o
 
-imx8-capture-objs := imx8-isi-core.o imx8-isi-hw.o imx8-isi-pipe.o \
-	imx8-isi-video.o
+imx8-capture-objs := imx8-isi-core.o imx8-isi-crossbar.o imx8-isi-hw.o \
+	imx8-isi-pipe.o imx8-isi-video.o
 
 obj-$(CONFIG_VIDEO_IMX_MEDIA) += imx-media-common.o
 
