@@ -323,7 +323,7 @@ static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
 	state = v4l2_subdev_lock_active_state(sd);
 
 	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
-	format = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SOURCE);
+	format = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SOURCE);
 
 	if (format->code != info->mbus_code ||
 	    format->width != pipe->video.pix.width ||
@@ -928,7 +928,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 		goto err_ctrl_free;
 
 	ret = media_create_pad_link(&pipe->sd.entity,
-				    MXC_ISI_SD_PAD_SOURCE,
+				    MXC_ISI_PIPE_PAD_SOURCE,
 				    &vdev->entity, 0,
 				    MEDIA_LNK_FL_IMMUTABLE |
 				    MEDIA_LNK_FL_ENABLED);
