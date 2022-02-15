@@ -54,13 +54,10 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 				      | MEDIA_LNK_FL_ENABLED;
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
-	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
-	struct mxc_isi_pipe *pipe = &isi->pipes[masd->port];
-	struct media_pad *pad = &pipe->pads[MXC_ISI_PIPE_PAD_SINK];
+	struct media_pad *pad = &isi->crossbar.pads[masd->port];
 
-	dev_dbg(isi->dev, "Bound subdev %s to pipe %u\n", sd->name, masd->port);
-
-	pipe->source = sd;
+	dev_dbg(isi->dev, "Bound subdev %s to crossbar input %u\n", sd->name,
+		masd->port);
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
 }
@@ -113,16 +110,32 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 		goto err_media;
 	}
 
-	/* Register the ISI subdevs. */
+	/* Register the crossbar switch subdev. */
+	ret = mxc_isi_crossbar_register(&isi->crossbar);
+	if (ret < 0) {
+		dev_err(isi->dev, "Failed to register crossbar: %d\n", ret);
+		goto err_v4l2;
+	}
+
+	/* Register the pipeline subdevs and link them to the crossbar switch. */
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		struct mxc_isi_pipe *pipe = &isi->pipes[i];
 
 		ret = mxc_isi_pipe_register(pipe);
 		if (ret < 0) {
-			dev_err(isi->dev, "Failed to register ISI pipe%u: %d\n",
-				i, ret);
+			dev_err(isi->dev, "Failed to register pipe%u: %d\n", i,
+				ret);
 			goto err_v4l2;
 		}
+
+		ret = media_create_pad_link(&isi->crossbar.sd.entity,
+					    isi->crossbar.num_sinks + i,
+					    &pipe->sd.entity,
+					    MXC_ISI_PIPE_PAD_SINK,
+					    MEDIA_LNK_FL_IMMUTABLE |
+					    MEDIA_LNK_FL_ENABLED);
+		if (ret < 0)
+			goto err_v4l2;
 	}
 
 	/* Initialize, fill and register the async notifier. */
@@ -182,6 +195,8 @@ static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *isi)
 
 	for (i = 0; i < isi->pdata->num_channels; ++i)
 		mxc_isi_pipe_unregister(&isi->pipes[i]);
+
+	mxc_isi_crossbar_unregister(&isi->crossbar);
 
 	media_device_cleanup(&isi->media_dev);
 }
@@ -466,6 +481,12 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
+	ret = mxc_isi_crossbar_init(isi);
+	if (ret) {
+		dev_err(dev, "Failed to initialize crossbar: %d\n", ret);
+		return ret;
+	}
+
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		ret = mxc_isi_pipe_init(isi, i);
 		if (ret < 0) {
@@ -495,6 +516,7 @@ static int mxc_isi_remove(struct platform_device *pdev)
 		mxc_isi_pipe_cleanup(pipe);
 	}
 
+	mxc_isi_crossbar_cleanup(&isi->crossbar);
 	mxc_isi_v4l2_cleanup(isi);
 
 	pm_runtime_disable(isi->dev);

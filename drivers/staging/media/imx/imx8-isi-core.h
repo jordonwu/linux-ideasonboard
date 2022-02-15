@@ -214,7 +214,6 @@ struct mxc_isi_pipe {
 
 	struct v4l2_subdev		sd;
 	struct media_pad		pads[MXC_ISI_PIPE_PADS_NUM];
-	struct v4l2_subdev		*source;
 
 	struct mxc_isi_video		video;
 
