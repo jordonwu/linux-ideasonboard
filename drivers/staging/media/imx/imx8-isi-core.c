@@ -56,7 +56,7 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
 	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
 	struct mxc_isi_pipe *pipe = &isi->pipes[masd->port];
-	struct media_pad *pad = &pipe->pads[MXC_ISI_SD_PAD_SINK];
+	struct media_pad *pad = &pipe->pads[MXC_ISI_PIPE_PAD_SINK];
 
 	dev_dbg(isi->dev, "Bound subdev %s to pipe %u\n", sd->name, masd->port);
 

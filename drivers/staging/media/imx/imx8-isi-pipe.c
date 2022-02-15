@@ -34,147 +34,147 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_UYVY8_1X16,
 		.output		= MEDIA_BUS_FMT_YUV8_1X24,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK),
 		.encoding	= MXC_ISI_ENC_YUV,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.output		= MEDIA_BUS_FMT_YUV8_1X24,
-		.pads		= BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_YUV,
 	},
 	/* RGB formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
 		.output		= MEDIA_BUS_FMT_RGB888_1X24,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK),
 		.encoding	= MXC_ISI_ENC_RGB,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.output		= MEDIA_BUS_FMT_RGB888_1X24,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RGB,
 	},
 	/* RAW formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
 		.output		= MEDIA_BUS_FMT_Y8_1X8,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
 		.output		= MEDIA_BUS_FMT_Y10_1X10,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
 		.output		= MEDIA_BUS_FMT_Y12_1X12,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_Y14_1X14,
 		.output		= MEDIA_BUS_FMT_Y14_1X14,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.output		= MEDIA_BUS_FMT_SBGGR8_1X8,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG8_1X8,
 		.output		= MEDIA_BUS_FMT_SGBRG8_1X8,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
 		.output		= MEDIA_BUS_FMT_SGRBG8_1X8,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
 		.output		= MEDIA_BUS_FMT_SRGGB8_1X8,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR10_1X10,
 		.output		= MEDIA_BUS_FMT_SBGGR10_1X10,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG10_1X10,
 		.output		= MEDIA_BUS_FMT_SGBRG10_1X10,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG10_1X10,
 		.output		= MEDIA_BUS_FMT_SGRBG10_1X10,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
 		.output		= MEDIA_BUS_FMT_SRGGB10_1X10,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
 		.output		= MEDIA_BUS_FMT_SBGGR12_1X12,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG12_1X12,
 		.output		= MEDIA_BUS_FMT_SGBRG12_1X12,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG12_1X12,
 		.output		= MEDIA_BUS_FMT_SGRBG12_1X12,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
 		.output		= MEDIA_BUS_FMT_SRGGB12_1X12,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR14_1X14,
 		.output		= MEDIA_BUS_FMT_SBGGR14_1X14,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGBRG14_1X14,
 		.output		= MEDIA_BUS_FMT_SGBRG14_1X14,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG14_1X14,
 		.output		= MEDIA_BUS_FMT_SGRBG14_1X14,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB14_1X14,
 		.output		= MEDIA_BUS_FMT_SRGGB14_1X14,
-		.pads		= BIT(MXC_ISI_SD_PAD_SINK)
-				| BIT(MXC_ISI_SD_PAD_SOURCE),
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
 	}
 };
@@ -216,14 +216,14 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 
 	state = v4l2_subdev_lock_active_state(sd);
 
-	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SINK);
-	src_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_SD_PAD_SOURCE);
-	compose = v4l2_subdev_get_try_compose(sd, state, MXC_ISI_SD_PAD_SINK);
+	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SINK);
+	src_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SOURCE);
+	compose = v4l2_subdev_get_try_compose(sd, state, MXC_ISI_PIPE_PAD_SINK);
 
 	sink_info = mxc_isi_bus_format_by_code(sink_fmt->code,
-					       MXC_ISI_SD_PAD_SINK);
+					       MXC_ISI_PIPE_PAD_SINK);
 	src_info = mxc_isi_bus_format_by_code(src_fmt->code,
-					      MXC_ISI_SD_PAD_SOURCE);
+					      MXC_ISI_PIPE_PAD_SOURCE);
 
 	mxc_isi_channel_config(pipe, sink_fmt, compose, sink_info->encoding,
 			       src_info->encoding);
@@ -354,9 +354,9 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 	struct v4l2_rect *crop;
 
 	fmt_sink = mxc_isi_pipe_get_pad_format(pipe, state,
-					       MXC_ISI_SD_PAD_SINK);
+					       MXC_ISI_PIPE_PAD_SINK);
 	fmt_source = mxc_isi_pipe_get_pad_format(pipe, state,
-						 MXC_ISI_SD_PAD_SOURCE);
+						 MXC_ISI_PIPE_PAD_SOURCE);
 
 	fmt_sink->width = MXC_ISI_DEF_WIDTH;
 	fmt_sink->height = MXC_ISI_DEF_HEIGHT;
@@ -373,8 +373,8 @@ static int mxc_isi_pipe_init_cfg(struct v4l2_subdev *sd,
 	fmt_source->code = MXC_ISI_DEF_MBUS_CODE_SOURCE;
 
 	compose = mxc_isi_pipe_get_pad_compose(pipe, state,
-					       MXC_ISI_SD_PAD_SINK);
-	crop = mxc_isi_pipe_get_pad_crop(pipe, state, MXC_ISI_SD_PAD_SOURCE);
+					       MXC_ISI_PIPE_PAD_SINK);
+	crop = mxc_isi_pipe_get_pad_crop(pipe, state, MXC_ISI_PIPE_PAD_SOURCE);
 
 	compose->left = 0;
 	compose->top = 0;
@@ -399,13 +399,13 @@ static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
 	unsigned int index;
 	unsigned int i;
 
-	if (code->pad == MXC_ISI_SD_PAD_SOURCE) {
+	if (code->pad == MXC_ISI_PIPE_PAD_SOURCE) {
 		const struct v4l2_mbus_framefmt *format;
 
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SINK);
+						     MXC_ISI_PIPE_PAD_SINK);
 		info = mxc_isi_bus_format_by_code(format->code,
-						  MXC_ISI_SD_PAD_SINK);
+						  MXC_ISI_PIPE_PAD_SINK);
 
 		if (info->encoding == MXC_ISI_ENC_RAW) {
 			/*
@@ -436,7 +436,7 @@ static int mxc_isi_pipe_enum_mbus_code(struct v4l2_subdev *sd,
 	for (i = 0; i < ARRAY_SIZE(mxc_isi_bus_formats); ++i) {
 		info = &mxc_isi_bus_formats[i];
 
-		if (!(info->pads & BIT(MXC_ISI_SD_PAD_SINK)))
+		if (!(info->pads & BIT(MXC_ISI_PIPE_PAD_SINK)))
 			continue;
 
 		if (index == 0) {
@@ -463,14 +463,14 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 	if (vb2_is_busy(&pipe->video.vb2_q))
 		return -EBUSY;
 
-	if (fmt->pad == MXC_ISI_SD_PAD_SINK) {
+	if (fmt->pad == MXC_ISI_PIPE_PAD_SINK) {
 		unsigned int max_width;
 
 		info = mxc_isi_bus_format_by_code(mf->code,
-						  MXC_ISI_SD_PAD_SINK);
+						  MXC_ISI_PIPE_PAD_SINK);
 		if (!info)
 			info = mxc_isi_bus_format_by_code(MXC_ISI_DEF_MBUS_CODE_SINK,
-							  MXC_ISI_SD_PAD_SINK);
+							  MXC_ISI_PIPE_PAD_SINK);
 
 		/*
 		 * FIXME: This needs to handled more dynamically, larger line
@@ -486,19 +486,19 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 
 		/* Propagate the format to the source pad. */
 		rect = mxc_isi_pipe_get_pad_compose(pipe, state,
-						    MXC_ISI_SD_PAD_SINK);
+						    MXC_ISI_PIPE_PAD_SINK);
 		rect->width = mf->width;
 		rect->height = mf->height;
 
 		rect = mxc_isi_pipe_get_pad_crop(pipe, state,
-						 MXC_ISI_SD_PAD_SOURCE);
+						 MXC_ISI_PIPE_PAD_SOURCE);
 		rect->left = 0;
 		rect->top = 0;
 		rect->width = mf->width;
 		rect->height = mf->height;
 
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SOURCE);
+						     MXC_ISI_PIPE_PAD_SOURCE);
 		format->code = info->output;
 		format->width = mf->width;
 		format->height = mf->height;
@@ -509,9 +509,9 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		 * codes must match.
 		 */
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SINK);
+						     MXC_ISI_PIPE_PAD_SINK);
 		info = mxc_isi_bus_format_by_code(format->code,
-						  MXC_ISI_SD_PAD_SINK);
+						  MXC_ISI_PIPE_PAD_SINK);
 
 		if (info->encoding != MXC_ISI_ENC_RAW) {
 			if (mf->code != MEDIA_BUS_FMT_YUV8_1X24 &&
@@ -519,7 +519,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 				mf->code = info->output;
 
 			info = mxc_isi_bus_format_by_code(mf->code,
-							  MXC_ISI_SD_PAD_SOURCE);
+							  MXC_ISI_PIPE_PAD_SOURCE);
 		}
 
 		mf->code = info->output;
@@ -529,7 +529,7 @@ static int mxc_isi_pipe_set_fmt(struct v4l2_subdev *sd,
 		 * must match the crop rectangle size.
 		 */
 		rect = mxc_isi_pipe_get_pad_crop(pipe, state,
-						 MXC_ISI_SD_PAD_SOURCE);
+						 MXC_ISI_PIPE_PAD_SOURCE);
 
 		mf->width = rect->width;
 		mf->height = rect->height;
@@ -554,13 +554,13 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
-		if (sel->pad != MXC_ISI_SD_PAD_SINK)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SINK)
 			/* No compose rectangle on source pad. */
 			return -EINVAL;
 
 		/* The sink compose is bound by the sink format. */
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SINK);
+						     MXC_ISI_PIPE_PAD_SINK);
 		sel->r.left = 0;
 		sel->r.top = 0;
 		sel->r.width = format->width;
@@ -568,18 +568,18 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 		break;
 
 	case V4L2_SEL_TGT_CROP_BOUNDS:
-		if (sel->pad != MXC_ISI_SD_PAD_SOURCE)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SOURCE)
 			/* No crop rectangle on sink pad. */
 			return -EINVAL;
 
 		/* The source crop is bound by the sink compose. */
 		rect = mxc_isi_pipe_get_pad_compose(pipe, state,
-						    MXC_ISI_SD_PAD_SINK);
+						    MXC_ISI_PIPE_PAD_SINK);
 		sel->r = *rect;
 		break;
 
 	case V4L2_SEL_TGT_CROP:
-		if (sel->pad != MXC_ISI_SD_PAD_SOURCE)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SOURCE)
 			/* No crop rectangle on sink pad. */
 			return -EINVAL;
 
@@ -588,7 +588,7 @@ static int mxc_isi_pipe_get_selection(struct v4l2_subdev *sd,
 		break;
 
 	case V4L2_SEL_TGT_COMPOSE:
-		if (sel->pad != MXC_ISI_SD_PAD_SINK)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SINK)
 			/* No compose rectangle on source pad. */
 			return -EINVAL;
 
@@ -614,13 +614,13 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP:
-		if (sel->pad != MXC_ISI_SD_PAD_SOURCE)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SOURCE)
 			/* The pipeline support cropping on the source only. */
 			return -EINVAL;
 
 		/* The source crop is bound by the sink compose. */
 		rect = mxc_isi_pipe_get_pad_compose(pipe, state,
-						    MXC_ISI_SD_PAD_SINK);
+						    MXC_ISI_PIPE_PAD_SINK);
 		sel->r.left = clamp_t(s32, sel->r.left, 0, rect->width - 1);
 		sel->r.top = clamp_t(s32, sel->r.top, 0, rect->height - 1);
 		sel->r.width = clamp(sel->r.width, MXC_ISI_MIN_WIDTH,
@@ -629,24 +629,24 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 				      rect->height - sel->r.top);
 
 		rect = mxc_isi_pipe_get_pad_crop(pipe, state,
-						 MXC_ISI_SD_PAD_SOURCE);
+						 MXC_ISI_PIPE_PAD_SOURCE);
 		*rect = sel->r;
 
 		/* Propagate the crop rectangle to the source pad. */
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SOURCE);
+						     MXC_ISI_PIPE_PAD_SOURCE);
 		format->width = sel->r.width;
 		format->height = sel->r.height;
 		break;
 
 	case V4L2_SEL_TGT_COMPOSE:
-		if (sel->pad != MXC_ISI_SD_PAD_SINK)
+		if (sel->pad != MXC_ISI_PIPE_PAD_SINK)
 			/* Composing is supported on the sink only. */
 			return -EINVAL;
 
 		/* The sink crop is bound by the sink format downscaling only). */
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SINK);
+						     MXC_ISI_PIPE_PAD_SINK);
 
 		sel->r.left = 0;
 		sel->r.top = 0;
@@ -656,19 +656,19 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 				      format->height);
 
 		rect = mxc_isi_pipe_get_pad_compose(pipe, state,
-						    MXC_ISI_SD_PAD_SINK);
+						    MXC_ISI_PIPE_PAD_SINK);
 		*rect = sel->r;
 
 		/* Propagate the compose rectangle to the source pad. */
 		rect = mxc_isi_pipe_get_pad_crop(pipe, state,
-						 MXC_ISI_SD_PAD_SOURCE);
+						 MXC_ISI_PIPE_PAD_SOURCE);
 		rect->left = 0;
 		rect->top = 0;
 		rect->width = sel->r.width;
 		rect->height = sel->r.height;
 
 		format = mxc_isi_pipe_get_pad_format(pipe, state,
-						     MXC_ISI_SD_PAD_SOURCE);
+						     MXC_ISI_PIPE_PAD_SOURCE);
 		format->width = sel->r.width;
 		format->height = sel->r.height;
 		break;
@@ -786,10 +786,11 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 
 	sd->entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
 
-	pipe->pads[MXC_ISI_SD_PAD_SINK].flags = MEDIA_PAD_FL_SINK;
-	pipe->pads[MXC_ISI_SD_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
+	pipe->pads[MXC_ISI_PIPE_PAD_SINK].flags = MEDIA_PAD_FL_SINK;
+	pipe->pads[MXC_ISI_PIPE_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
 
-	ret = media_entity_pads_init(&sd->entity, MXC_ISI_SD_PADS_NUM, pipe->pads);
+	ret = media_entity_pads_init(&sd->entity, MXC_ISI_PIPE_PADS_NUM,
+				     pipe->pads);
 	if (ret)
 		return ret;
 
