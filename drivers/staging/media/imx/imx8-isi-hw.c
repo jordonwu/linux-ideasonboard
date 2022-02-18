@@ -189,17 +189,18 @@ static void mxc_isi_channel_sw_reset(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
-static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe)
+static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
+					  unsigned int input)
 {
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val &= ~(CHNL_CTRL_MIPI_VC_ID_MASK |
-		 CHNL_CTRL_SRC_INPUT_MASK | CHNL_CTRL_SRC_TYPE_MASK);
+	val &= ~(CHNL_CTRL_MIPI_VC_ID_MASK | CHNL_CTRL_SRC_TYPE_MASK |
+		  CHNL_CTRL_SRC_INPUT_MASK);
 
-	/* FIXME: Add crossbar switch subdev, for now assume 1:1 mapping */
-	val |= pipe->id;
+	val |= CHNL_CTRL_SRC_INPUT(input);
 	val |= CHNL_CTRL_MIPI_VC_ID(0); /* FIXME: For CSI-2 only */
+
 	/*
 	 * FIXME: Support memory input
 	 * val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_MEMORY);
@@ -493,7 +494,7 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
 }
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    enum mxc_isi_encoding src_encoding,
@@ -521,7 +522,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 				    &scaler_bypass);
 
 	/* select the source input / src type / virtual channel for mipi*/
-	mxc_isi_channel_source_config(pipe);
+	mxc_isi_channel_source_config(pipe, input);
 
 	/* TODO */
 	mxc_isi_channel_set_flip(pipe);
