@@ -284,7 +284,7 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				struct mxc_isi_buffer *buf);
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
 			    const struct v4l2_rect *src_compose,
 			    enum mxc_isi_encoding src_encoding,
