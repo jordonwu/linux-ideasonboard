@@ -1579,8 +1579,14 @@ int v4l2_subdev_get_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_state *state,
 {
 	struct v4l2_mbus_framefmt *fmt;
 
-	fmt = v4l2_subdev_state_get_stream_format(state, format->pad,
-						  format->stream);
+	if (sd->flags & V4L2_SUBDEV_FL_MULTIPLEXED)
+		fmt = v4l2_subdev_state_get_stream_format(state, format->pad,
+							  format->stream);
+	else if (format->pad < sd->entity.num_pads && format->stream == 0)
+		fmt = v4l2_subdev_get_try_format(sd, state, format->pad);
+	else
+		fmt = NULL;
+
 	if (!fmt)
 		return -EINVAL;
 
