@@ -231,8 +231,23 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	const struct v4l2_rect *compose;
 	struct v4l2_subdev_state *state;
 	struct v4l2_subdev *sd = &pipe->sd;
+	u32 input;
 	int ret;
 
+	/*
+	 * Find the connected input by inspecting the crossbar switch routing
+	 * table.
+	 */
+	state = v4l2_subdev_lock_active_state(&xbar->sd);
+	ret = v4l2_subdev_routing_find_opposite_end(&state->routing,
+						    xbar->num_sinks + pipe->id,
+						    0, &input, NULL);
+	v4l2_subdev_unlock_state(state);
+
+	if (ret)
+		return -EPIPE;
+
+	/* Configure the pipeline. */
 	state = v4l2_subdev_lock_active_state(sd);
 
 	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SINK);
@@ -244,13 +259,14 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	src_info = mxc_isi_bus_format_by_code(src_fmt->code,
 					      MXC_ISI_PIPE_PAD_SOURCE);
 
-	mxc_isi_channel_config(pipe, sink_fmt, compose, sink_info->encoding,
-			       src_info->encoding);
+	mxc_isi_channel_config(pipe, input, sink_fmt, compose,
+			       sink_info->encoding, src_info->encoding);
 
 	v4l2_subdev_unlock_state(state);
 
 	mxc_isi_channel_enable(pipe);
 
+	/* Enable streams on the crossbar switch. */
 	ret = v4l2_subdev_enable_streams(&xbar->sd, xbar->num_sinks + pipe->id,
 					 BIT(0));
 	if (ret) {
