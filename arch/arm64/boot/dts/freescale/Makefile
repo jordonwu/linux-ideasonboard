@@ -79,6 +79,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin.dtb \
 			  imx8mp-maivin-csi1-ov5640.dtb \
 			  imx8mp-maivin-csi2-imx296.dtb \
 			  imx8mp-maivin-csi2-imx327.dtb \
+			  imx8mp-maivin-isp1.dtb \
+			  imx8mp-maivin-isp2.dtb \
 			  imx8mp-verdin-dahlia-imx296.dtb \
 			  imx8mp-verdin-dahlia-imx327.dtb \
 			  imx8mp-verdin-dahlia-isp1.dtb \
