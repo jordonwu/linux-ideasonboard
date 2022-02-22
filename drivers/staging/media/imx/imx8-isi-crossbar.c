@@ -314,16 +314,18 @@ int mxc_isi_crossbar_init(struct mxc_isi_dev *isi)
 
 	ret = media_entity_pads_init(&sd->entity, num_pads, xbar->pads);
 	if (ret)
-		return ret;
+		goto err_free;
 
 	ret = v4l2_subdev_init_finalize(sd);
 	if (ret < 0)
-		goto error;
+		goto err_entity;
 
 	return 0;
 
-error:
+err_entity:
 	media_entity_cleanup(&sd->entity);
+err_free:
+	kfree(xbar->pads);
 
 	return ret;
 }
