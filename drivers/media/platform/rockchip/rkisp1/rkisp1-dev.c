@@ -452,6 +452,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 	struct v4l2_device *v4l2_dev;
 	unsigned int i;
 	int ret, irq;
+	u32 cif_id;
 
 	rkisp1 = devm_kzalloc(dev, sizeof(*rkisp1), GFP_KERNEL);
 	if (!rkisp1)
@@ -459,6 +460,11 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	info = of_device_get_match_data(dev);
 	rkisp1->info = info;
+
+	if (rkisp1_internal_csi(rkisp1))
+		dev_info(dev, "using internal csi");
+	else
+		dev_info(dev, "using external csi");
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;
@@ -534,6 +540,9 @@ static int rkisp1_probe(struct platform_device *pdev)
 		dev_err(rkisp1->dev, "failed to power on\n");
 		goto err_unreg_notifier;
 	}
+
+	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
+	dev_info(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
 
 	return 0;
 
