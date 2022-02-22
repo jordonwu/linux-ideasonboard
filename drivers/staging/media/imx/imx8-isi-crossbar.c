@@ -9,11 +9,13 @@
 #include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/minmax.h>
+#include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/types.h>
 
 #include <media/media-entity.h>
+#include <media/mipi-csi2.h>
 #include <media/v4l2-subdev.h>
 
 #include "imx8-isi-core.h"
@@ -21,6 +23,83 @@
 static inline struct mxc_isi_crossbar *to_isi_crossbar(struct v4l2_subdev *sd)
 {
 	return container_of(sd, struct mxc_isi_crossbar, sd);
+}
+
+/* -----------------------------------------------------------------------------
+ * Media block control (i.MX8MN and i.MX8MP only)
+ */
+#define GASKET_BASE(n)				(0x0060 + (n) * 0x30)
+
+#define GASKET_CTRL				0x0000
+#define GASKET_CTRL_DATA_TYPE(dt)		((dt) << 8)
+#define GASKET_CTRL_DATA_TYPE_MASK		(0x3f << 8)
+#define GASKET_CTRL_DUAL_COMP_ENABLE		BIT(1)
+#define GASKET_CTRL_ENABLE			BIT(0)
+
+#define GASKET_HSIZE				0x0004
+#define GASKET_VSIZE				0x0008
+
+static int mxc_isi_crossbar_gasket_enable(struct mxc_isi_crossbar *xbar,
+					  struct v4l2_subdev_state *state,
+					  struct v4l2_subdev *remote_sd,
+					  u32 remote_pad, unsigned int port)
+{
+	struct mxc_isi_dev *isi = xbar->isi;
+	const struct v4l2_mbus_framefmt *fmt;
+	struct v4l2_mbus_frame_desc fd;
+	u32 val;
+	int ret;
+
+	if (!isi->pdata->has_gasket)
+		return 0;
+
+	/*
+	 * Configure and enable the gasket with the frame size and CSI-2 data
+	 * type. For YUV422 8-bit, enable dual component mode unconditionally,
+	 * to match the configuration of the CSIS.
+	 */
+
+	ret = v4l2_subdev_call(remote_sd, pad, get_frame_desc, remote_pad, &fd);
+	if (ret) {
+		dev_err(isi->dev,
+			"failed to get frame descriptor from '%s':%u: %d\n",
+			remote_sd->name, remote_pad, ret);
+		return ret;
+	}
+
+	if (fd.num_entries != 1) {
+		dev_err(isi->dev, "invalid frame descriptor for '%s':%u\n",
+			remote_sd->name, remote_pad);
+		return -EINVAL;
+	}
+
+	fmt = v4l2_subdev_state_get_stream_format(state, port, 0);
+	if (!fmt)
+		return -EINVAL;
+
+	regmap_write(isi->gasket, GASKET_BASE(port) + GASKET_HSIZE, fmt->width);
+	regmap_write(isi->gasket, GASKET_BASE(port) + GASKET_VSIZE, fmt->height);
+
+	val = GASKET_CTRL_DATA_TYPE(fd.entry[0].bus.csi2.dt)
+	    | GASKET_CTRL_ENABLE;
+
+	if (fd.entry[0].bus.csi2.dt == MIPI_CSI2_DT_YUV422_8B)
+		val |= GASKET_CTRL_DUAL_COMP_ENABLE;
+
+	regmap_write(isi->gasket, GASKET_BASE(port) + GASKET_CTRL, val);
+
+	return 0;
+}
+
+static void mxc_isi_crossbar_gasket_disable(struct mxc_isi_crossbar *xbar,
+					    unsigned int port)
+{
+	struct mxc_isi_dev *isi = xbar->isi;
+
+	if (!isi->pdata->has_gasket)
+		return;
+
+	regmap_write(isi->gasket, GASKET_BASE(port) + GASKET_CTRL, 0);
 }
 
 /* -----------------------------------------------------------------------------
@@ -55,7 +134,8 @@ static struct v4l2_subdev *
 mxc_isi_crossbar_xlate_streams(struct mxc_isi_crossbar *xbar,
 			       struct v4l2_subdev_state *state,
 			       u32 source_pad, u64 source_streams,
-			       u32 *remote_pad, u64 *remote_streams)
+			       u32 *__sink_pad, u64 *__sink_streams,
+			       u32 *remote_pad)
 {
 	struct v4l2_subdev_route *route;
 	struct v4l2_subdev *sd;
@@ -97,8 +177,9 @@ mxc_isi_crossbar_xlate_streams(struct mxc_isi_crossbar *xbar,
 		return ERR_PTR(-EPIPE);
 	}
 
+	*__sink_pad = sink_pad;
+	*__sink_streams = sink_streams;
 	*remote_pad = pad->index;
-	*remote_streams = sink_streams;
 
 	return sd;
 }
@@ -237,8 +318,10 @@ static int mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
 	struct v4l2_subdev *remote_sd;
-	u64 remote_streams;
+	u64 sink_streams;
+	u32 sink_pad;
 	u32 remote_pad;
+	int ret;
 
 	/*
 	 * TODO: Avoid multiple enable of the same inputs when the routing
@@ -246,11 +329,27 @@ static int mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
 	 */
 
 	remote_sd = mxc_isi_crossbar_xlate_streams(xbar, state, pad, streams_mask,
-						   &remote_pad, &remote_streams);
+						   &sink_pad, &sink_streams,
+						   &remote_pad);
 	if (IS_ERR(remote_sd))
 		return PTR_ERR(remote_sd);
 
-	return v4l2_subdev_enable_streams(remote_sd, remote_pad, remote_streams);
+	ret = mxc_isi_crossbar_gasket_enable(xbar, state, remote_sd, remote_pad,
+					     sink_pad);
+	if (ret)
+		return ret;
+
+	ret = v4l2_subdev_enable_streams(remote_sd, remote_pad, sink_streams);
+	if (ret) {
+		dev_err(xbar->isi->dev,
+			"failed to %s streams 0x%llx on '%s':%u: %d\n",
+			"enable", sink_streams, remote_sd->name, remote_pad,
+			ret);
+		mxc_isi_crossbar_gasket_disable(xbar, sink_pad);
+		return ret;
+	}
+
+	return 0;
 }
 
 static int mxc_isi_crossbar_disable_streams(struct v4l2_subdev *sd,
@@ -259,8 +358,10 @@ static int mxc_isi_crossbar_disable_streams(struct v4l2_subdev *sd,
 {
 	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
 	struct v4l2_subdev *remote_sd;
-	u64 remote_streams;
+	u64 sink_streams;
+	u32 sink_pad;
 	u32 remote_pad;
+	int ret;
 
 	/*
 	 * TODO: Avoid multiple disable of the same inputs when the routing
@@ -268,11 +369,21 @@ static int mxc_isi_crossbar_disable_streams(struct v4l2_subdev *sd,
 	 */
 
 	remote_sd = mxc_isi_crossbar_xlate_streams(xbar, state, pad, streams_mask,
-						   &remote_pad, &remote_streams);
+						   &sink_pad, &sink_streams,
+						   &remote_pad);
 	if (IS_ERR(remote_sd))
 		return PTR_ERR(remote_sd);
 
-	return v4l2_subdev_disable_streams(remote_sd, remote_pad, remote_streams);
+	ret = v4l2_subdev_disable_streams(remote_sd, remote_pad, sink_streams);
+	if (ret)
+		dev_err(xbar->isi->dev,
+			"failed to %s streams 0x%llx on '%s':%u: %d\n",
+			"disable", sink_streams, remote_sd->name, remote_pad,
+			ret);
+
+	mxc_isi_crossbar_gasket_disable(xbar, sink_pad);
+
+	return ret;
 }
 
 static const struct v4l2_subdev_pad_ops mxc_isi_crossbar_subdev_pad_ops = {

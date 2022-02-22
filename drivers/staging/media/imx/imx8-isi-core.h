@@ -29,6 +29,7 @@
 
 struct clk_bulk_data;
 struct device;
+struct regmap;
 
 /* Pipeline pads */
 #define MXC_ISI_PIPE_PAD_SINK		0
@@ -167,6 +168,7 @@ struct mxc_isi_plat_data {
 	const struct clk_bulk_data *clks;
 	unsigned int num_clks;
 	bool buf_active_reverse;
+	bool has_gasket;
 };
 
 struct mxc_isi_dma_buffer {
@@ -239,6 +241,7 @@ struct mxc_isi_dev {
 
 	void __iomem			*regs;
 	struct clk_bulk_data		*clks;
+	struct regmap			*gasket;
 
 	struct mxc_isi_crossbar		crossbar;
 	struct mxc_isi_pipe		*pipes;

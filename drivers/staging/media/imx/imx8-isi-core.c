@@ -7,6 +7,7 @@
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -271,6 +272,7 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.clks     = mxc_imx8_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse = false,
+	.has_gasket = false,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
@@ -283,6 +285,7 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.clks     = mxc_imx8_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse = true,
+	.has_gasket = false,
 };
 
 static const struct clk_bulk_data mxc_imx8mn_clks[] = {
@@ -300,6 +303,7 @@ static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.clks     = mxc_imx8mn_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
 	.buf_active_reverse = false,
+	.has_gasket = true,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
@@ -312,6 +316,7 @@ static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.clks     = mxc_imx8mn_clks,
 	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
 	.buf_active_reverse = true,
+	.has_gasket = true,
 };
 
 static const struct soc_device_attribute imx8_soc[] = {
@@ -477,6 +482,16 @@ static int mxc_isi_probe(struct platform_device *pdev)
 	if (IS_ERR(isi->regs)) {
 		dev_err(dev, "Failed to get ISI register map\n");
 		return PTR_ERR(isi->regs);
+	}
+
+	if (isi->pdata->has_gasket) {
+		isi->gasket = syscon_regmap_lookup_by_phandle(dev->of_node,
+							      "fsl,blk-ctrl");
+		if (IS_ERR(isi->gasket)) {
+			ret = PTR_ERR(isi->gasket);
+			dev_err(dev, "failed to get gasket: %d\n", ret);
+			return ret;
+		}
 	}
 
 	pm_runtime_enable(dev);
