@@ -38,6 +38,12 @@ properties:
       - const: axi
       - const: apb
 
+  fsl,blk-ctrl:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description:
+      A phandle referencing the block control that contains the CSIS to ISI
+      gasket.
+
   power-domains: true
 
   ports:
@@ -59,6 +65,7 @@ required:
   - interrupts
   - clocks
   - clock-names
+  - fsl,blk-ctrl
   - ports
 
 allOf:
@@ -113,6 +120,7 @@ examples:
         clocks = <&clk IMX8MP_CLK_MEDIA_AXI_ROOT>,
                  <&clk IMX8MP_CLK_MEDIA_APB_ROOT>;
         clock-names = "axi", "apb";
+        fsl,blk-ctrl = <&media_blk_ctrl>;
         power-domains = <&mediamix_pd>;
 
         ports {
