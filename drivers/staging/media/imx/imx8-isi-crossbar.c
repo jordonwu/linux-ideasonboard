@@ -51,15 +51,15 @@ static int __mxc_isi_crossbar_set_routing(struct v4l2_subdev *sd,
 						&mxc_isi_crossbar_default_format);
 }
 
-static int __mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
-					     struct v4l2_subdev_state *state,
-					     u32 pad, u64 streams_mask,
-					     bool enable)
+static struct v4l2_subdev *
+mxc_isi_crossbar_xlate_streams(struct mxc_isi_crossbar *xbar,
+			       struct v4l2_subdev_state *state,
+			       u32 source_pad, u64 source_streams,
+			       u32 *remote_pad, u64 *remote_streams)
 {
-	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
 	struct v4l2_subdev_route *route;
-	struct v4l2_subdev *remote_sd;
-	struct media_pad *remote_pad;
+	struct v4l2_subdev *sd;
+	struct media_pad *pad;
 	u64 sink_streams = 0;
 	int sink_pad = -1;
 
@@ -72,8 +72,8 @@ static int __mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
 	 * supported by v4l2_subdev_state_xlate_streams() with pad1 set to -1.
 	 */
 	for_each_active_route(&state->routing, route) {
-		if (route->source_pad != pad ||
-		    !(streams_mask & BIT(route->source_stream)))
+		if (route->source_pad != source_pad ||
+		    !(source_streams & BIT(route->source_stream)))
 			continue;
 
 		sink_streams |= BIT(route->sink_stream);
@@ -83,30 +83,24 @@ static int __mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
 	if (sink_pad < 0) {
 		dev_dbg(xbar->isi->dev,
 			"no stream connected to pipeline %u\n",
-			pad - xbar->num_sinks);
-		return -EPIPE;
+			source_pad - xbar->num_sinks);
+		return ERR_PTR(-EPIPE);
 	}
 
-	remote_pad = media_entity_remote_pad(&xbar->pads[sink_pad]);
-	remote_sd = media_entity_to_v4l2_subdev(remote_pad->entity);
+	pad = media_entity_remote_pad(&xbar->pads[sink_pad]);
+	sd = media_entity_to_v4l2_subdev(pad->entity);
 
-	if (!remote_sd) {
+	if (!sd) {
 		dev_dbg(xbar->isi->dev,
 			"no entity connected to crossbar input %u\n",
 			sink_pad);
-		return -EPIPE;
+		return ERR_PTR(-EPIPE);
 	}
 
-	/*
-	 * TODO: Avoid multiple enable or disable of the same inputs when the
-	 * routing table duplicates streams (1-to-N).
-	 */
-	if (enable)
-		return v4l2_subdev_enable_streams(remote_sd, remote_pad->index,
-						  sink_streams);
-	else
-		return v4l2_subdev_disable_streams(remote_sd, remote_pad->index,
-						   sink_streams);
+	*remote_pad = pad->index;
+	*remote_streams = sink_streams;
+
+	return sd;
 }
 
 static int mxc_isi_crossbar_init_cfg(struct v4l2_subdev *sd,
@@ -241,16 +235,44 @@ static int mxc_isi_crossbar_enable_streams(struct v4l2_subdev *sd,
 					   struct v4l2_subdev_state *state,
 					   u32 pad, u64 streams_mask)
 {
-	return __mxc_isi_crossbar_enable_streams(sd, state, pad, streams_mask,
-						 true);
+	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
+	struct v4l2_subdev *remote_sd;
+	u64 remote_streams;
+	u32 remote_pad;
+
+	/*
+	 * TODO: Avoid multiple enable of the same inputs when the routing
+	 * table duplicates streams (1-to-N).
+	 */
+
+	remote_sd = mxc_isi_crossbar_xlate_streams(xbar, state, pad, streams_mask,
+						   &remote_pad, &remote_streams);
+	if (IS_ERR(remote_sd))
+		return PTR_ERR(remote_sd);
+
+	return v4l2_subdev_enable_streams(remote_sd, remote_pad, remote_streams);
 }
 
 static int mxc_isi_crossbar_disable_streams(struct v4l2_subdev *sd,
 					    struct v4l2_subdev_state *state,
 					    u32 pad, u64 streams_mask)
 {
-	return __mxc_isi_crossbar_enable_streams(sd, state, pad, streams_mask,
-						 false);
+	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
+	struct v4l2_subdev *remote_sd;
+	u64 remote_streams;
+	u32 remote_pad;
+
+	/*
+	 * TODO: Avoid multiple disable of the same inputs when the routing
+	 * table duplicates streams (1-to-N).
+	 */
+
+	remote_sd = mxc_isi_crossbar_xlate_streams(xbar, state, pad, streams_mask,
+						   &remote_pad, &remote_streams);
+	if (IS_ERR(remote_sd))
+		return PTR_ERR(remote_sd);
+
+	return v4l2_subdev_disable_streams(remote_sd, remote_pad, remote_streams);
 }
 
 static const struct v4l2_subdev_pad_ops mxc_isi_crossbar_subdev_pad_ops = {
