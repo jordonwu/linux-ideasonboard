@@ -454,6 +454,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	isi->dev = dev;
+	platform_set_drvdata(pdev, isi);
 
 	ret = mxc_isi_get_platform_data(isi);
 	if (ret < 0) {
@@ -478,13 +479,12 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		return PTR_ERR(isi->regs);
 	}
 
-	platform_set_drvdata(pdev, isi);
 	pm_runtime_enable(dev);
 
 	ret = mxc_isi_crossbar_init(isi);
 	if (ret) {
 		dev_err(dev, "Failed to initialize crossbar: %d\n", ret);
-		return ret;
+		goto err_pm;
 	}
 
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
@@ -492,20 +492,22 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		if (ret < 0) {
 			dev_err(dev, "Failed to initialize pipe%u: %d\n", i,
 				ret);
-			goto error;
+			goto err_xbar;
 		}
 	}
 
 	ret = mxc_isi_v4l2_init(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize V4L2: %d\n", ret);
-		goto error;
+		goto err_xbar;
 	}
 
 	return 0;
 
-error:
+err_xbar:
 	mxc_isi_crossbar_cleanup(&isi->crossbar);
+err_pm:
+	pm_runtime_disable(isi->dev);
 	return ret;
 }
 
