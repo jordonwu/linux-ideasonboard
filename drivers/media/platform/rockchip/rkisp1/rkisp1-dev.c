@@ -507,6 +507,12 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	rkisp1_debug_init(rkisp1);
 
+	ret = pm_runtime_resume_and_get(rkisp1->dev);
+	if (ret < 0) {
+		dev_err(rkisp1->dev, "failed to power on\n");
+		goto err_unreg_notifier;
+	}
+
 	return 0;
 
 err_unreg_notifier:
