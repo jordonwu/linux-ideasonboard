@@ -335,7 +335,7 @@ struct mipi_csis_device {
 
 	struct mutex lock;	/* Protect csis_fmt, format_mbus and state */
 	const struct csis_pix_format *csis_fmt;
-	struct v4l2_mbus_framefmt format_mbus;
+	struct v4l2_mbus_framefmt format_mbus[CSIS_PADS_NUM];
 	u32 state;
 
 	spinlock_t slock;	/* Protect events */
@@ -541,7 +541,7 @@ static void mipi_csis_system_enable(struct mipi_csis_device *csis, int on)
 /* Called with the csis.lock mutex held */
 static void __mipi_csis_set_format(struct mipi_csis_device *csis)
 {
-	struct v4l2_mbus_framefmt *mf = &csis->format_mbus;
+	struct v4l2_mbus_framefmt *mf = &csis->format_mbus[CSIS_PAD_SINK];
 	u32 val;
 
 	/* Color format */
@@ -973,7 +973,7 @@ mipi_csis_get_format(struct mipi_csis_device *csis,
 	if (which == V4L2_SUBDEV_FORMAT_TRY)
 		return v4l2_subdev_get_try_format(&csis->sd, sd_state, pad);
 
-	return &csis->format_mbus;
+	return &csis->format_mbus[pad];
 }
 
 static int mipi_csis_init_cfg(struct v4l2_subdev *sd,
