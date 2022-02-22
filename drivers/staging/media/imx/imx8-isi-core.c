@@ -492,17 +492,21 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		if (ret < 0) {
 			dev_err(dev, "Failed to initialize pipe%u: %d\n", i,
 				ret);
-			return ret;
+			goto error;
 		}
 	}
 
 	ret = mxc_isi_v4l2_init(isi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize V4L2: %d\n", ret);
-		return ret;
+		goto error;
 	}
 
 	return 0;
+
+error:
+	mxc_isi_crossbar_cleanup(&isi->crossbar);
+	return ret;
 }
 
 static int mxc_isi_remove(struct platform_device *pdev)
