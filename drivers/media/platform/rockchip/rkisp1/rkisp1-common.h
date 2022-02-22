@@ -473,6 +473,13 @@ unsigned int rkisp1_mbus_info_length(void);
 const struct rkisp1_mbus_info *rkisp1_mbus_info_get_by_index(unsigned int index);
 
 /*
+ * rkisp1_internal_csi - Return if the rkisp1 has a built-in csi receiver
+ *
+ * @rkisp1: rkisp1_device to check
+ */
+bool rkisp1_internal_csi(const struct rkisp1_device *rkisp1);
+
+/*
  * rkisp1_sd_adjust_crop_rect - adjust a rectangle to fit into another rectangle.
  *
  * @crop:   rectangle to adjust.

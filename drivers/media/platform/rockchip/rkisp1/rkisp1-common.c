@@ -157,6 +157,11 @@ const struct rkisp1_mbus_info *rkisp1_mbus_info_get(u32 mbus_code)
 	return NULL;
 }
 
+bool rkisp1_internal_csi(const struct rkisp1_device *rkisp1)
+{
+	return rkisp1->info->isp_ver != IMX8MP_V10;
+}
+
 
 static const struct v4l2_rect rkisp1_sd_min_crop = {
 	.width = RKISP1_ISP_MIN_WIDTH,
