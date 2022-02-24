@@ -17,7 +17,6 @@
 #include <media/v4l2-event.h>
 
 #include "rkisp1-common.h"
-#include "rkisp1-csi.h"
 
 #define RKISP1_DEF_SINK_PAD_FMT MEDIA_BUS_FMT_SRGGB10_1X10
 #define RKISP1_DEF_SRC_PAD_FMT MEDIA_BUS_FMT_YUYV8_2X8
@@ -123,17 +122,14 @@ static void rkisp1_config_ism(struct rkisp1_device *rkisp1)
 /*
  * configure ISP blocks with input format, size......
  */
-static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
+static int rkisp1_config_isp(struct rkisp1_device *rkisp1,
+			     struct rkisp1_sensor_async *source)
 {
 	u32 isp_ctrl = 0, irq_mask = 0, acq_mult = 0, signal = 0;
 	const struct rkisp1_mbus_info *src_fmt, *sink_fmt;
-	struct rkisp1_sensor_async *sensor;
 	struct v4l2_mbus_framefmt *sink_frm;
 	struct v4l2_rect *sink_crop;
-	struct rkisp1_csi *csi =
-		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 
-	sensor = csi->active_sensor;
 	sink_fmt = rkisp1->isp.sink_fmt;
 	src_fmt = rkisp1->isp.src_fmt;
 	sink_frm = rkisp1_isp_get_pad_fmt(&rkisp1->isp, NULL,
@@ -146,7 +142,7 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	if (sink_fmt->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
 		acq_mult = 1;
 		if (src_fmt->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
-			if (sensor->mbus_type == V4L2_MBUS_BT656)
+			if (source->mbus_type == V4L2_MBUS_BT656)
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_RAW_PICT_ITU656;
 			else
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_RAW_PICT;
@@ -154,17 +150,17 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 			rkisp1_write(rkisp1, RKISP1_CIF_ISP_DEMOSAIC_TH(0xc),
 				     RKISP1_CIF_ISP_DEMOSAIC);
 
-			if (sensor->mbus_type == V4L2_MBUS_BT656)
+			if (source->mbus_type == V4L2_MBUS_BT656)
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_BAYER_ITU656;
 			else
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_BAYER_ITU601;
 		}
 	} else if (sink_fmt->pixel_enc == V4L2_PIXEL_ENC_YUV) {
 		acq_mult = 2;
-		if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY) {
+		if (source->mbus_type == V4L2_MBUS_CSI2_DPHY) {
 			isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU601;
 		} else {
-			if (sensor->mbus_type == V4L2_MBUS_BT656)
+			if (source->mbus_type == V4L2_MBUS_BT656)
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU656;
 			else
 				isp_ctrl = RKISP1_CIF_ISP_CTRL_ISP_MODE_ITU601;
@@ -174,17 +170,17 @@ static int rkisp1_config_isp(struct rkisp1_device *rkisp1)
 	}
 
 	/* Set up input acquisition properties */
-	if (sensor->mbus_type == V4L2_MBUS_BT656 ||
-	    sensor->mbus_type == V4L2_MBUS_PARALLEL) {
-		if (sensor->mbus_flags & V4L2_MBUS_PCLK_SAMPLE_RISING)
+	if (source->mbus_type == V4L2_MBUS_BT656 ||
+	    source->mbus_type == V4L2_MBUS_PARALLEL) {
+		if (source->mbus_flags & V4L2_MBUS_PCLK_SAMPLE_RISING)
 			signal = RKISP1_CIF_ISP_ACQ_PROP_POS_EDGE;
 	}
 
-	if (sensor->mbus_type == V4L2_MBUS_PARALLEL) {
-		if (sensor->mbus_flags & V4L2_MBUS_VSYNC_ACTIVE_LOW)
+	if (source->mbus_type == V4L2_MBUS_PARALLEL) {
+		if (source->mbus_flags & V4L2_MBUS_VSYNC_ACTIVE_LOW)
 			signal |= RKISP1_CIF_ISP_ACQ_PROP_VSYNC_LOW;
 
-		if (sensor->mbus_flags & V4L2_MBUS_HSYNC_ACTIVE_LOW)
+		if (source->mbus_flags & V4L2_MBUS_HSYNC_ACTIVE_LOW)
 			signal |= RKISP1_CIF_ISP_ACQ_PROP_HSYNC_LOW;
 	}
 
@@ -254,19 +250,17 @@ static int rkisp1_config_dvp(struct rkisp1_device *rkisp1)
 }
 
 /* Configure MUX */
-static int rkisp1_config_path(struct rkisp1_device *rkisp1)
+static int rkisp1_config_path(struct rkisp1_device *rkisp1,
+			      enum v4l2_mbus_type mbus_type)
 {
-	struct rkisp1_csi *csi =
-		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
-	struct rkisp1_sensor_async *sensor = csi->active_sensor;
 	u32 dpcl = rkisp1_read(rkisp1, RKISP1_CIF_VI_DPCL);
 	int ret = 0;
 
-	if (sensor->mbus_type == V4L2_MBUS_BT656 ||
-	    sensor->mbus_type == V4L2_MBUS_PARALLEL) {
+	if (mbus_type == V4L2_MBUS_BT656 ||
+	    mbus_type == V4L2_MBUS_PARALLEL) {
 		ret = rkisp1_config_dvp(rkisp1);
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_PARALLEL;
-	} else if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY) {
+	} else if (mbus_type == V4L2_MBUS_CSI2_DPHY) {
 		dpcl |= RKISP1_CIF_VI_DPCL_IF_SEL_MIPI;
 	}
 
@@ -276,7 +270,8 @@ static int rkisp1_config_path(struct rkisp1_device *rkisp1)
 }
 
 /* Hardware configure Entry */
-static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
+static int rkisp1_config_cif(struct rkisp1_device *rkisp1,
+			     struct rkisp1_sensor_async *source)
 {
 	u32 cif_id;
 	int ret;
@@ -284,10 +279,10 @@ static int rkisp1_config_cif(struct rkisp1_device *rkisp1)
 	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
 	dev_dbg(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
 
-	ret = rkisp1_config_isp(rkisp1);
+	ret = rkisp1_config_isp(rkisp1, source);
 	if (ret)
 		return ret;
-	ret = rkisp1_config_path(rkisp1);
+	ret = rkisp1_config_path(rkisp1, source->mbus_type);
 	if (ret)
 		return ret;
 	rkisp1_config_ism(rkisp1);
@@ -353,20 +348,15 @@ static void rkisp1_config_clk(struct rkisp1_device *rkisp1)
 
 static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 {
-	struct rkisp1_csi *csi =
-		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
-	struct rkisp1_sensor_async *sensor = csi->active_sensor;
 	u32 val;
 	int ret;
 
 	rkisp1_config_clk(rkisp1);
 
 	/* Activate MIPI */
-	if (sensor->mbus_type == V4L2_MBUS_CSI2_DPHY) {
-		ret = v4l2_subdev_call(rkisp1->csi_subdev, video, s_stream, 1);
-		if (ret)
-			return ret;
-	}
+	ret = v4l2_subdev_call(rkisp1->csi_subdev, video, s_stream, 1);
+	if (ret)
+		return ret;
 
 	/* Activate ISP */
 	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
@@ -381,7 +371,7 @@ static int rkisp1_isp_start(struct rkisp1_device *rkisp1)
 	 */
 	usleep_range(1000, 1200);
 
-	return ret;
+	return 0;
 }
 
 /* ----------------------------------------------------------------------------
@@ -810,12 +800,11 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	else
 		source = container_of(source_sd->asd, struct rkisp1_sensor_async, asd);
 
-	if (source->mbus_type != V4L2_MBUS_CSI2_DPHY)
-		return -EINVAL;
+	rkisp1->csi_subdev = source_sd;
 
 	rkisp1->isp.frame_sequence = -1;
 	mutex_lock(&isp->ops_lock);
-	ret = rkisp1_config_cif(rkisp1);
+	ret = rkisp1_config_cif(rkisp1, source);
 	if (ret)
 		goto mutex_unlock;
 

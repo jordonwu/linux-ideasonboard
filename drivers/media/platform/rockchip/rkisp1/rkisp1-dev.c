@@ -162,14 +162,8 @@ rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 		container_of(asd, struct rkisp1_sensor_async, asd);
 	int ret;
 
-	if (rkisp1_internal_csi(rkisp1)) {
-		if (s_asd->port) {
-			dev_err(rkisp1->dev, "port 0 must be CSI2\n");
-			return -ENODEV;
-		}
-
+	if (s_asd->port == 0)
 		return rkisp1_csi_link_sensor(rkisp1, sd, s_asd);
-	}
 
 	ret = v4l2_create_fwnode_links_to_pad(sd,
 		&rkisp1->isp.pads[RKISP1_ISP_PAD_SINK_VIDEO],
@@ -253,6 +247,25 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 		if (IS_ERR(rk_asd)) {
 			ret = PTR_ERR(rk_asd);
 			break;
+		}
+
+		if (reg == 0) {
+			if (!rkisp1_internal_csi(rkisp1) ||
+			    rk_asd->mbus_type != V4L2_MBUS_CSI2_DPHY) {
+				dev_err(rkisp1->dev,
+					"internal CSI must be available for port 0\n");
+				ret = -EINVAL;
+				break;
+			}
+		} else {
+			/* reg == 1 */
+			if (rk_asd->mbus_type != V4L2_MBUS_PARALLEL &&
+			    rk_asd->mbus_type != V4L2_MBUS_BT656) {
+				dev_err(rkisp1->dev,
+					"external CSI must be parallel or BT656\n");
+				ret = -EINVAL;
+				break;
+			}
 		}
 
 		rk_asd->mbus_type = vep.bus_type;
@@ -560,6 +573,7 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	rkisp1_debug_init(rkisp1);
 
+	// todo pm runtime get
 	ret = pm_runtime_resume_and_get(rkisp1->dev);
 	if (ret < 0) {
 		dev_err(rkisp1->dev, "failed to power on\n");
@@ -568,6 +582,8 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	cif_id = rkisp1_read(rkisp1, RKISP1_CIF_VI_ID);
 	dev_info(rkisp1->dev, "CIF_ID 0x%08x\n", cif_id);
+
+	// todo pm runtime put
 
 	return 0;
 
