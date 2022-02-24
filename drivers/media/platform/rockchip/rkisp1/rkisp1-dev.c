@@ -241,34 +241,27 @@ static const struct v4l2_async_notifier_operations rkisp1_subdev_notifier_ops = 
 static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 {
 	struct v4l2_async_notifier *ntf = &rkisp1->notifier;
-	unsigned int next_id = 0;
-	int ret;
+	struct fwnode_handle *fwnode = dev_fwnode(rkisp1->dev);
+	struct fwnode_handle *ep;
+	int ret = 0;
 
 	v4l2_async_nf_init(ntf);
 
-	while (1) {
+	fwnode_graph_for_each_endpoint(fwnode, ep) {
 		struct v4l2_fwnode_endpoint vep = {
 			.bus_type = V4L2_MBUS_CSI2_DPHY
 		};
 		struct rkisp1_sensor_async *rk_asd;
-		struct fwnode_handle *ep;
-
-		ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(rkisp1->dev),
-						     0, next_id,
-						     FWNODE_GRAPH_ENDPOINT_NEXT);
-		if (!ep)
-			break;
 
 		ret = v4l2_fwnode_endpoint_parse(ep, &vep);
 		if (ret)
-			goto err_parse;
+			break;
 
 		rk_asd = v4l2_async_nf_add_fwnode_remote(ntf, ep,
-							 struct
-							 rkisp1_sensor_async);
+							 struct rkisp1_sensor_async);
 		if (IS_ERR(rk_asd)) {
 			ret = PTR_ERR(rk_asd);
-			goto err_parse;
+			break;
 		}
 
 		rk_asd->mbus_type = vep.bus_type;
@@ -277,26 +270,24 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 
 		dev_dbg(rkisp1->dev, "registered ep id %d with %d lanes\n",
 			vep.base.id, rk_asd->lanes);
+	}
 
-		next_id = vep.base.id + 1;
-
-		fwnode_handle_put(ep);
-
-		continue;
-err_parse:
+	if (ret) {
 		fwnode_handle_put(ep);
 		v4l2_async_nf_cleanup(ntf);
 		return ret;
 	}
 
-	if (next_id == 0)
+	if (!ep)
 		dev_dbg(rkisp1->dev, "no remote subdevice found\n");
+
 	ntf->ops = &rkisp1_subdev_notifier_ops;
 	ret = v4l2_async_nf_register(&rkisp1->v4l2_dev, ntf);
 	if (ret) {
 		v4l2_async_nf_cleanup(ntf);
 		return ret;
 	}
+
 	return 0;
 }
 
