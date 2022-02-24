@@ -117,6 +117,7 @@ struct rkisp1_info {
  * @sd:			a pointer to v4l2_subdev struct of the sensor
  * @pixel_rate_ctrl:	pixel rate of the sensor, used to initialize the phy
  * @dphy:		a pointer to the phy
+ * @port:		port number (0: MIPI, 1: Parallel)
  */
 struct rkisp1_sensor_async {
 	struct v4l2_async_subdev asd;
@@ -126,6 +127,7 @@ struct rkisp1_sensor_async {
 	struct v4l2_subdev *sd;
 	struct v4l2_ctrl *pixel_rate_ctrl;
 	struct phy *dphy;
+	unsigned int port;
 };
 
 /*
