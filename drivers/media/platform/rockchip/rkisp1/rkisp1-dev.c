@@ -158,16 +158,22 @@ rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 {
 	struct rkisp1_device *rkisp1 =
 		container_of(notifier, struct rkisp1_device, notifier);
+	struct rkisp1_sensor_async *s_asd =
+		container_of(asd, struct rkisp1_sensor_async, asd);
 	int ret;
 
-	if (rkisp1_internal_csi(rkisp1))
-		return rkisp1_csi_link_sensor(rkisp1, sd, asd);
+	if (rkisp1_internal_csi(rkisp1)) {
+		if (s_asd->port) {
+			dev_err(rkisp1->dev, "port 0 must be CSI2\n");
+			return -ENODEV;
+		}
 
-	rkisp1->csi_subdev = sd;
+		return rkisp1_csi_link_sensor(rkisp1, sd, s_asd);
+	}
 
 	ret = v4l2_create_fwnode_links_to_pad(sd,
 		&rkisp1->isp.pads[RKISP1_ISP_PAD_SINK_VIDEO],
-		MEDIA_LNK_FL_ENABLED|MEDIA_LNK_FL_IMMUTABLE);
+		MEDIA_LNK_FL_ENABLED);
 	if (ret < 0) {
 		dev_err(rkisp1->dev, "failed to create fwnode links: %d\n", ret);
 		return ret;
@@ -215,10 +221,28 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 	v4l2_async_nf_init(ntf);
 
 	fwnode_graph_for_each_endpoint(fwnode, ep) {
-		struct v4l2_fwnode_endpoint vep = {
-			.bus_type = V4L2_MBUS_CSI2_DPHY
-		};
+		struct fwnode_handle *port;
+		struct v4l2_fwnode_endpoint vep;
 		struct rkisp1_sensor_async *rk_asd;
+		u32 reg = 0;
+
+		port = fwnode_get_parent(ep);
+		fwnode_property_read_u32(port, "reg", &reg);
+		fwnode_handle_put(port);
+
+		/* Assume port 0 if not specified */
+		switch (reg) {
+		case 0:
+			vep.bus_type = V4L2_MBUS_CSI2_DPHY;
+			break;
+		case 1:
+			/*
+			 * bus-type property in DT is mandatory; this will be
+			 * used to determine if it's PARALLEL or BT656
+			 */
+			vep.bus_type = V4L2_MBUS_UNKNOWN;
+			break;
+		}
 
 		ret = v4l2_fwnode_endpoint_parse(ep, &vep);
 		if (ret)
@@ -234,6 +258,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 		rk_asd->mbus_type = vep.bus_type;
 		rk_asd->mbus_flags = vep.bus.mipi_csi2.flags;
 		rk_asd->lanes = vep.bus.mipi_csi2.num_data_lanes;
+		rk_asd->port = reg;
 
 		dev_dbg(rkisp1->dev, "registered ep id %d with %d lanes\n",
 			vep.base.id, rk_asd->lanes);
