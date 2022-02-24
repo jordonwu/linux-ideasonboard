@@ -13,8 +13,7 @@
 			status = "okay";
 
 			ports {
-				port@0 {
-					reg = <0>;
+				port@1 {
 					isp1_in: endpoint {
 						remote-endpoint = <&mipi_csi_1_out>;
 					};
