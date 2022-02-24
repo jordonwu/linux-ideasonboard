@@ -766,9 +766,11 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct rkisp1_device *rkisp1 =
 		container_of(sd->v4l2_dev, struct rkisp1_device, v4l2_dev);
-	struct rkisp1_csi *csi =
-		container_of(rkisp1->csi_subdev, struct rkisp1_csi, sd);
 	struct rkisp1_isp *isp = &rkisp1->isp;
+	struct media_pad *source_pad = NULL;
+	struct v4l2_subdev *source_sd;
+	struct rkisp1_sensor_async *source;
+        struct media_link *link;
 	int ret = 0;
 
 	if (!enable) {
@@ -776,7 +778,35 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 		return 0;
 	}
 
-	if (csi->active_sensor->mbus_type != V4L2_MBUS_CSI2_DPHY)
+	/*
+	 * Locate the source. Only one link to the sink pad can be active,
+	 * otherwise return an error.
+	 */
+	list_for_each_entry(link, &sd->entity.links, list) {
+		if (!(link->flags & MEDIA_LNK_FL_ENABLED))
+			continue;
+
+		if (link->sink->entity != &sd->entity ||
+		    link->sink->index != RKISP1_ISP_PAD_SINK_VIDEO)
+			continue;
+
+		if (source_pad) {
+			dev_dbg(rkisp1->dev, "Multiple active sources for ISP\n");
+			return -EPIPE;
+		}
+
+		source_pad = link->source;
+        }
+
+	if (!source_pad) {
+		dev_dbg(rkisp1->dev, "No active source for ISP\n");
+		return -EPIPE;
+	}
+
+	source_sd = media_entity_to_v4l2_subdev(source_pad->entity);
+	source = container_of(source_sd->asd, struct rkisp1_sensor_async, asd);
+
+	if (source->mbus_type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
 
 	rkisp1->isp.frame_sequence = -1;
