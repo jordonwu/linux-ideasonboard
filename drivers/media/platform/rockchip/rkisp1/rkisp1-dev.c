@@ -251,7 +251,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 
 		if (reg == 0) {
 			if (!rkisp1_internal_csi(rkisp1) ||
-			    rk_asd->mbus_type != V4L2_MBUS_CSI2_DPHY) {
+			    vep.bus_type != V4L2_MBUS_CSI2_DPHY) {
 				dev_err(rkisp1->dev,
 					"internal CSI must be available for port 0\n");
 				ret = -EINVAL;
@@ -259,8 +259,8 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 			}
 		} else {
 			/* reg == 1 */
-			if (rk_asd->mbus_type != V4L2_MBUS_PARALLEL &&
-			    rk_asd->mbus_type != V4L2_MBUS_BT656) {
+			if (vep.bus_type != V4L2_MBUS_PARALLEL &&
+			    vep.bus_type != V4L2_MBUS_BT656) {
 				dev_err(rkisp1->dev,
 					"external CSI must be parallel or BT656\n");
 				ret = -EINVAL;
