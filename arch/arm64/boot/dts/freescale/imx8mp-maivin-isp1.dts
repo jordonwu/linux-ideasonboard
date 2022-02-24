@@ -32,6 +32,8 @@
 	fragment@2 {
 		target = <&isi_0>;
 		__overlay__ {
+			status = "disabled";
+
 			ports {
 				port@0 {
 					/delete-node/ endpoint;
