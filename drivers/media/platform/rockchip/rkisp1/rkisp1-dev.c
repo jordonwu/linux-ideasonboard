@@ -217,7 +217,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 
 	fwnode_graph_for_each_endpoint(fwnode, ep) {
 		struct fwnode_handle *port;
-		struct v4l2_fwnode_endpoint vep;
+		struct v4l2_fwnode_endpoint vep = { };
 		struct rkisp1_sensor_async *rk_asd;
 		u32 reg = 0;
 
@@ -270,12 +270,17 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 		}
 
 		rk_asd->mbus_type = vep.bus_type;
-		rk_asd->mbus_flags = vep.bus.mipi_csi2.flags;
-		rk_asd->lanes = vep.bus.mipi_csi2.num_data_lanes;
 		rk_asd->port = reg;
 
-		dev_dbg(rkisp1->dev, "registered ep id %d with %d lanes\n",
-			vep.base.id, rk_asd->lanes);
+		if (vep.bus_type == V4L2_MBUS_CSI2_DPHY) {
+			rk_asd->mbus_flags = vep.bus.mipi_csi2.flags;
+			rk_asd->lanes = vep.bus.mipi_csi2.num_data_lanes;
+		} else {
+			rk_asd->mbus_flags = vep.bus.parallel.flags;
+		}
+
+		dev_dbg(rkisp1->dev, "registered ep id %d, bus type %u, %u lanes\n",
+			vep.base.id, rk_asd->mbus_type, rk_asd->lanes);
 	}
 
 	if (ret) {
