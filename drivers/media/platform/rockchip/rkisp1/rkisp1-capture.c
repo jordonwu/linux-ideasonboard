@@ -420,6 +420,14 @@ static void rkisp1_mp_config(struct rkisp1_capture *cap)
 	rkisp1_write(rkisp1, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR),
 		     cap->config->mi.cr_size_init);
 
+	if (rkisp1->info->isp_ver == IMX8MP_V10) {
+		rkisp1_write(rkisp1, pixm->width, RKISP1_CIF_MI_MP_Y_LLENGTH);
+		rkisp1_write(rkisp1, pixm->width, RKISP1_CIF_MI_MP_Y_PIC_WIDTH);
+		rkisp1_write(rkisp1, pixm->height, RKISP1_CIF_MI_MP_Y_PIC_HEIGHT);
+		rkisp1_write(rkisp1, pixm->width * pixm->height,
+			     RKISP1_CIF_MI_MP_Y_PIC_SIZE);
+	}
+
 	rkisp1_irq_frame_end_enable(cap);
 
 	/* set uv swapping for semiplanar formats */
