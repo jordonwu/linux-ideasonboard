@@ -187,7 +187,7 @@ rkisp1_subdev_notifier_unbind(struct v4l2_async_notifier *notifier,
 	struct rkisp1_sensor_async *s_asd =
 		container_of(asd, struct rkisp1_sensor_async, asd);
 
-	if (rkisp1_internal_csi(rkisp1))
+	if (rkisp1->info->features & RKISP1_FEATURE_MIPI_CSI2)
 		phy_exit(s_asd->dphy);
 }
 
@@ -341,7 +341,7 @@ static const struct dev_pm_ops rkisp1_pm_ops = {
 
 static void rkisp1_entities_unregister(struct rkisp1_device *rkisp1)
 {
-	if (rkisp1_internal_csi(rkisp1))
+	if (rkisp1->info->features & RKISP1_FEATURE_MIPI_CSI2)
 		rkisp1_csi_unregister(rkisp1);
 	rkisp1_params_unregister(rkisp1);
 	rkisp1_stats_unregister(rkisp1);
@@ -374,7 +374,7 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	if (ret)
 		goto error;
 
-	if (rkisp1_internal_csi(rkisp1)) {
+	if (rkisp1->info->features & RKISP1_FEATURE_MIPI_CSI2) {
 		ret = rkisp1_csi_register(rkisp1);
 		if (ret)
 			goto error;
@@ -433,6 +433,8 @@ static const struct rkisp1_info px30_isp_info = {
 	.isrs = px30_isp_isrs,
 	.isr_size = ARRAY_SIZE(px30_isp_isrs),
 	.isp_ver = RKISP1_V12,
+	.features = RKISP1_FEATURE_DUAL_CROP
+		  | RKISP1_FEATURE_MIPI_CSI2,
 };
 
 static const char * const rk3399_isp_clks[] = {
@@ -451,6 +453,8 @@ static const struct rkisp1_info rk3399_isp_info = {
 	.isrs = rk3399_isp_isrs,
 	.isr_size = ARRAY_SIZE(rk3399_isp_isrs),
 	.isp_ver = RKISP1_V10,
+	.features = RKISP1_FEATURE_DUAL_CROP
+		  | RKISP1_FEATURE_MIPI_CSI2,
 };
 
 static const char * const imx8mp_isp_clks[] = {
@@ -469,6 +473,8 @@ static const struct rkisp1_info imx8mp_isp_info = {
 	.isrs = imx8mp_isp_isrs,
 	.isr_size = ARRAY_SIZE(imx8mp_isp_isrs),
 	.isp_ver = IMX8MP_V10,
+	.features = RKISP1_FEATURE_RSZ_CROP
+		  | RKISP1_FEATURE_MAIN_STRIDE,
 };
 
 static const struct of_device_id rkisp1_of_match[] = {
@@ -504,11 +510,6 @@ static int rkisp1_probe(struct platform_device *pdev)
 
 	info = of_device_get_match_data(dev);
 	rkisp1->info = info;
-
-	if (rkisp1_internal_csi(rkisp1))
-		dev_info(dev, "using internal csi");
-	else
-		dev_info(dev, "using external csi");
 
 	dev_set_drvdata(dev, rkisp1);
 	rkisp1->dev = dev;

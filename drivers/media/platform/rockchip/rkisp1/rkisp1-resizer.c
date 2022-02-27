@@ -293,7 +293,7 @@ static void rkisp1_rsz_config_regs(struct rkisp1_resizer *rsz,
 
 	rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CTRL, rsz_ctrl);
 
-	if (rsz->rkisp1->info->isp_ver == IMX8MP_V10) {
+	if (rsz->rkisp1->info->features & RKISP1_FEATURE_RSZ_CROP) {
 		val = RKISP1_CIF_RSZ_CROP_XY_DIR(src_y->left, src_y->left + src_y->width - 1);
 		rkisp1_rsz_write(rsz, RKISP1_CIF_RSZ_CROP_X_DIR, val);
 		val = RKISP1_CIF_RSZ_CROP_XY_DIR(src_y->top, src_y->top + src_y->height - 1);
@@ -669,7 +669,8 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
 
 	if (!enable) {
-		rkisp1_dcrop_disable(rsz, RKISP1_SHADOW_REGS_ASYNC);
+		if (rkisp1->info->features & RKISP1_FEATURE_DUAL_CROP)
+			rkisp1_dcrop_disable(rsz, RKISP1_SHADOW_REGS_ASYNC);
 		rkisp1_rsz_disable(rsz, RKISP1_SHADOW_REGS_ASYNC);
 		return 0;
 	}
@@ -679,7 +680,8 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 
 	mutex_lock(&rsz->ops_lock);
 	rkisp1_rsz_config(rsz, when);
-	rkisp1_dcrop_config(rsz);
+	if (rkisp1->info->features & RKISP1_FEATURE_DUAL_CROP)
+		rkisp1_dcrop_config(rsz);
 
 	mutex_unlock(&rsz->ops_lock);
 	return 0;

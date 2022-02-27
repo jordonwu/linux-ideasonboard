@@ -99,12 +99,20 @@ enum rkisp1_isp_pad {
 	RKISP1_ISP_PAD_MAX
 };
 
+enum rkisp1_feature {
+	RKISP1_FEATURE_DUAL_CROP = BIT(0),
+	RKISP1_FEATURE_RSZ_CROP = BIT(1),
+	RKISP1_FEATURE_MAIN_STRIDE = BIT(2),
+	RKISP1_FEATURE_MIPI_CSI2 = BIT(3),
+};
+
 struct rkisp1_info {
 	const char * const *clks;
 	unsigned int clk_size;
 	const struct rkisp1_isr_data *isrs;
 	unsigned int isr_size;
 	enum rkisp1_cif_isp_version isp_ver;
+	unsigned int features;
 };
 
 /*
@@ -507,13 +515,6 @@ unsigned int rkisp1_mbus_info_length(void);
  * @index: index of the mbus info to fetch
  */
 const struct rkisp1_mbus_info *rkisp1_mbus_info_get_by_index(unsigned int index);
-
-/*
- * rkisp1_internal_csi - Return if the rkisp1 has a built-in csi receiver
- *
- * @rkisp1: rkisp1_device to check
- */
-bool rkisp1_internal_csi(const struct rkisp1_device *rkisp1);
 
 /*
  * rkisp1_sd_adjust_crop_rect - adjust a rectangle to fit into another rectangle.

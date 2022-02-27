@@ -420,7 +420,7 @@ static void rkisp1_mp_config(struct rkisp1_capture *cap)
 	rkisp1_write(rkisp1, rkisp1_pixfmt_comp_size(pixm, RKISP1_PLANE_CR),
 		     cap->config->mi.cr_size_init);
 
-	if (rkisp1->info->isp_ver == IMX8MP_V10) {
+	if (rkisp1->info->features & RKISP1_FEATURE_MAIN_STRIDE) {
 		rkisp1_write(rkisp1, pixm->width, RKISP1_CIF_MI_MP_Y_LLENGTH);
 		rkisp1_write(rkisp1, pixm->width, RKISP1_CIF_MI_MP_Y_PIC_WIDTH);
 		rkisp1_write(rkisp1, pixm->height, RKISP1_CIF_MI_MP_Y_PIC_HEIGHT);
