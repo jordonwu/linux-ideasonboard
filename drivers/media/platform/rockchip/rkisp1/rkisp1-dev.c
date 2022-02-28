@@ -251,7 +251,7 @@ static int rkisp1_subdev_notifier(struct rkisp1_device *rkisp1)
 		}
 
 		if (reg == 0) {
-			if (!rkisp1_internal_csi(rkisp1) ||
+			if (!(rkisp1->info->features & RKISP1_FEATURE_MIPI_CSI2) ||
 			    vep.bus_type != V4L2_MBUS_CSI2_DPHY) {
 				dev_err(rkisp1->dev,
 					"internal CSI must be available for port 0\n");
