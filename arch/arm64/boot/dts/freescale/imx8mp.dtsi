@@ -931,7 +931,7 @@
 			};
 		};
 
-		aips4 {
+		aips4: bus@32c00000 {
 			compatible = "fsl,aips-bus", "simple-bus";
 			reg = <0x32c00000 0x400000>;
 			#address-cells = <1>;
