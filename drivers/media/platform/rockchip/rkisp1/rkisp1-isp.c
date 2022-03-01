@@ -804,7 +804,11 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	}
 
 	source_sd = media_entity_to_v4l2_subdev(source_pad->entity);
-	source = container_of(source_sd->asd, struct rkisp1_sensor_async, asd);
+	/* The internal CSI is not part of an rkisp1_sensor_async */
+	if (source_sd == &rkisp1->csi.sd)
+		source = rkisp1->csi.active_sensor;
+	else
+		source = container_of(source_sd->asd, struct rkisp1_sensor_async, asd);
 
 	if (source->mbus_type != V4L2_MBUS_CSI2_DPHY)
 		return -EINVAL;
