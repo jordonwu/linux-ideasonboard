@@ -75,6 +75,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-phyboard-pollux-rdk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-verdin-dahlia-imx296.dtb \
 			  imx8mp-verdin-dahlia-imx327.dtb \
+			  imx8mp-verdin-dahlia-ov5640.dtb \
 			  imx8mp-verdin-nonwifi-dahlia.dtb \
 			  imx8mp-verdin-nonwifi-dev.dtb \
 			  imx8mp-verdin-wifi-dahlia.dtb \
