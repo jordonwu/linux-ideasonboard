@@ -28,6 +28,7 @@ struct imx8m_blk_ctrl {
 	struct notifier_block power_nb;
 	struct device *bus_power_dev;
 	struct regmap *regmap;
+	struct regmap *noc_regmap;
 	struct imx8m_blk_ctrl_domain *domains;
 	struct genpd_onecell_data onecell_data;
 };
@@ -197,6 +198,14 @@ static int imx8m_blk_ctrl_probe(struct platform_device *pdev)
 	if (IS_ERR(bc->regmap))
 		return dev_err_probe(dev, PTR_ERR(bc->regmap),
 				     "failed to init regmap\n");
+
+	base = devm_platform_ioremap_resource(pdev, 1);
+	if (!IS_ERR(base)) {
+		bc->noc_regmap = devm_regmap_init_mmio(dev, base, &regmap_config);
+		if (IS_ERR(bc->noc_regmap))
+			return dev_err_probe(dev, PTR_ERR(bc->noc_regmap),
+					     "failed to init regmap NoC\n");
+	}
 
 	bc->domains = devm_kcalloc(dev, bc_data->num_domains,
 				   sizeof(struct imx8m_blk_ctrl_domain),
@@ -590,6 +599,50 @@ static const struct imx8m_blk_ctrl_data imx8mn_disp_blk_ctl_dev_data = {
 	.num_domains = ARRAY_SIZE(imx8mn_disp_blk_ctl_domain_data),
 };
 
+struct imx8mp_noc_setting {
+	uint32_t start;
+	uint32_t end;
+	uint32_t prioriy;
+	uint32_t mode;
+	uint32_t socket_qos_en;
+};
+
+static const struct imx8mp_noc_setting imx8mp_noc_setting[] = {
+	{ 0x980, 0xb80, 0x80000202, 0x0, 0x1 },
+	{ 0xc00, 0xd00, 0x80000707, 0x0, 0x0 },
+};
+
+#define IMX8MP_LCDIF_ARCACHE_CTRL	0x004c
+#define IMX8MP_ISI_CACHE_CTRL		0x0050
+
+static void imx8mp_media_noc_qos(struct imx8m_blk_ctrl *bc)
+{
+	unsigned int i;
+
+	/* Set the LCDIF read and ISI write hurry levels to 7. */
+	regmap_update_bits(bc->regmap, IMX8MP_LCDIF_ARCACHE_CTRL, 0x0000fc00,
+			   0x0000fc00);
+	regmap_update_bits(bc->regmap, IMX8MP_ISI_CACHE_CTRL, 0x1ff00000,
+			   0x1ff00000);
+
+	if (WARN_ON(!bc->noc_regmap))
+		return;
+
+	/* Configure the NoC. */
+	for (i = 0; i < ARRAY_SIZE(imx8mp_noc_setting); ++i) {
+		const struct imx8mp_noc_setting *noc = &imx8mp_noc_setting[i];
+		u32 offset;
+
+		udelay(50);
+
+		for (offset = noc->start; offset <= noc->end; offset += 0x80) {
+			regmap_write(bc->noc_regmap, offset + 0x8, noc->prioriy);
+			regmap_write(bc->noc_regmap, offset + 0xc, noc->mode);
+			regmap_write(bc->noc_regmap, offset + 0x18, noc->socket_qos_en);
+		}
+	}
+}
+
 static int imx8mp_media_power_notifier(struct notifier_block *nb,
 				unsigned long action, void *data)
 {
@@ -608,8 +661,10 @@ static int imx8mp_media_power_notifier(struct notifier_block *nb,
 	 * wait for the ADB handshake to happen, so we just delay for a
 	 * bit. On power down the GPC driver waits for the handshake.
 	 */
-	if (action == GENPD_NOTIFY_ON)
+	if (action == GENPD_NOTIFY_ON) {
 		udelay(5);
+		imx8mp_media_noc_qos(bc);
+	}
 
 	return NOTIFY_OK;
 }

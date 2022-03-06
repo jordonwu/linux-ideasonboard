@@ -991,7 +991,8 @@
 			media_blk_ctrl: blk-ctrl@32ec0000 {
 				compatible = "fsl,imx8mp-media-blk-ctrl",
 					     "syscon";
-				reg = <0x32ec0000 0x10000>;
+				reg = <0x32ec0000 0x10000>,
+				      <0x32700000 0x100000>;
 				power-domains = <&pgc_mediamix>,
 						<&pgc_mipi_phy1>,
 						<&pgc_mipi_phy1>,
