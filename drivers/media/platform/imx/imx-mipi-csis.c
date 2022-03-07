@@ -475,6 +475,13 @@ static const struct csis_pix_format mipi_csis_formats[] = {
 		.output = MEDIA_BUS_FMT_SRGGB14_1X14,
 		.data_type = MIPI_CSI2_DATA_TYPE_RAW14,
 		.width = 14,
+	},
+	/* JPEG */
+	{
+		.code = MEDIA_BUS_FMT_JPEG_1X8,
+		.output = MEDIA_BUS_FMT_JPEG_1X8,
+		.data_type = MIPI_CSI2_DATA_TYPE_RAW8,
+		.width = 8,
 	}
 };
 
