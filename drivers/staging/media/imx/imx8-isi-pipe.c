@@ -176,6 +176,14 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
 				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
 		.encoding	= MXC_ISI_ENC_RAW,
+	},
+	/* JPEG */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_JPEG_1X8,
+		.output		= MEDIA_BUS_FMT_JPEG_1X8,
+		.pads		= BIT(MXC_ISI_PIPE_PAD_SINK)
+				| BIT(MXC_ISI_PIPE_PAD_SOURCE),
+		.encoding	= MXC_ISI_ENC_RAW,
 	}
 };
 
