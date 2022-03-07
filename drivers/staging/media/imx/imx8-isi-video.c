@@ -284,7 +284,7 @@ static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
  * videobuf2 queue operations
  */
 
-static void mxc_isi_video_free_discard_buffer(struct mxc_isi_pipe *pipe)
+static void mxc_isi_video_free_discard_buffers(struct mxc_isi_pipe *pipe)
 {
 	struct mxc_isi_video *video = &pipe->video;
 	unsigned int i;
@@ -301,11 +301,12 @@ static void mxc_isi_video_free_discard_buffer(struct mxc_isi_pipe *pipe)
 	}
 }
 
-static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
+static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_pipe *pipe)
 {
 	struct mxc_isi_video *video = &pipe->video;
-	unsigned int i;
+	unsigned int i, j;
 
+	/* Allocate memory for each plane. */
 	for (i = 0; i < video->pix.num_planes; i++) {
 		struct mxc_isi_dma_buffer *buf = &video->discard_buffer[i];
 
@@ -313,13 +314,23 @@ static int mxc_isi_video_alloc_discard_buffer(struct mxc_isi_pipe *pipe)
 		buf->addr = dma_alloc_coherent(pipe->isi->dev, buf->size,
 					       &buf->dma, GFP_DMA | GFP_KERNEL);
 		if (!buf->addr) {
-			mxc_isi_video_free_discard_buffer(pipe);
+			mxc_isi_video_free_discard_buffers(pipe);
 			return -ENOMEM;
 		}
 
 		dev_dbg(pipe->isi->dev,
 			"%s: num_plane=%d discard_size=%zu discard_buffer=%p\n",
 			__func__, i, buf->size, buf->addr);
+	}
+
+	/* Fill the DMA addresses in the discard buffers. */
+	for (i = 0; i < ARRAY_SIZE(video->buf_discard); ++i) {
+		struct mxc_isi_buffer *buf = &video->buf_discard[i];
+
+		buf->discard = true;
+
+		for (j = 0; j < video->pix.num_planes; ++j)
+			buf->dma_addrs[j] = video->discard_buffer[j].dma;
 	}
 
 	return 0;
@@ -483,8 +494,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	if (ret)
 		goto err_stop;
 
-	/* Create a buffer for discard operation. */
-	ret = mxc_isi_video_alloc_discard_buffer(pipe);
+	/* Create buffers for discard operation. */
+	ret = mxc_isi_video_alloc_discard_buffers(pipe);
 	if (ret)
 		goto err_stop;
 
@@ -499,7 +510,6 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	for (i = 0; i < ARRAY_SIZE(pipe->video.buf_discard); ++i) {
 		struct mxc_isi_buffer *buf = &pipe->video.buf_discard[i];
 
-		buf->discard = true;
 		list_add_tail(&buf->list, &pipe->video.out_discard);
 	}
 
@@ -533,7 +543,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	return 0;
 
 err_free:
-	mxc_isi_video_free_discard_buffer(pipe);
+	mxc_isi_video_free_discard_buffers(pipe);
 err_stop:
 	media_pipeline_stop(pipe->video.vdev.entity.pads);
 err_bufs:
@@ -548,7 +558,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	mxc_isi_pipe_disable(pipe);
 
 	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_ERROR);
-	mxc_isi_video_free_discard_buffer(pipe);
+	mxc_isi_video_free_discard_buffers(pipe);
 
 	media_pipeline_stop(pipe->video.vdev.entity.pads);
 
