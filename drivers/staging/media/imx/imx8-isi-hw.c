@@ -8,8 +8,6 @@
 #include <linux/io.h>
 #include <linux/types.h>
 
-#include <media/videobuf2-dma-contig.h>
-
 #include "imx8-isi-core.h"
 #include "imx8-isi-regs.h"
 
@@ -133,15 +131,8 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				struct mxc_isi_buffer *buf)
 {
-	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
 	u32 framecount = buf->v4l2_buf.sequence;
-	unsigned int i;
 	int val;
-
-	if (!buf->discard) {
-		for (i = 0; i < vb2_buf->num_planes; ++i)
-			buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2_buf, i);
-	}
 
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
