@@ -138,10 +138,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 	unsigned int i;
 	int val;
 
-	if (buf->discard) {
-		for (i = 0; i < pipe->video.pix.num_planes; ++i)
-			buf->dma_addrs[i] = pipe->video.discard_buffer[i].dma;
-	} else {
+	if (!buf->discard) {
 		for (i = 0; i < vb2_buf->num_planes; ++i)
 			buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2_buf, i);
 	}
