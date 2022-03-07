@@ -135,45 +135,33 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 {
 	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
 	u32 framecount = buf->v4l2_buf.sequence;
-	struct frame_addr *paddr = &buf->paddr;
-	struct v4l2_pix_format_mplane *pix;
+	unsigned int i;
 	int val;
 
 	if (buf->discard) {
-		pix = &pipe->video.pix;
-		paddr->y = pipe->video.discard_buffer[0].dma;
-		if (pix->num_planes == 2)
-			paddr->cb = pipe->video.discard_buffer[1].dma;
-		if (pix->num_planes == 3) {
-			paddr->cb = pipe->video.discard_buffer[1].dma;
-			paddr->cr = pipe->video.discard_buffer[2].dma;
-		}
+		for (i = 0; i < pipe->video.pix.num_planes; ++i)
+			buf->dma_addrs[i] = pipe->video.discard_buffer[i].dma;
 	} else {
-		paddr->y = vb2_dma_contig_plane_dma_addr(vb2_buf, 0);
-
-		if (vb2_buf->num_planes == 2)
-			paddr->cb = vb2_dma_contig_plane_dma_addr(vb2_buf, 1);
-		if (vb2_buf->num_planes == 3) {
-			paddr->cb = vb2_dma_contig_plane_dma_addr(vb2_buf, 1);
-			paddr->cr = vb2_dma_contig_plane_dma_addr(vb2_buf, 2);
-		}
+		for (i = 0; i < vb2_buf->num_planes; ++i)
+			buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2_buf, i);
 	}
 
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
 	if (framecount == 0 || (mxc_isi_is_buf_active(pipe, 2) && framecount != 1)) {
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, paddr->y);
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, paddr->cb);
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, paddr->cr);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, buf->dma_addrs[0]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, buf->dma_addrs[1]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, buf->dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR;
 		buf->id = MXC_ISI_BUF1;
 	} else if (framecount == 1 || mxc_isi_is_buf_active(pipe, 1)) {
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, paddr->y);
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, paddr->cb);
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, paddr->cr);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, buf->dma_addrs[0]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, buf->dma_addrs[1]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, buf->dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR;
 		buf->id = MXC_ISI_BUF2;
 	}
+
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
 }
 
