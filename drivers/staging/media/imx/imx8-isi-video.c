@@ -54,7 +54,9 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.fourcc		= V4L2_PIX_FMT_NV12,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_YUV420_2P8P,
 		.memplanes	= 2,
-		.depth		= { 8, 8 },
+		.depth		= { 8, 16 },
+		.hsub		= 2,
+		.vsub		= 2,
 		.encoding	= MXC_ISI_ENC_YUV,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
@@ -62,6 +64,8 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_YUV444_3P8P,
 		.memplanes	= 3,
 		.depth		= { 8, 8, 8 },
+		.hsub		= 1,
+		.vsub		= 1,
 		.encoding	= MXC_ISI_ENC_YUV,
 	},
 	/* RGB formats */
@@ -403,10 +407,11 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 	*num_planes = fmt->memplanes;
 
 	for (i = 0; i < fmt->memplanes; i++) {
-		unsigned int size = (wh * fmt->depth[i]) / 8;
+		unsigned int size = wh * fmt->depth[i] / 8;
 
-		if (i == 1 && fmt->fourcc == V4L2_PIX_FMT_NV12)
-			size >>= 1;
+		if (i > 1)
+			size /= fmt->hsub * fmt->vsub;
+
 		sizes[i] = max_t(u32, size, pipe->video.pix.plane_fmt[i].sizeimage);
 	}
 	dev_dbg(pipe->isi->dev, "%s, buf_n=%d, size=%d\n",
@@ -713,7 +718,7 @@ static void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
 		/* The pitch must be identical for all planes. */
 		if (i == 0)
 			bpl = clamp(plane->bytesperline,
-				    pix->width * fmt->depth[i] / 8,
+				    pix->width * fmt->depth[0] / 8,
 				    65535U);
 		else
 			bpl = pix->plane_fmt[0].bytesperline;
@@ -721,8 +726,8 @@ static void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
 		plane->bytesperline = bpl;
 
 		plane->sizeimage = plane->bytesperline * pix->height;
-		if (pix->pixelformat == V4L2_PIX_FMT_NV12 && i == 1)
-			plane->sizeimage /= 2;
+		if (i >= 1)
+			plane->sizeimage /= fmt->vsub;
 	}
 
 	pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);

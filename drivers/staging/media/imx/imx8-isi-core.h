@@ -82,6 +82,8 @@ struct mxc_isi_format_info {
 	u32	isi_format;
 	u16	memplanes;
 	u8	depth[MXC_MAX_PLANES];
+	u8	hsub;
+	u8	vsub;
 	enum mxc_isi_encoding encoding;
 };
 
