@@ -44,7 +44,7 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.encoding	= MXC_ISI_ENC_YUV,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
-		.fourcc		= V4L2_PIX_FMT_YUV32,
+		.fourcc		= V4L2_PIX_FMT_YUVA32,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_YUV444_1P8,
 		.memplanes	= 1,
 		.depth		= { 32 },
