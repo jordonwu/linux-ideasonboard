@@ -100,22 +100,10 @@ struct mxc_isi_ctrls {
 	bool ready;
 };
 
-/**
- * struct addr -  physical address set for DMA
- * @y:	 luminance plane physical address
- * @cb:	 Cb plane physical address
- * @cr:	 Cr plane physical address
- */
-struct frame_addr {
-	u32	y;
-	u32	cb;
-	u32	cr;
-};
-
 struct mxc_isi_buffer {
 	struct vb2_v4l2_buffer  v4l2_buf;
 	struct list_head	list;
-	struct frame_addr	paddr;
+	u32			dma_addrs[3];
 	enum mxc_isi_buf_id	id;
 	bool discard;
 };
