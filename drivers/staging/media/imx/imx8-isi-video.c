@@ -263,6 +263,15 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.memplanes	= 1,
 		.depth		= { 16 },
 		.encoding	= MXC_ISI_ENC_RAW,
+	},
+	/* JPEG */
+	{
+		.mbus_code	= MEDIA_BUS_FMT_JPEG_1X8,
+		.fourcc		= V4L2_PIX_FMT_MJPEG,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_RAW8,
+		.memplanes	= 1,
+		.depth		= { 8 },
+		.encoding	= MXC_ISI_ENC_RAW,
 	}
 };
 
