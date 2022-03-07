@@ -60,6 +60,15 @@ static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
 		.encoding	= MXC_ISI_ENC_YUV,
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
+		.fourcc		= V4L2_PIX_FMT_NV16M,
+		.isi_format	= CHNL_IMG_CTRL_FORMAT_YUV422_2P8P,
+		.memplanes	= 2,
+		.depth		= { 8, 16 },
+		.hsub		= 2,
+		.vsub		= 1,
+		.encoding	= MXC_ISI_ENC_YUV,
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_YUV444M,
 		.isi_format	= CHNL_IMG_CTRL_FORMAT_YUV444_3P8P,
 		.memplanes	= 3,
