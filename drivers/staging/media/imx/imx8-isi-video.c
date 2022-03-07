@@ -440,12 +440,25 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 	return 0;
 }
 
+static int mxc_isi_vb2_buffer_init(struct vb2_buffer *vb2)
+{
+	struct mxc_isi_buffer *buf = to_isi_buffer(to_vb2_v4l2_buffer(vb2));
+	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(vb2->vb2_queue);
+	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
+	unsigned int i;
+
+	for (i = 0; i < fmt->memplanes; ++i)
+		buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2, i);
+
+	return 0;
+}
+
 static int mxc_isi_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *q = vb2->vb2_queue;
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
 	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < fmt->memplanes; i++) {
 		unsigned long size = pipe->video.pix.plane_fmt[i].sizeimage;
@@ -567,6 +580,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 
 static const struct vb2_ops mxc_isi_vb2_qops = {
 	.queue_setup		= mxc_isi_vb2_queue_setup,
+	.buf_init		= mxc_isi_vb2_buffer_init,
 	.buf_prepare		= mxc_isi_vb2_buffer_prepare,
 	.buf_queue		= mxc_isi_vb2_buffer_queue,
 	.wait_prepare		= vb2_ops_wait_prepare,
