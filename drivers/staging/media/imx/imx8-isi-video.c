@@ -649,6 +649,8 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_pipe *pipe)
 		return ret;
 	}
 
+	pipe->video.vdev.ctrl_handler = handler;
+
 	return 0;
 }
 
@@ -974,8 +976,6 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 				    MEDIA_LNK_FL_ENABLED);
 	if (ret < 0)
 		goto err_ctrl_free;
-
-	vdev->ctrl_handler = &pipe->video.ctrls.handler;
 
 	return 0;
 
