@@ -262,18 +262,6 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
-				       const struct mxc_isi_format_info *info,
-				       struct v4l2_pix_format_mplane *format);
-void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
-			      const struct v4l2_rect *src,
-			      const struct v4l2_rect *dst);
-
-void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf,
-				enum mxc_isi_buf_id buf_id);
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
@@ -281,8 +269,20 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    enum mxc_isi_encoding src_encoding,
 			    enum mxc_isi_encoding dst_encoding);
 
-void mxc_isi_clear_irqs(struct mxc_isi_pipe *pipe);
+void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
+				       const struct mxc_isi_format_info *info,
+				       struct v4l2_pix_format_mplane *format);
+void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
+void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
+			      const struct v4l2_rect *src,
+			      const struct v4l2_rect *dst);
+void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
 
-u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe, bool clear);
+void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
+				struct mxc_isi_buffer *buf,
+				enum mxc_isi_buf_id buf_id);
+
+u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
+void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe);
 
 #endif /* __MXC_ISI_CORE_H__ */
