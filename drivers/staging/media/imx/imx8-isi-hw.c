@@ -277,12 +277,28 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	*bypass = !cscen;
 }
 
+static u32 mxc_isi_channel_scaling_ratio(unsigned int from, unsigned int to,
+					 u32 *dec)
+{
+	unsigned int ratio = from / to;
+
+	if (ratio < 2)
+		*dec = 1;
+	else if (ratio < 4)
+		*dec = 2;
+	else if (ratio < 8)
+		*dec = 4;
+	else
+		*dec = 8;
+
+	return min_t(u32, from * 0x1000 / (to * *dec), ISI_DOWNSCALE_THRESHOLD);
+}
+
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 					const struct v4l2_mbus_framefmt *format,
 					const struct v4l2_rect *compose,
 					bool *bypass)
 {
-	u32 xratio, yratio;
 	u32 xscale, yscale;
 	u32 decx, decy;
 	u32 val;
@@ -290,35 +306,10 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	dev_dbg(pipe->isi->dev, "input_size %ux%u, output_size %ux%u\n",
 		format->width, format->height, compose->width, compose->height);
 
-	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
-		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
-		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
-
-	xratio = format->width / compose->width;
-	if (xratio < 2)
-		decx = 1;
-	else if (xratio < 4)
-		decx = 2;
-	else if (xratio < 8)
-		decx = 4;
-	else
-		decx = 8;
-
-	xscale = min_t(u32, format->width * 0x1000 / (compose->width * decx),
-		       ISI_DOWNSCALE_THRESHOLD);
-
-	yratio = format->height / compose->height;
-	if (yratio < 2)
-		decy = 1;
-	else if (yratio < 4)
-		decy = 2;
-	else if (yratio < 8)
-		decy = 4;
-	else
-		decy = 8;
-
-	yscale = min_t(u32, format->height * 0x1000 / (compose->height * decy),
-		       ISI_DOWNSCALE_THRESHOLD);
+	xscale = mxc_isi_channel_scaling_ratio(format->width, compose->width,
+					       &decx);
+	yscale = mxc_isi_channel_scaling_ratio(format->height, compose->height,
+					       &decy);
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val |= CHNL_IMG_CTRL_YCBCR_MODE; //YCbCr  Sandor???
@@ -332,6 +323,10 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 		      CHNL_SCALE_FACTOR_X_SCALE(xscale));
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
+
+	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
+		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
+		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
 
 	*bypass = format->height == compose->height &&
 		  format->width == compose->width;
