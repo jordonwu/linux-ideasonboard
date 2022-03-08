@@ -737,8 +737,6 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	pipe->isi = isi;
 	pipe->regs = isi->regs + id * isi->pdata->reg_offset;
 
-	atomic_set(&pipe->usage_count, 0);
-
 	sd = &pipe->sd;
 	v4l2_subdev_init(sd, &mxc_isi_pipe_subdev_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
