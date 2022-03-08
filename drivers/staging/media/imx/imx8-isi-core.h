@@ -186,7 +186,7 @@ struct mxc_isi_video {
 	} ctrls;
 
 	struct vb2_queue		vb2_q;
-	struct mxc_isi_buffer		buf_discard[2];
+	struct mxc_isi_buffer		buf_discard[3];
 	struct list_head		out_pending;
 	struct list_head		out_active;
 	struct list_head		out_discard;
@@ -211,7 +211,6 @@ struct mxc_isi_pipe {
 
 	/* manage share ISI channel resource */
 	atomic_t			usage_count;
-	u32				status;
 
 	u8				chain_buf;
 	u8				alpha;
@@ -273,7 +272,8 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 			      const struct v4l2_rect *dst);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf);
+				struct mxc_isi_buffer *buf,
+				enum mxc_isi_buf_id buf_id);
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
@@ -283,7 +283,6 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 
 void mxc_isi_clear_irqs(struct mxc_isi_pipe *pipe);
 
-u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe);
-bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id);
+u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe, bool clear);
 
 #endif /* __MXC_ISI_CORE_H__ */
