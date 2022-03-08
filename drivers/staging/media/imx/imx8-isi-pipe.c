@@ -665,13 +665,6 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 
-	if (sel->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
-		/*
-		 * FIXME: Support moving the crop rectangle when the pipeline
-		 * is streaming.
-		 */
-	}
-
 	dev_dbg(pipe->isi->dev, "%s, target %#x: (%d,%d)/%dx%d", __func__,
 		sel->target, sel->r.left, sel->r.top, sel->r.width,
 		sel->r.height);
