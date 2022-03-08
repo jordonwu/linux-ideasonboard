@@ -530,6 +530,7 @@ static void mxc_isi_enable_irq(struct mxc_isi_pipe *pipe)
 	       ier_reg->panic_u_buf_en.mask |
 	       ier_reg->panic_v_buf_en.mask;
 
+	mxc_isi_clear_irqs(pipe);
 	mxc_isi_write(pipe, CHNL_IER, val);
 }
 
@@ -542,14 +543,13 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 {
 	u32 val;
 
+	mxc_isi_enable_irq(pipe);
+
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val |= CHNL_CTRL_BLANK_PXL(0xff);
 
 	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
-
-	mxc_isi_clear_irqs(pipe);
-	mxc_isi_enable_irq(pipe);
 
 	mxc_isi_pipe_dump_regs(pipe);
 	msleep(300);
