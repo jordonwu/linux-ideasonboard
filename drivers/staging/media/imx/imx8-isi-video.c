@@ -437,7 +437,6 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	 * The next buffer has been queued successfully, move it to the active
 	 * list, and complete the current buffer.
 	 */
-	next_buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
 	list_move_tail(&next_buf->list, &video->out_active);
 
 	if (!buf->discard) {
@@ -594,7 +593,6 @@ static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
 		     ? &video->out_discard : &video->out_pending;
 
 		buf = list_first_entry(list, struct mxc_isi_buffer, list);
-		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
 
 		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
 		list_move_tail(&buf->list, &video->out_active);
