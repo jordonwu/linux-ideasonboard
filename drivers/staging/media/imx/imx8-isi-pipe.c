@@ -587,7 +587,6 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 	struct mxc_isi_pipe *pipe = to_isi_pipe(sd);
 	struct v4l2_mbus_framefmt *format;
 	struct v4l2_rect *rect;
-	unsigned long flags;
 
 	switch (sel->target) {
 	case V4L2_SEL_TGT_CROP:
@@ -655,12 +654,10 @@ static int mxc_isi_pipe_set_selection(struct v4l2_subdev *sd,
 	}
 
 	if (sel->which == V4L2_SUBDEV_FORMAT_ACTIVE) {
-		spin_lock_irqsave(&pipe->slock, flags);
 		/*
 		 * FIXME: Support moving the crop rectangle when the pipeline
 		 * is streaming.
 		 */
-		spin_unlock_irqrestore(&pipe->slock, flags);
 	}
 
 	dev_dbg(pipe->isi->dev, "%s, target %#x: (%d,%d)/%dx%d", __func__,
