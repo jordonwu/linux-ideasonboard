@@ -219,7 +219,6 @@ struct mxc_isi_pipe {
 
 	unsigned int			hflip:1;
 	unsigned int			vflip:1;
-	unsigned int			alphaen:1;
 };
 
 struct mxc_isi_dev {
