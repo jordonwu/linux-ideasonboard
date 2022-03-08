@@ -828,7 +828,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 		goto error;
 
 	/* Register IRQ handler. */
-	mxc_isi_clean_registers(pipe);
+	mxc_isi_clear_irqs(pipe);
 	mxc_isi_channel_set_chain_buf(pipe);
 
 	irq = platform_get_irq(to_platform_device(isi->dev), id);

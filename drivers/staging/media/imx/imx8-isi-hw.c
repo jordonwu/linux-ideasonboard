@@ -500,7 +500,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
-void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe)
+void mxc_isi_clear_irqs(struct mxc_isi_pipe *pipe)
 {
 	mxc_isi_get_irq_status(pipe);
 }
@@ -548,7 +548,7 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 
-	mxc_isi_clean_registers(pipe);
+	mxc_isi_clear_irqs(pipe);
 	mxc_isi_enable_irq(pipe);
 
 	mxc_isi_pipe_dump_regs(pipe);
