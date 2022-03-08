@@ -571,16 +571,22 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 
 static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
 {
+	unsigned int discard;
 	unsigned int i;
 
 	lockdep_assert_held(&video->buf_lock);
 
 	/*
-	 * Queue two ISI channel output buffers. We are guaranteed to have at
-	 * least one buffer in the pending list. If there is a second one,
-	 * queue two pending buffers, otherwise use a discard buffer for the
-	 * second buffer.
+	 * Queue two ISI channel output buffers. We are not guaranteed to have
+	 * any buffer in the pending list when this function is called from the
+	 * system resume handler. Use pending buffers as much as possible, and
+	 * use discard buffers to fill the remaining slots.
 	 */
+
+	/* How many discard buffers do we need to queue first ? */
+	discard = list_empty(&video->out_pending) ? 2
+		: list_is_singular(&video->out_pending) ? 1
+		: 0;
 
 	for (i = 0; i < 2; ++i) {
 		enum mxc_isi_buf_id buf_id = i == 0 ? MXC_ISI_BUF1
@@ -588,9 +594,7 @@ static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
 		struct mxc_isi_buffer *buf;
 		struct list_head *list;
 
-		list = i == 1 && list_is_singular(&video->out_pending)
-		     ? &video->out_discard : &video->out_pending;
-
+		list = i < discard ? &video->out_discard : &video->out_pending;
 		buf = list_first_entry(list, struct mxc_isi_buffer, list);
 
 		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
@@ -1066,6 +1070,62 @@ static const struct v4l2_file_operations mxc_isi_video_fops = {
 	.unlocked_ioctl	= video_ioctl2,
 	.mmap		= vb2_fop_mmap,
 };
+
+/* -----------------------------------------------------------------------------
+ * Suspend & resume
+ */
+
+void mxc_isi_video_suspend(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_video *video = &pipe->video;
+
+	if (!video->is_streaming)
+		return;
+
+	mxc_isi_pipe_disable(pipe);
+	mxc_isi_channel_deinit(pipe);
+
+	spin_lock_irq(&video->buf_lock);
+
+	/*
+	 * Move the active buffers back to the pending or discard list. We must
+	 * iterate the active list backward and move the buffers to the head of
+	 * the pending list to preserve the buffer queueing order.
+	 */
+	while (!list_empty(&video->out_active)) {
+		struct mxc_isi_buffer *buf =
+			list_last_entry(&video->out_active,
+					struct mxc_isi_buffer, list);
+
+		if (buf->discard)
+			list_move(&buf->list, &video->out_discard);
+		else
+			list_move(&buf->list, &video->out_pending);
+	}
+
+	spin_unlock_irq(&video->buf_lock);
+}
+
+int mxc_isi_video_resume(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_video *video = &pipe->video;
+
+	if (!video->is_streaming)
+		return 0;
+
+	mxc_isi_channel_init(pipe);
+	mxc_isi_channel_set_output_format(pipe, video->fmtinfo, &video->pix);
+
+	spin_lock_irq(&video->buf_lock);
+	mxc_isi_video_queue_first_buffers(video);
+	spin_unlock_irq(&video->buf_lock);
+
+	return mxc_isi_pipe_enable(pipe);
+}
+
+/* -----------------------------------------------------------------------------
+ * Registration
+ */
 
 int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 			   struct v4l2_device *v4l2_dev)
