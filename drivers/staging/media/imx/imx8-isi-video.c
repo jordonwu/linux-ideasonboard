@@ -860,7 +860,11 @@ static int mxc_isi_video_open(struct file *file)
 	if (ret)
 		return ret;
 
-	pm_runtime_get_sync(pipe->isi->dev);
+	ret = pm_runtime_resume_and_get(pipe->isi->dev);
+	if (ret) {
+		v4l2_fh_release(file);
+		return ret;
+	}
 
 	/* increase usage count for ISI channel */
 	mutex_lock(&pipe->video.lock);
