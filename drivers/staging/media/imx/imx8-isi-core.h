@@ -97,7 +97,6 @@ struct mxc_isi_bus_format_info {
 struct mxc_isi_ctrls {
 	struct v4l2_ctrl_handler handler;
 	struct v4l2_ctrl *alpha;
-	bool ready;
 };
 
 struct mxc_isi_buffer {
