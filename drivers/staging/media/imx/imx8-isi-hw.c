@@ -480,38 +480,21 @@ static void mxc_isi_channel_irq_disable(struct mxc_isi_pipe *pipe)
  * Init, deinit, enable, disable
  */
 
-static void mxc_isi_channel_sw_reset(struct mxc_isi_pipe *pipe)
+static void mxc_isi_channel_sw_reset(struct mxc_isi_pipe *pipe, bool enable_clk)
 {
-	u32 val;
-
-	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val |= CHNL_CTRL_SW_RST;
-	mxc_isi_write(pipe, CHNL_CTRL, val);
+	mxc_isi_write(pipe, CHNL_CTRL, CHNL_CTRL_SW_RST);
 	mdelay(5);
-	val &= ~CHNL_CTRL_SW_RST;
-	mxc_isi_write(pipe, CHNL_CTRL, val);
+	mxc_isi_write(pipe, CHNL_CTRL, enable_clk ? CHNL_CTRL_CLK_EN : 0);
 }
 
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
 {
-	u32 val;
-
-	/* sw reset */
-	mxc_isi_channel_sw_reset(pipe);
-
-	/* Init channel clk first */
-	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val |= CHNL_CTRL_CLK_EN;
-	mxc_isi_write(pipe, CHNL_CTRL, val);
+	mxc_isi_channel_sw_reset(pipe, true);
 }
 
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 {
-	/* sw reset */
-	mxc_isi_channel_sw_reset(pipe);
-
-	/* deinit channel clk first */
-	mxc_isi_write(pipe, CHNL_CTRL, 0);
+	mxc_isi_channel_sw_reset(pipe, false);
 
 	if (pipe->chain_buf)
 		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
