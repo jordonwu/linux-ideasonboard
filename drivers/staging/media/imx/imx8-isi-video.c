@@ -768,12 +768,9 @@ static inline struct mxc_isi_pipe *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
 static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_pipe *pipe = ctrl_to_isi_cap(ctrl);
-	unsigned long flags;
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
-
-	spin_lock_irqsave(&pipe->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
@@ -789,7 +786,6 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 		return -EINVAL;
 	}
 
-	spin_unlock_irqrestore(&pipe->slock, flags);
 	return 0;
 }
 
