@@ -541,8 +541,8 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 	spin_lock_irqsave(&video->buf_lock, flags);
 
 	while (!list_empty(&video->out_active)) {
-		buf = list_entry(video->out_active.next,
-				 struct mxc_isi_buffer, list);
+		buf = list_first_entry(&video->out_active,
+				       struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		if (buf->discard)
 			continue;
@@ -551,15 +551,15 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 	}
 
 	while (!list_empty(&video->out_pending)) {
-		buf = list_entry(video->out_pending.next,
-				 struct mxc_isi_buffer, list);
+		buf = list_first_entry(&video->out_pending,
+				       struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, state);
 	}
 
 	while (!list_empty(&video->out_discard)) {
-		buf = list_entry(video->out_discard.next,
-				 struct mxc_isi_buffer, list);
+		buf = list_first_entry(&video->out_discard,
+				       struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 	}
 
