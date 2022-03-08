@@ -741,6 +741,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	struct mxc_isi_video *video = vb2_get_drv_priv(q);
 
 	mxc_isi_pipe_disable(video->pipe);
+	mxc_isi_channel_deinit(video->pipe);
 
 	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_ERROR);
 	mxc_isi_video_free_discard_buffers(video);
@@ -1034,11 +1035,6 @@ static int mxc_isi_video_open(struct file *file)
 		return ret;
 	}
 
-	/* increase usage count for ISI channel */
-	mutex_lock(&video->lock);
-	atomic_inc(&video->usage_count);
-	mutex_unlock(&video->lock);
-
 	return 0;
 }
 
@@ -1048,16 +1044,9 @@ static int mxc_isi_video_release(struct file *file)
 	int ret;
 
 	ret = vb2_fop_release(file);
-	if (ret) {
+	if (ret)
 		dev_err(video->pipe->isi->dev, "%s fail\n", __func__);
-		goto done;
-	}
 
-	if (atomic_read(&video->usage_count) > 0 &&
-	    atomic_dec_and_test(&video->usage_count))
-		mxc_isi_channel_deinit(video->pipe);
-
-done:
 	pm_runtime_put(video->pipe->isi->dev);
 	return ret;
 }
@@ -1085,8 +1074,6 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 
 	mutex_init(&video->lock);
 	spin_lock_init(&video->buf_lock);
-
-	atomic_set(&video->usage_count, 0);
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
