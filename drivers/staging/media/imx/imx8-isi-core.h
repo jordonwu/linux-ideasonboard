@@ -172,6 +172,8 @@ struct mxc_isi_crossbar {
 };
 
 struct mxc_isi_video {
+	struct mxc_isi_pipe		*pipe;
+
 	struct video_device		vdev;
 	struct media_pad		pad;
 

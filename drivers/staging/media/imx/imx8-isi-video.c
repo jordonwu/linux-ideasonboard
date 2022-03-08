@@ -286,12 +286,13 @@ static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
 
 void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 {
+	struct mxc_isi_video *video = &pipe->video;
 	struct device *dev = pipe->isi->dev;
 	struct mxc_isi_buffer *next_buf;
 	struct mxc_isi_buffer *buf;
 	enum mxc_isi_buf_id buf_id;
 
-	spin_lock(&pipe->video.buf_lock);
+	spin_lock(&video->buf_lock);
 
 	/*
 	 * The ISI hardware handles buffers using a ping-pong mechanism with
@@ -351,7 +352,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	       ? (status & CHNL_STS_BUF1_ACTIVE ? MXC_ISI_BUF2 : MXC_ISI_BUF1)
 	       : (status & CHNL_STS_BUF1_ACTIVE ? MXC_ISI_BUF1 : MXC_ISI_BUF2);
 
-	buf = list_first_entry_or_null(&pipe->video.out_active,
+	buf = list_first_entry_or_null(&video->out_active,
 				       struct mxc_isi_buffer, list);
 
 	/* Safety check, this should really never happen. */
@@ -382,15 +383,15 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 		 * Increment the frame count by two to account for the missed
 		 * and the ignored interrupts.
 		 */
-		pipe->video.frame_count += 2;
+		video->frame_count += 2;
 		goto done;
 	}
 
 	/* Pick the next buffer and queue it to the hardware. */
-	next_buf = list_first_entry_or_null(&pipe->video.out_pending,
+	next_buf = list_first_entry_or_null(&video->out_pending,
 					    struct mxc_isi_buffer, list);
 	if (!next_buf) {
-		next_buf = list_first_entry_or_null(&pipe->video.out_discard,
+		next_buf = list_first_entry_or_null(&video->out_discard,
 					 	    struct mxc_isi_buffer, list);
 
 		/* Safety check, this should never happen. */
@@ -419,7 +420,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	status = mxc_isi_get_irq_status(pipe, false);
 	if (status & CHNL_STS_FRM_STRD) {
 		dev_dbg(dev, "raced with frame end interrupt\n");
-		pipe->video.frame_count += 2;
+		video->frame_count += 2;
 		goto done;
 	}
 
@@ -428,26 +429,25 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	 * list, and complete the current buffer.
 	 */
 	next_buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
-	list_move_tail(&next_buf->list, &pipe->video.out_active);
+	list_move_tail(&next_buf->list, &video->out_active);
 
 	if (!buf->discard) {
 		list_del_init(&buf->list);
-		buf->v4l2_buf.sequence = pipe->video.frame_count;
+		buf->v4l2_buf.sequence = video->frame_count;
 		buf->v4l2_buf.vb2_buf.timestamp = ktime_get_ns();
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, VB2_BUF_STATE_DONE);
 	} else {
-		list_move_tail(&buf->list, &pipe->video.out_discard);
+		list_move_tail(&buf->list, &video->out_discard);
 	}
 
-	pipe->video.frame_count++;
+	video->frame_count++;
 
 done:
-	spin_unlock(&pipe->video.buf_lock);
+	spin_unlock(&video->buf_lock);
 }
 
-static void mxc_isi_video_free_discard_buffers(struct mxc_isi_pipe *pipe)
+static void mxc_isi_video_free_discard_buffers(struct mxc_isi_video *video)
 {
-	struct mxc_isi_video *video = &pipe->video;
 	unsigned int i;
 
 	for (i = 0; i < video->pix.num_planes; i++) {
@@ -456,15 +456,14 @@ static void mxc_isi_video_free_discard_buffers(struct mxc_isi_pipe *pipe)
 		if (!buf->addr)
 			continue;
 
-		dma_free_coherent(pipe->isi->dev, buf->size, buf->addr,
+		dma_free_coherent(video->pipe->isi->dev, buf->size, buf->addr,
 				  buf->dma);
 		buf->addr = NULL;
 	}
 }
 
-static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_pipe *pipe)
+static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_video *video)
 {
-	struct mxc_isi_video *video = &pipe->video;
 	unsigned int i, j;
 
 	/* Allocate memory for each plane. */
@@ -472,14 +471,14 @@ static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_pipe *pipe)
 		struct mxc_isi_dma_buffer *buf = &video->discard_buffer[i];
 
 		buf->size = PAGE_ALIGN(video->pix.plane_fmt[i].sizeimage);
-		buf->addr = dma_alloc_coherent(pipe->isi->dev, buf->size,
+		buf->addr = dma_alloc_coherent(video->pipe->isi->dev, buf->size,
 					       &buf->dma, GFP_DMA | GFP_KERNEL);
 		if (!buf->addr) {
-			mxc_isi_video_free_discard_buffers(pipe);
+			mxc_isi_video_free_discard_buffers(video);
 			return -ENOMEM;
 		}
 
-		dev_dbg(pipe->isi->dev,
+		dev_dbg(video->pipe->isi->dev,
 			"%s: num_plane=%d discard_size=%zu discard_buffer=%p\n",
 			__func__, i, buf->size, buf->addr);
 	}
@@ -497,27 +496,26 @@ static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_pipe *pipe)
 	return 0;
 }
 
-static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
+static int mxc_isi_video_validate_format(struct mxc_isi_video *video)
 {
 	const struct v4l2_mbus_framefmt *format;
 	const struct mxc_isi_format_info *info;
 	struct v4l2_subdev_state *state;
-	struct v4l2_subdev *sd = &pipe->sd;
+	struct v4l2_subdev *sd = &video->pipe->sd;
 	int ret = 0;
 
 	state = v4l2_subdev_lock_active_state(sd);
 
-	info = mxc_isi_format_by_fourcc(pipe->video.pix.pixelformat);
+	info = mxc_isi_format_by_fourcc(video->pix.pixelformat);
 	format = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SOURCE);
 
 	if (format->code != info->mbus_code ||
-	    format->width != pipe->video.pix.width ||
-	    format->height != pipe->video.pix.height) {
-		dev_dbg(pipe->isi->dev,
+	    format->width != video->pix.width ||
+	    format->height != video->pix.height) {
+		dev_dbg(video->pipe->isi->dev,
 			"%s: configuration mismatch, 0x%04x/%ux%u != 0x%04x/%ux%u\n",
 			__func__, format->code, format->width, format->height,
-			info->mbus_code, pipe->video.pix.width,
-			pipe->video.pix.height);
+			info->mbus_code, video->pix.width, video->pix.height);
 		ret = -EINVAL;
 	}
 
@@ -526,16 +524,16 @@ static int mxc_isi_video_validate_format(struct mxc_isi_pipe *pipe)
 	return ret;
 }
 
-static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
+static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 					 enum vb2_buffer_state state)
 {
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 
-	spin_lock_irqsave(&pipe->video.buf_lock, flags);
+	spin_lock_irqsave(&video->buf_lock, flags);
 
-	while (!list_empty(&pipe->video.out_active)) {
-		buf = list_entry(pipe->video.out_active.next,
+	while (!list_empty(&video->out_active)) {
+		buf = list_entry(video->out_active.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		if (buf->discard)
@@ -544,24 +542,24 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, state);
 	}
 
-	while (!list_empty(&pipe->video.out_pending)) {
-		buf = list_entry(pipe->video.out_pending.next,
+	while (!list_empty(&video->out_pending)) {
+		buf = list_entry(video->out_pending.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 		vb2_buffer_done(&buf->v4l2_buf.vb2_buf, state);
 	}
 
-	while (!list_empty(&pipe->video.out_discard)) {
-		buf = list_entry(pipe->video.out_discard.next,
+	while (!list_empty(&video->out_discard)) {
+		buf = list_entry(video->out_discard.next,
 				 struct mxc_isi_buffer, list);
 		list_del_init(&buf->list);
 	}
 
-	INIT_LIST_HEAD(&pipe->video.out_active);
-	INIT_LIST_HEAD(&pipe->video.out_pending);
-	INIT_LIST_HEAD(&pipe->video.out_discard);
+	INIT_LIST_HEAD(&video->out_active);
+	INIT_LIST_HEAD(&video->out_pending);
+	INIT_LIST_HEAD(&video->out_discard);
 
-	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
+	spin_unlock_irqrestore(&video->buf_lock, flags);
 }
 
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
@@ -575,15 +573,15 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 				   unsigned int sizes[],
 				   struct device *alloc_devs[])
 {
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
+	struct mxc_isi_video *video = vb2_get_drv_priv(q);
+	const struct mxc_isi_format_info *fmt = video->fmtinfo;
 	unsigned long wh;
 	int i;
 
 	for (i = 0; i < fmt->memplanes; i++)
-		alloc_devs[i] = pipe->isi->dev;
+		alloc_devs[i] = video->pipe->isi->dev;
 
-	wh = pipe->video.pix.width * pipe->video.pix.height;
+	wh = video->pix.width * video->pix.height;
 
 	*num_planes = fmt->memplanes;
 
@@ -593,9 +591,9 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 		if (i > 1)
 			size /= fmt->hsub * fmt->vsub;
 
-		sizes[i] = max_t(u32, size, pipe->video.pix.plane_fmt[i].sizeimage);
+		sizes[i] = max_t(u32, size, video->pix.plane_fmt[i].sizeimage);
 	}
-	dev_dbg(pipe->isi->dev, "%s, buf_n=%d, size=%d\n",
+	dev_dbg(video->pipe->isi->dev, "%s, buf_n=%d, size=%d\n",
 		__func__, *num_buffers, sizes[0]);
 
 	return 0;
@@ -604,8 +602,8 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 static int mxc_isi_vb2_buffer_init(struct vb2_buffer *vb2)
 {
 	struct mxc_isi_buffer *buf = to_isi_buffer(to_vb2_v4l2_buffer(vb2));
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(vb2->vb2_queue);
-	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
+	struct mxc_isi_video *video = vb2_get_drv_priv(vb2->vb2_queue);
+	const struct mxc_isi_format_info *fmt = video->fmtinfo;
 	unsigned int i;
 
 	for (i = 0; i < fmt->memplanes; ++i)
@@ -616,16 +614,15 @@ static int mxc_isi_vb2_buffer_init(struct vb2_buffer *vb2)
 
 static int mxc_isi_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
-	struct vb2_queue *q = vb2->vb2_queue;
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
-	const struct mxc_isi_format_info *fmt = pipe->video.fmtinfo;
+	struct mxc_isi_video *video = vb2_get_drv_priv(vb2->vb2_queue);
+	const struct mxc_isi_format_info *fmt = video->fmtinfo;
 	unsigned int i;
 
 	for (i = 0; i < fmt->memplanes; i++) {
-		unsigned long size = pipe->video.pix.plane_fmt[i].sizeimage;
+		unsigned long size = video->pix.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
-			dev_err(pipe->isi->dev,
+			dev_err(video->pipe->isi->dev,
 				"User buffer too small (%ld < %ld)\n",
 				vb2_plane_size(vb2, i), size);
 			return -EINVAL;
@@ -641,22 +638,22 @@ static void mxc_isi_vb2_buffer_queue(struct vb2_buffer *vb2)
 {
 	struct vb2_v4l2_buffer *v4l2_buf = to_vb2_v4l2_buffer(vb2);
 	struct mxc_isi_buffer *buf = to_isi_buffer(v4l2_buf);
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(vb2->vb2_queue);
+	struct mxc_isi_video *video = vb2_get_drv_priv(vb2->vb2_queue);
 	unsigned long flags;
 
-	spin_lock_irqsave(&pipe->video.buf_lock, flags);
-	list_add_tail(&buf->list, &pipe->video.out_pending);
-	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
+	spin_lock_irqsave(&video->buf_lock, flags);
+	list_add_tail(&buf->list, &video->out_pending);
+	spin_unlock_irqrestore(&video->buf_lock, flags);
 }
 
 static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
+	struct mxc_isi_video *video = vb2_get_drv_priv(q);
 	unsigned long flags;
 	unsigned int i;
 	int ret;
 
-	ret = media_pipeline_start(pipe->video.vdev.entity.pads, &pipe->pipe);
+	ret = media_pipeline_start(video->vdev.entity.pads, &video->pipe->pipe);
 	if (ret < 0)
 		goto err_bufs;
 
@@ -664,27 +661,27 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	 * Verify that the configured format matches the output of the
 	 * subdev.
 	 */
-	ret = mxc_isi_video_validate_format(pipe);
+	ret = mxc_isi_video_validate_format(video);
 	if (ret)
 		goto err_stop;
 
 	/* Create buffers for discard operation. */
-	ret = mxc_isi_video_alloc_discard_buffers(pipe);
+	ret = mxc_isi_video_alloc_discard_buffers(video);
 	if (ret)
 		goto err_stop;
 
 	/* Initialize the ISI channel. */
-	mxc_isi_channel_init(pipe);
-	mxc_isi_channel_set_output_format(pipe, pipe->video.fmtinfo,
-					  &pipe->video.pix);
+	mxc_isi_channel_init(video->pipe);
+	mxc_isi_channel_set_output_format(video->pipe, video->fmtinfo,
+					  &video->pix);
 
-	spin_lock_irqsave(&pipe->video.buf_lock, flags);
+	spin_lock_irqsave(&video->buf_lock, flags);
 
 	/* Add the discard buffers to the out_discard list. */
-	for (i = 0; i < ARRAY_SIZE(pipe->video.buf_discard); ++i) {
-		struct mxc_isi_buffer *buf = &pipe->video.buf_discard[i];
+	for (i = 0; i < ARRAY_SIZE(video->buf_discard); ++i) {
+		struct mxc_isi_buffer *buf = &video->buf_discard[i];
 
-		list_add_tail(&buf->list, &pipe->video.out_discard);
+		list_add_tail(&buf->list, &video->out_discard);
 	}
 
 	/* Queue two ISI channel output buffers. */
@@ -699,49 +696,49 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		 * list. If there is a second one, queue two pending buffers,
 		 * otherwise use a discard buffer for the second buffer.
 		 */
-		list = i == 1 && list_is_singular(&pipe->video.out_pending) 
-		     ? &pipe->video.out_discard : &pipe->video.out_pending;
+		list = i == 1 && list_is_singular(&video->out_pending) 
+		     ? &video->out_discard : &video->out_pending;
 
 		buf = list_first_entry(list, struct mxc_isi_buffer, list);
 		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
 
-		mxc_isi_channel_set_outbuf(pipe, buf, buf_id);
-		list_move_tail(&buf->list, &pipe->video.out_active);
+		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
+		list_move_tail(&buf->list, &video->out_active);
 	}
 
 	/* Clear frame count */
-	pipe->video.frame_count = 0;
-	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
+	video->frame_count = 0;
+	spin_unlock_irqrestore(&video->buf_lock, flags);
 
-	ret = mxc_isi_pipe_enable(pipe);
+	ret = mxc_isi_pipe_enable(video->pipe);
 	if (ret)
 		goto err_free;
 
-	pipe->is_streaming = 1;
+	video->pipe->is_streaming = 1;
 
 	return 0;
 
 err_free:
-	mxc_isi_video_free_discard_buffers(pipe);
+	mxc_isi_video_free_discard_buffers(video);
 err_stop:
-	media_pipeline_stop(pipe->video.vdev.entity.pads);
+	media_pipeline_stop(video->vdev.entity.pads);
 err_bufs:
-	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_QUEUED);
+	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_QUEUED);
 	return ret;
 }
 
 static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 {
-	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(q);
+	struct mxc_isi_video *video = vb2_get_drv_priv(q);
 
-	mxc_isi_pipe_disable(pipe);
+	mxc_isi_pipe_disable(video->pipe);
 
-	mxc_isi_video_return_buffers(pipe, VB2_BUF_STATE_ERROR);
-	mxc_isi_video_free_discard_buffers(pipe);
+	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_ERROR);
+	mxc_isi_video_free_discard_buffers(video);
 
-	media_pipeline_stop(pipe->video.vdev.entity.pads);
+	media_pipeline_stop(video->vdev.entity.pads);
 
-	pipe->is_streaming = 0;
+	video->pipe->is_streaming = 0;
 }
 
 static const struct vb2_ops mxc_isi_vb2_qops = {
@@ -759,15 +756,14 @@ static const struct vb2_ops mxc_isi_vb2_qops = {
  * V4L2 controls
  */
 
-static inline struct mxc_isi_pipe *ctrl_to_isi_cap(struct v4l2_ctrl *ctrl)
+static inline struct mxc_isi_video *ctrl_to_isi_video(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct mxc_isi_pipe,
-			    video.ctrls.handler);
+	return container_of(ctrl->handler, struct mxc_isi_video, ctrls.handler);
 }
 
 static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct mxc_isi_pipe *pipe = ctrl_to_isi_cap(ctrl);
+	struct mxc_isi_video *video = ctrl_to_isi_video(ctrl);
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
@@ -776,12 +772,12 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_ALPHA_COMPONENT:
 		if (ctrl->val < 0 || ctrl->val > 255)
 			return -EINVAL;
-		pipe->alpha = ctrl->val;
-		pipe->alphaen = 1;
+		video->pipe->alpha = ctrl->val;
+		video->pipe->alphaen = 1;
 		break;
 
 	default:
-		dev_err(pipe->isi->dev,
+		dev_err(video->pipe->isi->dev,
 			"%s: Not support %d CID\n", __func__, ctrl->id);
 		return -EINVAL;
 	}
@@ -793,9 +789,8 @@ static const struct v4l2_ctrl_ops mxc_isi_video_ctrl_ops = {
 	.s_ctrl = mxc_isi_video_s_ctrl,
 };
 
-static int mxc_isi_video_ctrls_create(struct mxc_isi_pipe *pipe)
+static int mxc_isi_video_ctrls_create(struct mxc_isi_video *video)
 {
-	struct mxc_isi_video *video = &pipe->video;
 	struct v4l2_ctrl_handler *handler = &video->ctrls.handler;
 	int ret;
 
@@ -816,10 +811,8 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_pipe *pipe)
 	return 0;
 }
 
-static void mxc_isi_video_ctrls_delete(struct mxc_isi_pipe *pipe)
+static void mxc_isi_video_ctrls_delete(struct mxc_isi_video *video)
 {
-	struct mxc_isi_video *video = &pipe->video;
-
 	v4l2_ctrl_handler_free(&video->ctrls.handler);
 	video->ctrls.alpha = NULL;
 }
@@ -831,12 +824,12 @@ static void mxc_isi_video_ctrls_delete(struct mxc_isi_pipe *pipe)
 static int mxc_isi_video_querycap(struct file *file, void *priv,
 				  struct v4l2_capability *cap)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 
 	strlcpy(cap->driver, MXC_ISI_CAPTURE, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_CAPTURE, sizeof(cap->card));
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%d",
-		 dev_name(pipe->isi->dev), pipe->id);
+		 dev_name(video->pipe->isi->dev), video->pipe->id);
 
 	return 0;
 }
@@ -882,9 +875,9 @@ static int mxc_isi_video_enum_fmt(struct file *file, void *priv,
 static int mxc_isi_video_g_fmt(struct file *file, void *fh,
 			       struct v4l2_format *f)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 
-	f->fmt.pix_mp = pipe->video.pix;
+	f->fmt.pix_mp = video->pix;
 
 	return 0;
 }
@@ -945,17 +938,17 @@ static int mxc_isi_video_try_fmt(struct file *file, void *fh,
 static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 			       struct v4l2_format *f)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_format_info *fmt;
 
-	if (vb2_is_busy(&pipe->video.vb2_q))
+	if (vb2_is_busy(&video->vb2_q))
 		return -EBUSY;
 
 	__mxc_isi_video_try_fmt(pix, &fmt);
 
-	pipe->video.pix = *pix;
-	pipe->video.fmtinfo = fmt;
+	video->pix = *pix;
+	video->fmtinfo = fmt;
 
 	return 0;
 }
@@ -963,7 +956,7 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 static int mxc_isi_video_enum_framesizes(struct file *file, void *priv,
 					 struct v4l2_frmsizeenum *fsize)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 	const struct mxc_isi_format_info *fmt;
 
 	if (fsize->index)
@@ -981,7 +974,8 @@ static int mxc_isi_video_enum_framesizes(struct file *file, void *priv,
 	fsize->stepwise.step_width = 1;
 	fsize->stepwise.step_height = 1;
 
-	if (pipe->isi->pdata->model == MXC_ISI_IMX8MP && pipe->id == 1)
+	if (video->pipe->isi->pdata->model == MXC_ISI_IMX8MP &&
+	    video->pipe->id == 1)
 		fsize->stepwise.min_height /= 2;
 
 	return 0;
@@ -1015,44 +1009,44 @@ static const struct v4l2_ioctl_ops mxc_isi_video_ioctl_ops = {
 
 static int mxc_isi_video_open(struct file *file)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 	int ret;
 
 	ret = v4l2_fh_open(file);
 	if (ret)
 		return ret;
 
-	ret = pm_runtime_resume_and_get(pipe->isi->dev);
+	ret = pm_runtime_resume_and_get(video->pipe->isi->dev);
 	if (ret) {
 		v4l2_fh_release(file);
 		return ret;
 	}
 
 	/* increase usage count for ISI channel */
-	mutex_lock(&pipe->video.lock);
-	atomic_inc(&pipe->video.usage_count);
-	mutex_unlock(&pipe->video.lock);
+	mutex_lock(&video->lock);
+	atomic_inc(&video->usage_count);
+	mutex_unlock(&video->lock);
 
 	return 0;
 }
 
 static int mxc_isi_video_release(struct file *file)
 {
-	struct mxc_isi_pipe *pipe = video_drvdata(file);
+	struct mxc_isi_video *video = video_drvdata(file);
 	int ret;
 
 	ret = vb2_fop_release(file);
 	if (ret) {
-		dev_err(pipe->isi->dev, "%s fail\n", __func__);
+		dev_err(video->pipe->isi->dev, "%s fail\n", __func__);
 		goto done;
 	}
 
-	if (atomic_read(&pipe->video.usage_count) > 0 &&
-	    atomic_dec_and_test(&pipe->video.usage_count))
-		mxc_isi_channel_deinit(pipe);
+	if (atomic_read(&video->usage_count) > 0 &&
+	    atomic_dec_and_test(&video->usage_count))
+		mxc_isi_channel_deinit(video->pipe);
 
 done:
-	pm_runtime_put(pipe->isi->dev);
+	pm_runtime_put(video->pipe->isi->dev);
 	return ret;
 }
 
@@ -1068,23 +1062,26 @@ static const struct v4l2_file_operations mxc_isi_video_fops = {
 int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 			   struct v4l2_device *v4l2_dev)
 {
-	struct v4l2_pix_format_mplane *pix = &pipe->video.pix;
-	struct video_device *vdev = &pipe->video.vdev;
-	struct vb2_queue *q = &pipe->video.vb2_q;
+	struct mxc_isi_video *video = &pipe->video;
+	struct v4l2_pix_format_mplane *pix = &video->pix;
+	struct video_device *vdev = &video->vdev;
+	struct vb2_queue *q = &video->vb2_q;
 	const struct mxc_isi_format_info *fmt;
 	int ret = -ENOMEM;
 
-	mutex_init(&pipe->video.lock);
-	spin_lock_init(&pipe->video.buf_lock);
+	video->pipe = pipe;
 
-	atomic_set(&pipe->video.usage_count, 0);
+	mutex_init(&video->lock);
+	spin_lock_init(&video->buf_lock);
+
+	atomic_set(&video->usage_count, 0);
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
 	__mxc_isi_video_try_fmt(pix, &fmt);
 
-	pipe->video.fmtinfo = fmt;
+	video->fmtinfo = fmt;
 
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
@@ -1095,38 +1092,38 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	vdev->minor	= -1;
 	vdev->release	= video_device_release_empty;
 	vdev->queue	= q;
-	vdev->lock	= &pipe->video.lock;
+	vdev->lock	= &video->lock;
 
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_CAPTURE_MPLANE
 			  | V4L2_CAP_IO_MC;
-	video_set_drvdata(vdev, pipe);
+	video_set_drvdata(vdev, video);
 
-	INIT_LIST_HEAD(&pipe->video.out_pending);
-	INIT_LIST_HEAD(&pipe->video.out_active);
-	INIT_LIST_HEAD(&pipe->video.out_discard);
+	INIT_LIST_HEAD(&video->out_pending);
+	INIT_LIST_HEAD(&video->out_active);
+	INIT_LIST_HEAD(&video->out_discard);
 
 	memset(q, 0, sizeof(*q));
 	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	q->io_modes = VB2_MMAP | VB2_DMABUF;
-	q->drv_priv = pipe;
+	q->drv_priv = video;
 	q->ops = &mxc_isi_vb2_qops;
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->buf_struct_size = sizeof(struct mxc_isi_buffer);
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->min_buffers_needed = 2;
-	q->lock = &pipe->video.lock;
+	q->lock = &video->lock;
 
 	ret = vb2_queue_init(q);
 	if (ret)
 		goto err_free_ctx;
 
-	pipe->video.pad.flags = MEDIA_PAD_FL_SINK;
+	video->pad.flags = MEDIA_PAD_FL_SINK;
 	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
-	ret = media_entity_pads_init(&vdev->entity, 1, &pipe->video.pad);
+	ret = media_entity_pads_init(&vdev->entity, 1, &video->pad);
 	if (ret)
 		goto err_free_ctx;
 
-	ret = mxc_isi_video_ctrls_create(pipe);
+	ret = mxc_isi_video_ctrls_create(video);
 	if (ret)
 		goto err_me_cleanup;
 
@@ -1145,7 +1142,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	return 0;
 
 err_ctrl_free:
-	mxc_isi_video_ctrls_delete(pipe);
+	mxc_isi_video_ctrls_delete(video);
 err_me_cleanup:
 	media_entity_cleanup(&vdev->entity);
 err_free_ctx:
@@ -1154,15 +1151,16 @@ err_free_ctx:
 
 void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe)
 {
-	struct video_device *vdev = &pipe->video.vdev;
+	struct mxc_isi_video *video = &pipe->video;
+	struct video_device *vdev = &video->vdev;
 
-	mutex_lock(&pipe->video.lock);
+	mutex_lock(&video->lock);
 
 	if (video_is_registered(vdev)) {
 		video_unregister_device(vdev);
-		mxc_isi_video_ctrls_delete(pipe);
+		mxc_isi_video_ctrls_delete(video);
 		media_entity_cleanup(&vdev->entity);
 	}
 
-	mutex_unlock(&pipe->video.lock);
+	mutex_unlock(&video->lock);
 }
