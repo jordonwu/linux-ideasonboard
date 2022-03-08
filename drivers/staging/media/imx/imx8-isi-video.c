@@ -417,7 +417,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	 * the first race condition, as we'll program B3 (still at the head of
 	 * the pending list) when handling IRQ3.
 	 */
-	status = mxc_isi_get_irq_status(pipe, false);
+	status = mxc_isi_channel_irq_status(pipe, false);
 	if (status & CHNL_STS_FRM_STRD) {
 		dev_dbg(dev, "raced with frame end interrupt\n");
 		video->frame_count += 2;
