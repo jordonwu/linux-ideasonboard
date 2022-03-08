@@ -765,9 +765,6 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_video *video = ctrl_to_isi_video(ctrl);
 
-	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
-		return 0;
-
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
 		video->pipe->alpha = ctrl->val;
