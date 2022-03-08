@@ -248,12 +248,9 @@ void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK | CHNL_IMG_CTRL_GBL_ALPHA_EN);
-
-	if (pipe->alphaen)
-		val |= (CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
-			CHNL_IMG_CTRL_GBL_ALPHA_EN);
-
+	val &= ~CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK;
+	val |= CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
+	       CHNL_IMG_CTRL_GBL_ALPHA_EN;
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
 

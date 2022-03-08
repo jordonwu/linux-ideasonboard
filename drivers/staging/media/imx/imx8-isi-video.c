@@ -771,7 +771,6 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
 		video->pipe->alpha = ctrl->val;
-		video->pipe->alphaen = 1;
 		break;
 
 	default:
