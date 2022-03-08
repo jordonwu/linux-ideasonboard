@@ -502,7 +502,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 
 void mxc_isi_clear_irqs(struct mxc_isi_pipe *pipe)
 {
-	mxc_isi_get_irq_status(pipe);
+	mxc_isi_write(pipe, CHNL_STS, 0xffffffff);
 }
 
 static void mxc_isi_enable_irq(struct mxc_isi_pipe *pipe)
