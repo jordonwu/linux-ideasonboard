@@ -633,33 +633,33 @@ static const struct v4l2_ctrl_ops mxc_isi_video_ctrl_ops = {
 
 static int mxc_isi_video_ctrls_create(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_ctrls *ctrls = &pipe->video.ctrls;
-	struct v4l2_ctrl_handler *handler = &ctrls->handler;
+	struct mxc_isi_video *video = &pipe->video;
+	struct v4l2_ctrl_handler *handler = &video->ctrls.handler;
 	int ret;
 
 	v4l2_ctrl_handler_init(handler, 1);
 
-	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
-					 V4L2_CID_ALPHA_COMPONENT,
-					 0, 0xff, 1, 0);
+	video->ctrls.alpha = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
+					       V4L2_CID_ALPHA_COMPONENT,
+					       0, 0xff, 1, 0);
 
 	if (handler->error) {
 		ret = handler->error;
-		v4l2_ctrl_handler_free(&ctrls->handler);
+		v4l2_ctrl_handler_free(&video->ctrls.handler);
 		return ret;
 	}
 
-	pipe->video.vdev.ctrl_handler = handler;
+	video->vdev.ctrl_handler = handler;
 
 	return 0;
 }
 
 static void mxc_isi_video_ctrls_delete(struct mxc_isi_pipe *pipe)
 {
-	struct mxc_isi_ctrls *ctrls = &pipe->video.ctrls;
+	struct mxc_isi_video *video = &pipe->video;
 
-	v4l2_ctrl_handler_free(&ctrls->handler);
-	ctrls->alpha = NULL;
+	v4l2_ctrl_handler_free(&video->ctrls.handler);
+	video->ctrls.alpha = NULL;
 }
 
 /* -----------------------------------------------------------------------------

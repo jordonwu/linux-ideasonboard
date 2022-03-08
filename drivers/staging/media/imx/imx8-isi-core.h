@@ -94,11 +94,6 @@ struct mxc_isi_bus_format_info {
 	enum mxc_isi_encoding encoding;
 };
 
-struct mxc_isi_ctrls {
-	struct v4l2_ctrl_handler handler;
-	struct v4l2_ctrl *alpha;
-};
-
 struct mxc_isi_buffer {
 	struct vb2_v4l2_buffer  v4l2_buf;
 	struct list_head	list;
@@ -184,7 +179,11 @@ struct mxc_isi_video {
 
 	struct v4l2_pix_format_mplane	pix;
 	const struct mxc_isi_format_info *fmtinfo;
-	struct mxc_isi_ctrls		ctrls;
+
+	struct {
+		struct v4l2_ctrl_handler handler;
+		struct v4l2_ctrl *alpha;
+	} ctrls;
 
 	struct vb2_queue		vb2_q;
 	struct mxc_isi_buffer		buf_discard[2];
