@@ -191,6 +191,9 @@ struct mxc_isi_video {
 	struct list_head		out_active;
 	struct list_head		out_discard;
 	u32				frame_count;
+	/* Protects out_pending, out_active, out_discard and frame_count */
+	spinlock_t			buf_lock;
+
 
 	struct mxc_isi_dma_buffer	discard_buffer[MXC_MAX_PLANES];
 };
@@ -206,8 +209,6 @@ struct mxc_isi_pipe {
 	struct media_pad		pads[MXC_ISI_PIPE_PADS_NUM];
 
 	struct mxc_isi_video		video;
-
-	spinlock_t			slock;
 
 	/* manage share ISI channel resource */
 	atomic_t			usage_count;

@@ -291,7 +291,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	struct mxc_isi_buffer *buf;
 	enum mxc_isi_buf_id buf_id;
 
-	spin_lock(&pipe->slock);
+	spin_lock(&pipe->video.buf_lock);
 
 	/*
 	 * The ISI hardware handles buffers using a ping-pong mechanism with
@@ -442,7 +442,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	pipe->video.frame_count++;
 
 done:
-	spin_unlock(&pipe->slock);
+	spin_unlock(&pipe->video.buf_lock);
 }
 
 static void mxc_isi_video_free_discard_buffers(struct mxc_isi_pipe *pipe)
@@ -532,7 +532,7 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 
-	spin_lock_irqsave(&pipe->slock, flags);
+	spin_lock_irqsave(&pipe->video.buf_lock, flags);
 
 	while (!list_empty(&pipe->video.out_active)) {
 		buf = list_entry(pipe->video.out_active.next,
@@ -561,7 +561,7 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_pipe *pipe,
 	INIT_LIST_HEAD(&pipe->video.out_pending);
 	INIT_LIST_HEAD(&pipe->video.out_discard);
 
-	spin_unlock_irqrestore(&pipe->slock, flags);
+	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
 }
 
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
@@ -644,9 +644,9 @@ static void mxc_isi_vb2_buffer_queue(struct vb2_buffer *vb2)
 	struct mxc_isi_pipe *pipe = vb2_get_drv_priv(vb2->vb2_queue);
 	unsigned long flags;
 
-	spin_lock_irqsave(&pipe->slock, flags);
+	spin_lock_irqsave(&pipe->video.buf_lock, flags);
 	list_add_tail(&buf->list, &pipe->video.out_pending);
-	spin_unlock_irqrestore(&pipe->slock, flags);
+	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
 }
 
 static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
@@ -678,7 +678,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	mxc_isi_channel_set_output_format(pipe, pipe->video.fmtinfo,
 					  &pipe->video.pix);
 
-	spin_lock_irqsave(&pipe->slock, flags);
+	spin_lock_irqsave(&pipe->video.buf_lock, flags);
 
 	/* Add the discard buffers to the out_discard list. */
 	for (i = 0; i < ARRAY_SIZE(pipe->video.buf_discard); ++i) {
@@ -711,7 +711,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Clear frame count */
 	pipe->video.frame_count = 0;
-	spin_unlock_irqrestore(&pipe->slock, flags);
+	spin_unlock_irqrestore(&pipe->video.buf_lock, flags);
 
 	ret = mxc_isi_pipe_enable(pipe);
 	if (ret)
@@ -1075,6 +1075,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	int ret = -ENOMEM;
 
 	mutex_init(&pipe->video.lock);
+	spin_lock_init(&pipe->video.buf_lock);
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
