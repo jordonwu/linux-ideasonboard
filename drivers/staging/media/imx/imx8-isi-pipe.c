@@ -691,17 +691,12 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 {
 	struct mxc_isi_pipe *pipe = priv;
 	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
-	unsigned long flags;
 	u32 status;
-
-	spin_lock_irqsave(&pipe->slock, flags);
 
 	status = mxc_isi_get_irq_status(pipe, true);
 
 	if (status & CHNL_STS_FRM_STRD)
 		mxc_isi_video_frame_write_done(pipe, status);
-
-	spin_unlock_irqrestore(&pipe->slock, flags);
 
 	if (status & (CHNL_STS_AXI_WR_ERR_Y |
 		      CHNL_STS_AXI_WR_ERR_U |
