@@ -26,8 +26,10 @@
 #include "imx8-isi-regs.h"
 
 /*
- * TODO: Add comment to explain that the pipeline subdev covers the gasket, and
- * thus can have inputs narrower than 24 bit.
+ * While the ISI receives data from the gasket on a 3x12-bit bus, the pipeline
+ * subdev conceptually includes the gasket in order to avoid exposing an extra
+ * subdev between the CSIS and the ISI. We thus need to expose media bus codes
+ * corresponding to the CSIS output, which is narrower.
  */
 static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	/* YUV formats */
