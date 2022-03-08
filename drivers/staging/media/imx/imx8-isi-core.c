@@ -56,9 +56,22 @@ static int mxc_isi_async_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mxc_isi_dev *isi = notifier_to_mxc_isi_dev(notifier);
 	struct mxc_isi_async_subdev *masd = asd_to_mxc_isi_async_subdev(asd);
 	struct media_pad *pad = &isi->crossbar.pads[masd->port];
+	struct device_link *link;
 
 	dev_dbg(isi->dev, "Bound subdev %s to crossbar input %u\n", sd->name,
 		masd->port);
+
+	/*
+	 * Enforce suspend/resume ordering between the source (supplier) and
+	 * the ISI (consumer). The source will be suspended before and resume
+	 * after the ISI.
+	 */
+	link = device_link_add(isi->dev, sd->dev, DL_FLAG_STATELESS);
+	if (!link) {
+		dev_err(isi->dev,
+			"Failed to create device link to source %s\n", sd->name);
+		return -EINVAL;
+	}
 
 	return v4l2_create_fwnode_links_to_pad(sd, pad, link_flags);
 }
@@ -378,10 +391,7 @@ static int mxc_isi_pm_suspend(struct device *dev)
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		struct mxc_isi_pipe *pipe = &isi->pipes[i];
 
-		if (pipe->video.is_streaming) {
-			dev_warn(dev, "running, prevent entering suspend.\n");
-			return -EAGAIN;
-		}
+		mxc_isi_video_suspend(pipe);
 	}
 
 	return pm_runtime_force_suspend(dev);
@@ -389,7 +399,31 @@ static int mxc_isi_pm_suspend(struct device *dev)
 
 static int mxc_isi_pm_resume(struct device *dev)
 {
-	return pm_runtime_force_resume(dev);
+	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
+	unsigned int i;
+	int err = 0;
+	int ret;
+
+	ret = pm_runtime_force_resume(dev);
+	if (ret < 0)
+		return ret;
+
+	for (i = 0; i < isi->pdata->num_channels; ++i) {
+		struct mxc_isi_pipe *pipe = &isi->pipes[i];
+
+		ret = mxc_isi_video_resume(pipe);
+		if (ret) {
+			dev_err(dev, "Failed to resume pipeline %u (%d)\n", i,
+				ret);
+			/*
+			 * Record the last error as it's as meaningful as any,
+			 * and continue resuming the other pipelines.
+			 */
+			err = ret;
+		}
+	}
+
+	return err;
 }
 
 static int mxc_isi_runtime_suspend(struct device *dev)
