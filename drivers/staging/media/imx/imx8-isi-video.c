@@ -770,8 +770,6 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
-		if (ctrl->val < 0 || ctrl->val > 255)
-			return -EINVAL;
 		video->pipe->alpha = ctrl->val;
 		video->pipe->alphaen = 1;
 		break;
@@ -798,7 +796,7 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_video *video)
 
 	video->ctrls.alpha = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
 					       V4L2_CID_ALPHA_COMPONENT,
-					       0, 0xff, 1, 0);
+					       0, 255, 1, 0);
 
 	if (handler->error) {
 		ret = handler->error;
