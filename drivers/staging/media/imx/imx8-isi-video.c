@@ -769,11 +769,6 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_ALPHA_COMPONENT:
 		video->pipe->alpha = ctrl->val;
 		break;
-
-	default:
-		dev_err(video->pipe->isi->dev,
-			"%s: Not support %d CID\n", __func__, ctrl->id);
-		return -EINVAL;
 	}
 
 	return 0;
