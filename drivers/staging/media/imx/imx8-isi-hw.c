@@ -273,19 +273,6 @@ static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
 }
 
-void mxc_isi_channel_set_chain_buf(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	if (pipe->chain_buf) {
-		val = mxc_isi_read(pipe, CHNL_CTRL);
-		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
-		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
-
-		mxc_isi_write(pipe, CHNL_CTRL, val);
-	}
-}
-
 void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 			      const struct v4l2_rect *src,
 			      const struct v4l2_rect *dst)
