@@ -571,6 +571,36 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 	spin_unlock_irqrestore(&video->buf_lock, flags);
 }
 
+static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
+{
+	unsigned int i;
+
+	lockdep_assert_held(&video->buf_lock);
+
+	/*
+	 * Queue two ISI channel output buffers. We are guaranteed to have at
+	 * least one buffer in the pending list. If there is a second one,
+	 * queue two pending buffers, otherwise use a discard buffer for the
+	 * second buffer.
+	 */
+
+	for (i = 0; i < 2; ++i) {
+		enum mxc_isi_buf_id buf_id = i == 0 ? MXC_ISI_BUF1
+					   : MXC_ISI_BUF2;
+		struct mxc_isi_buffer *buf;
+		struct list_head *list;
+
+		list = i == 1 && list_is_singular(&video->out_pending)
+		     ? &video->out_discard : &video->out_pending;
+
+		buf = list_first_entry(list, struct mxc_isi_buffer, list);
+		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
+
+		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
+		list_move_tail(&buf->list, &video->out_active);
+	}
+}
+
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
 {
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
@@ -693,27 +723,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		list_add_tail(&buf->list, &video->out_discard);
 	}
 
-	/* Queue two ISI channel output buffers. */
-	for (i = 0; i < 2; ++i) {
-		enum mxc_isi_buf_id buf_id = i == 0 ? MXC_ISI_BUF1
-					   : MXC_ISI_BUF2;
-		struct mxc_isi_buffer *buf;
-		struct list_head *list;
-
-		/*
-		 * We are guaranteed to have at least one buffer in the pending
-		 * list. If there is a second one, queue two pending buffers,
-		 * otherwise use a discard buffer for the second buffer.
-		 */
-		list = i == 1 && list_is_singular(&video->out_pending) 
-		     ? &video->out_discard : &video->out_pending;
-
-		buf = list_first_entry(list, struct mxc_isi_buffer, list);
-		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
-
-		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
-		list_move_tail(&buf->list, &video->out_active);
-	}
+	/* Queue the first buffers. */
+	mxc_isi_video_queue_first_buffers(video);
 
 	/* Clear frame count */
 	video->frame_count = 0;
