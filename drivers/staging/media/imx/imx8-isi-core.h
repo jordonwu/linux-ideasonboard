@@ -256,6 +256,7 @@ void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe);
 int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 			   struct v4l2_device *v4l2_dev);
 void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe);
+void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status);
 
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
