@@ -303,6 +303,10 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	dev_dbg(pipe->isi->dev, "input_size %ux%u, output_size %ux%u\n",
 		format->width, format->height, compose->width, compose->height);
 
+	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
+		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
+		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
+
 	if (format->height == compose->height &&
 	    format->width == compose->width) {
 		*bypass = true;
@@ -349,11 +353,6 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
 		      CHNL_SCALE_FACTOR_Y_SCALE(yscale) |
 		      CHNL_SCALE_FACTOR_X_SCALE(xscale));
-
-	/* Update scale config if scaling enabled */
-	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
-		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
-		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
 }
@@ -414,9 +413,6 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 	val = CHNL_IMG_CFG_HEIGHT(src_format->height)
 	    | CHNL_IMG_CFG_WIDTH(src_format->width);
 	mxc_isi_write(pipe, CHNL_IMG_CFG, val);
-
-	/* scale size need to equal input size when scaling disabled*/
-	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG, val);
 
 	/* check csc and scaling  */
 	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
