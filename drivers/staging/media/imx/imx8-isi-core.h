@@ -10,7 +10,6 @@
 #ifndef __MXC_ISI_CORE_H__
 #define __MXC_ISI_CORE_H__
 
-#include <linux/atomic.h>
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
@@ -178,7 +177,6 @@ struct mxc_isi_video {
 	struct media_pad		pad;
 
 	struct mutex			lock;
-	atomic_t			usage_count;
 	bool				is_streaming;
 
 	struct v4l2_pix_format_mplane	pix;
@@ -199,7 +197,6 @@ struct mxc_isi_video {
 	u32				frame_count;
 	/* Protects out_pending, out_active, out_discard and frame_count */
 	spinlock_t			buf_lock;
-
 
 	struct mxc_isi_dma_buffer	discard_buffer[MXC_MAX_PLANES];
 };
