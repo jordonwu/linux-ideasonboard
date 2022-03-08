@@ -277,19 +277,6 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	*bypass = !cscen;
 }
 
-static void mxc_isi_channel_clear_scaling(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
-		      CHNL_SCALE_FACTOR_Y_SCALE(0x1000) |
-		      CHNL_SCALE_FACTOR_X_SCALE(0x1000));
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-}
-
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 					const struct v4l2_mbus_framefmt *format,
 					const struct v4l2_rect *compose,
@@ -306,16 +293,6 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
 		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
 		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
-
-	if (format->height == compose->height &&
-	    format->width == compose->width) {
-		*bypass = true;
-		mxc_isi_channel_clear_scaling(pipe);
-		dev_dbg(pipe->isi->dev, "%s: no scale\n", __func__);
-		return;
-	}
-
-	*bypass = false;
 
 	xratio = format->width / compose->width;
 	if (xratio < 2)
@@ -355,6 +332,9 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 		      CHNL_SCALE_FACTOR_X_SCALE(xscale));
 
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
+
+	*bypass = format->height == compose->height &&
+		  format->width == compose->width;
 }
 
 static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
