@@ -98,16 +98,6 @@ static const u32 mxc_isi_coeffs[2][6] = {
 	  0x07a20070, 0x001007ee, 0x00800080 },
 };
 
-bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id)
-{
-	bool reverse = pipe->isi->pdata->buf_active_reverse;
-
-	if ((buf_id == 1 && reverse) || (buf_id != 1 && !reverse))
-		return pipe->status & CHNL_STS_BUF1_ACTIVE;
-	else
-		return pipe->status & CHNL_STS_BUF2_ACTIVE;
-}
-
 static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 			      const struct v4l2_mbus_framefmt *format)
 {
@@ -129,25 +119,25 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 }
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf)
+				struct mxc_isi_buffer *buf,
+				enum mxc_isi_buf_id buf_id)
 {
-	u32 framecount = buf->v4l2_buf.sequence;
 	int val;
+
+	buf->id = buf_id;
 
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
-	if (framecount == 0 || (mxc_isi_is_buf_active(pipe, 2) && framecount != 1)) {
+	if (buf_id == MXC_ISI_BUF1) {
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, buf->dma_addrs[0]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, buf->dma_addrs[1]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, buf->dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR;
-		buf->id = MXC_ISI_BUF1;
-	} else if (framecount == 1 || mxc_isi_is_buf_active(pipe, 1)) {
+	} else  {
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, buf->dma_addrs[0]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, buf->dma_addrs[1]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, buf->dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR;
-		buf->id = MXC_ISI_BUF2;
 	}
 
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
@@ -567,11 +557,13 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
-u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe)
+u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe, bool clear)
 {
 	u32 status;
 
 	status = mxc_isi_read(pipe, CHNL_STS);
-	mxc_isi_write(pipe, CHNL_STS, status);
+	if (clear)
+		mxc_isi_write(pipe, CHNL_STS, status);
+
 	return status;
 }

@@ -535,16 +535,17 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 				       : &pipe->video.out_pending;
 		struct mxc_isi_buffer *buf =
 			list_first_entry(list, struct mxc_isi_buffer, list);
+		enum mxc_isi_buf_id buf_id = i == 0 ? MXC_ISI_BUF1
+					   : MXC_ISI_BUF2;
 
-		buf->v4l2_buf.sequence = i;
 		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
 
-		mxc_isi_channel_set_outbuf(pipe, buf);
+		mxc_isi_channel_set_outbuf(pipe, buf, buf_id);
 		list_move_tail(&buf->list, &pipe->video.out_active);
 	}
 
 	/* Clear frame count */
-	pipe->video.frame_count = 1;
+	pipe->video.frame_count = 0;
 	spin_unlock_irqrestore(&pipe->slock, flags);
 
 	ret = mxc_isi_pipe_enable(pipe);
