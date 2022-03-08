@@ -291,6 +291,8 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	struct mxc_isi_buffer *buf;
 	enum mxc_isi_buf_id buf_id;
 
+	spin_lock(&pipe->slock);
+
 	/*
 	 * The ISI hardware handles buffers using a ping-pong mechanism with
 	 * two sets of destination addresses (with shadow registers to allow
@@ -355,7 +357,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	/* Safety check, this should really never happen. */
 	if (!buf) {
 		dev_warn(dev, "trying to access empty active list\n");
-		return;
+		goto done;
 	}
 
 	/*
@@ -381,7 +383,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 		 * and the ignored interrupts.
 		 */
 		pipe->video.frame_count += 2;
-		return;
+		goto done;
 	}
 
 	/* Pick the next buffer and queue it to the hardware. */
@@ -394,7 +396,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 		/* Safety check, this should never happen. */
 		if (!next_buf) {
 			dev_warn(dev, "trying to access empty discard list\n");
-			return;
+			goto done;
 		}
 	}
 
@@ -418,7 +420,7 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	if (status & CHNL_STS_FRM_STRD) {
 		dev_dbg(dev, "raced with frame end interrupt\n");
 		pipe->video.frame_count += 2;
-		return;
+		goto done;
 	}
 
 	/*
@@ -438,6 +440,9 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 	}
 
 	pipe->video.frame_count++;
+
+done:
+	spin_unlock(&pipe->slock);
 }
 
 static void mxc_isi_video_free_discard_buffers(struct mxc_isi_pipe *pipe)
