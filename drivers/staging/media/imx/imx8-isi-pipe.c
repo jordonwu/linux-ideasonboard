@@ -690,7 +690,7 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
 	u32 status;
 
-	status = mxc_isi_get_irq_status(pipe, true);
+	status = mxc_isi_channel_irq_status(pipe, true);
 
 	if (status & CHNL_STS_FRM_STRD)
 		mxc_isi_video_frame_write_done(pipe, status);
@@ -758,7 +758,7 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 		goto error;
 
 	/* Register IRQ handler. */
-	mxc_isi_clear_irqs(pipe);
+	mxc_isi_channel_irq_clear(pipe);
 
 	irq = platform_get_irq(to_platform_device(isi->dev), id);
 	if (irq < 0) {
