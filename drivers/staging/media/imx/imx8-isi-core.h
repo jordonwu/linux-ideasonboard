@@ -179,6 +179,7 @@ struct mxc_isi_video {
 
 	struct mutex			lock;
 	atomic_t			usage_count;
+	bool				is_streaming;
 
 	struct v4l2_pix_format_mplane	pix;
 	const struct mxc_isi_format_info *fmtinfo;
@@ -219,7 +220,6 @@ struct mxc_isi_pipe {
 	unsigned int			hflip:1;
 	unsigned int			vflip:1;
 	unsigned int			alphaen:1;
-	unsigned int			is_streaming:1;
 };
 
 struct mxc_isi_dev {
