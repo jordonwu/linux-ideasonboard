@@ -117,7 +117,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
  * Runtime configuration
  */
 
-void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
+static void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
 {
 	u32 val;
 
@@ -157,7 +157,7 @@ void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
 
-void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
+static void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
 {
 	u32 val;
 
@@ -432,10 +432,8 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe, input);
 
-	/* TODO */
-	mxc_isi_channel_set_flip(pipe);
-
 	mxc_isi_channel_set_alpha(pipe);
+	mxc_isi_channel_set_flip(pipe);
 
 	mxc_isi_channel_set_panic_threshold(pipe);
 

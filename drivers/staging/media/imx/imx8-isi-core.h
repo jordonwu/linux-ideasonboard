@@ -215,8 +215,8 @@ struct mxc_isi_pipe {
 	struct mxc_isi_video		video;
 
 	u8				chain_buf;
-	u8				alpha;
 
+	u8				alpha;
 	unsigned int			hflip:1;
 	unsigned int			vflip:1;
 };
@@ -272,11 +272,9 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       const struct mxc_isi_format_info *info,
 				       struct v4l2_pix_format_mplane *format);
-void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 			      const struct v4l2_rect *src,
 			      const struct v4l2_rect *dst);
-void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				struct mxc_isi_buffer *buf,
