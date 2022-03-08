@@ -299,12 +299,14 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 	struct mxc_isi_buffer *buf;
 	struct vb2_buffer *vb2;
 
-	if (list_empty(&pipe->video.out_active)) {
+	buf = list_first_entry_or_null(&pipe->video.out_active,
+				       struct mxc_isi_buffer, list);
+
+	/* Safety check, this should really never happen. */
+	if (!buf) {
 		dev_warn(dev, "trying to access empty active list\n");
 		return;
 	}
-
-	buf = list_first_entry(&pipe->video.out_active, struct mxc_isi_buffer, list);
 
 	/*
 	 * Skip frame when buffer number is not match ISI trigger
@@ -328,13 +330,13 @@ static void mxc_isi_cap_frame_write_done(struct mxc_isi_pipe *pipe)
 	pipe->video.frame_count++;
 
 	if (list_empty(&pipe->video.out_pending)) {
-		if (list_empty(&pipe->video.out_discard)) {
+		buf = list_first_entry_or_null(&pipe->video.out_discard,
+					       struct mxc_isi_buffer, list);
+		if (!buf) {
 			dev_warn(dev, "trying to access empty discard list\n");
 			return;
 		}
 
-		buf = list_first_entry(&pipe->video.out_discard,
-				       struct mxc_isi_buffer, list);
 		buf->v4l2_buf.sequence = pipe->video.frame_count;
 		mxc_isi_channel_set_outbuf(pipe, buf);
 		list_move_tail(pipe->video.out_discard.next, &pipe->video.out_active);
