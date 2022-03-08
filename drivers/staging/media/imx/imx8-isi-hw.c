@@ -114,81 +114,8 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 }
 
 /* -----------------------------------------------------------------------------
- * Runtime configuration
+ * Pipeline configuration
  */
-
-static void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK;
-	val |= CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
-	       CHNL_IMG_CTRL_GBL_ALPHA_EN;
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-}
-
-static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
-				     const struct v4l2_rect *src,
-				     const struct v4l2_rect *dst)
-{
-	u32 val, val0, val1;
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_CROP_EN;
-
-	if (src->height == dst->height && src->width == dst->width) {
-		mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-		return;
-	}
-
-	val |= CHNL_IMG_CTRL_CROP_EN;
-	val0 = CHNL_CROP_ULC_X(dst->left) | CHNL_CROP_ULC_Y(dst->top);
-	val1 = CHNL_CROP_LRC_X(dst->width) | CHNL_CROP_LRC_Y(dst->height);
-
-	mxc_isi_write(pipe, CHNL_CROP_ULC, val0);
-	mxc_isi_write(pipe, CHNL_CROP_LRC, val1 + val0);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-}
-
-static void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_VFLIP_EN | CHNL_IMG_CTRL_HFLIP_EN);
-
-	if (pipe->vflip)
-		val |= CHNL_IMG_CTRL_VFLIP_EN;
-	if (pipe->hflip)
-		val |= CHNL_IMG_CTRL_HFLIP_EN;
-
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-}
-
-/* -----------------------------------------------------------------------------
- * Initial configuration
- */
-
-static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
-			      const struct v4l2_mbus_framefmt *format)
-{
-	u32 val;
-
-	if (format->width > ISI_2K) {
-		val = mxc_isi_read(pipe, CHNL_CTRL);
-		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
-		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
-		mxc_isi_write(pipe, CHNL_CTRL, val);
-		mxc_isi_write(pipe + 1, CHNL_CTRL, CHNL_CTRL_CLK_EN);
-		pipe->chain_buf = 1;
-	} else {
-		val = mxc_isi_read(pipe, CHNL_CTRL);
-		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
-		mxc_isi_write(pipe, CHNL_CTRL, val);
-		pipe->chain_buf = 0;
-	}
-}
 
 static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
 					  unsigned int input)
@@ -210,68 +137,24 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
-/* 
- * A2,A1,      B1, A3,     B3, B2,
- * C2, C1,     D1, C3,     D3, D2
- */
-static const u32 mxc_isi_coeffs[2][6] = {
-	/* YUV2RGB */
-	{ 0x0000012a, 0x012A0198, 0x0730079C,
-	  0x0204012a, 0x01F00000, 0x01800180 },
-
-	/* RGB->YUV */
-	{ 0x00810041, 0x07db0019, 0x007007b6,
-	  0x07a20070, 0x001007ee, 0x00800080 },
-};
-
-static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
-				    enum mxc_isi_encoding src_encoding,
-				    enum mxc_isi_encoding dst_encoding,
-				    bool *bypass)
+static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
+			      const struct v4l2_mbus_framefmt *format)
 {
-	static const char * const encodings[] = {
-		[MXC_ISI_ENC_RAW] = "RAW",
-		[MXC_ISI_ENC_RGB] = "RGB",
-		[MXC_ISI_ENC_YUV] = "YUV",
-	};
-	bool cscen = true;
-	u32 val, csc = 0;
+	u32 val;
 
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_CSC_BYPASS | CHNL_IMG_CTRL_CSC_MODE_MASK);
-
-	if (src_encoding == MXC_ISI_ENC_YUV &&
-	    dst_encoding == MXC_ISI_ENC_RGB) {
-		/* YUV2RGB */
-		csc = YUV2RGB;
-		/* YCbCr enable???  */
-		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
-	} else if (src_encoding == MXC_ISI_ENC_RGB &&
-		   dst_encoding == MXC_ISI_ENC_YUV) {
-		/* RGB2YUV */
-		csc = RGB2YUV;
-		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
+	if (format->width > ISI_2K) {
+		val = mxc_isi_read(pipe, CHNL_CTRL);
+		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
+		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
+		mxc_isi_write(pipe, CHNL_CTRL, val);
+		mxc_isi_write(pipe + 1, CHNL_CTRL, CHNL_CTRL_CLK_EN);
+		pipe->chain_buf = 1;
 	} else {
-		/* Bypass CSC */
-		cscen = false;
-		val |= CHNL_IMG_CTRL_CSC_BYPASS;
+		val = mxc_isi_read(pipe, CHNL_CTRL);
+		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
+		mxc_isi_write(pipe, CHNL_CTRL, val);
+		pipe->chain_buf = 0;
 	}
-
-	dev_dbg(pipe->isi->dev, "CSC: %s -> %s\n",
-		encodings[src_encoding], encodings[dst_encoding]);
-
-	if (cscen) {
-		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF1, mxc_isi_coeffs[csc][1]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF2, mxc_isi_coeffs[csc][2]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF3, mxc_isi_coeffs[csc][3]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF4, mxc_isi_coeffs[csc][4]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF5, mxc_isi_coeffs[csc][5]);
-	}
-
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-
-	*bypass = !cscen;
 }
 
 static u32 mxc_isi_channel_scaling_ratio(unsigned int from, unsigned int to,
@@ -341,6 +224,119 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 		  format->width == compose->width;
 }
 
+static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
+				     const struct v4l2_rect *src,
+				     const struct v4l2_rect *dst)
+{
+	u32 val, val0, val1;
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~CHNL_IMG_CTRL_CROP_EN;
+
+	if (src->height == dst->height && src->width == dst->width) {
+		mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+		return;
+	}
+
+	val |= CHNL_IMG_CTRL_CROP_EN;
+	val0 = CHNL_CROP_ULC_X(dst->left) | CHNL_CROP_ULC_Y(dst->top);
+	val1 = CHNL_CROP_LRC_X(dst->width) | CHNL_CROP_LRC_Y(dst->height);
+
+	mxc_isi_write(pipe, CHNL_CROP_ULC, val0);
+	mxc_isi_write(pipe, CHNL_CROP_LRC, val1 + val0);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+}
+
+/* 
+ * A2,A1,      B1, A3,     B3, B2,
+ * C2, C1,     D1, C3,     D3, D2
+ */
+static const u32 mxc_isi_coeffs[2][6] = {
+	/* YUV2RGB */
+	{ 0x0000012a, 0x012A0198, 0x0730079C,
+	  0x0204012a, 0x01F00000, 0x01800180 },
+
+	/* RGB->YUV */
+	{ 0x00810041, 0x07db0019, 0x007007b6,
+	  0x07a20070, 0x001007ee, 0x00800080 },
+};
+
+static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
+				    enum mxc_isi_encoding src_encoding,
+				    enum mxc_isi_encoding dst_encoding,
+				    bool *bypass)
+{
+	static const char * const encodings[] = {
+		[MXC_ISI_ENC_RAW] = "RAW",
+		[MXC_ISI_ENC_RGB] = "RGB",
+		[MXC_ISI_ENC_YUV] = "YUV",
+	};
+	bool cscen = true;
+	u32 val, csc = 0;
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~(CHNL_IMG_CTRL_CSC_BYPASS | CHNL_IMG_CTRL_CSC_MODE_MASK);
+
+	if (src_encoding == MXC_ISI_ENC_YUV &&
+	    dst_encoding == MXC_ISI_ENC_RGB) {
+		/* YUV2RGB */
+		csc = YUV2RGB;
+		/* YCbCr enable???  */
+		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
+	} else if (src_encoding == MXC_ISI_ENC_RGB &&
+		   dst_encoding == MXC_ISI_ENC_YUV) {
+		/* RGB2YUV */
+		csc = RGB2YUV;
+		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
+	} else {
+		/* Bypass CSC */
+		cscen = false;
+		val |= CHNL_IMG_CTRL_CSC_BYPASS;
+	}
+
+	dev_dbg(pipe->isi->dev, "CSC: %s -> %s\n",
+		encodings[src_encoding], encodings[dst_encoding]);
+
+	if (cscen) {
+		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF1, mxc_isi_coeffs[csc][1]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF2, mxc_isi_coeffs[csc][2]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF3, mxc_isi_coeffs[csc][3]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF4, mxc_isi_coeffs[csc][4]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF5, mxc_isi_coeffs[csc][5]);
+	}
+
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+
+	*bypass = !cscen;
+}
+
+static void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
+{
+	u32 val;
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK;
+	val |= CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
+	       CHNL_IMG_CTRL_GBL_ALPHA_EN;
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+}
+
+static void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
+{
+	u32 val;
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~(CHNL_IMG_CTRL_VFLIP_EN | CHNL_IMG_CTRL_HFLIP_EN);
+
+	if (pipe->vflip)
+		val |= CHNL_IMG_CTRL_VFLIP_EN;
+	if (pipe->hflip)
+		val |= CHNL_IMG_CTRL_HFLIP_EN;
+
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+}
+
 static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 {
 	const struct mxc_isi_set_thd *set_thd = pipe->isi->pdata->set_thd;
@@ -360,6 +356,53 @@ static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
 }
 
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
+			    const struct v4l2_mbus_framefmt *src_format,
+			    const struct v4l2_rect *scale,
+			    const struct v4l2_rect *crop,
+			    enum mxc_isi_encoding src_encoding,
+			    enum mxc_isi_encoding dst_encoding)
+{
+	bool csc_bypass;
+	bool scaler_bypass;
+	u32 val;
+
+	/* Input source (including VC configuration for CSI-2) */
+	mxc_isi_channel_source_config(pipe, input);
+
+	/* Input frame size */
+	mxc_isi_write(pipe, CHNL_IMG_CFG,
+		      CHNL_IMG_CFG_HEIGHT(src_format->height) |
+		      CHNL_IMG_CFG_WIDTH(src_format->width));
+
+	/* Scaling */
+	mxc_isi_chain_buf(pipe, src_format);
+	mxc_isi_channel_set_scaling(pipe, src_encoding, src_format, scale,
+				    &scaler_bypass);
+	mxc_isi_channel_set_crop(pipe, scale, crop);
+
+	/* CSC */
+	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
+
+	/* Output buffer management, including global alpha and flipping */
+	mxc_isi_channel_set_alpha(pipe);
+	mxc_isi_channel_set_flip(pipe);
+
+	mxc_isi_channel_set_panic_threshold(pipe);
+
+	val = mxc_isi_read(pipe, CHNL_CTRL);
+	val &= ~CHNL_CTRL_CHNL_BYPASS;
+
+	/*
+	 * If no scaling or color space conversion is needed, bypass the
+	 * channel.
+	 */
+	if (csc_bypass && scaler_bypass)
+		val |= CHNL_CTRL_CHNL_BYPASS;
+
+	mxc_isi_write(pipe, CHNL_CTRL, val);
+}
+
 void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       const struct mxc_isi_format_info *info,
 				       struct v4l2_pix_format_mplane *format)
@@ -377,50 +420,6 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 	/* line pitch */
 	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH,
 		      format->plane_fmt[0].bytesperline);
-}
-
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
-			    const struct v4l2_mbus_framefmt *src_format,
-			    const struct v4l2_rect *scale,
-			    const struct v4l2_rect *crop,
-			    enum mxc_isi_encoding src_encoding,
-			    enum mxc_isi_encoding dst_encoding)
-{
-	bool csc_bypass;
-	bool scaler_bypass;
-	u32 val;
-
-	/* images having higher than 2048 horizontal resolution */
-	mxc_isi_chain_buf(pipe, src_format);
-
-	/* config output frame size and format */
-	val = CHNL_IMG_CFG_HEIGHT(src_format->height)
-	    | CHNL_IMG_CFG_WIDTH(src_format->width);
-	mxc_isi_write(pipe, CHNL_IMG_CFG, val);
-
-	/* check csc and scaling  */
-	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
-
-	mxc_isi_channel_set_scaling(pipe, src_encoding, src_format, scale,
-				    &scaler_bypass);
-
-	/* select the source input / src type / virtual channel for mipi*/
-	mxc_isi_channel_source_config(pipe, input);
-
-	mxc_isi_channel_set_alpha(pipe);
-	mxc_isi_channel_set_crop(pipe, scale, crop);
-	mxc_isi_channel_set_flip(pipe);
-
-	mxc_isi_channel_set_panic_threshold(pipe);
-
-	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val &= ~CHNL_CTRL_CHNL_BYPASS;
-
-	/*  Bypass channel */
-	if (csc_bypass && scaler_bypass)
-		val |= CHNL_CTRL_CHNL_BYPASS;
-
-	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
 /* -----------------------------------------------------------------------------
