@@ -978,7 +978,6 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 		goto err_ctrl_free;
 
 	vdev->ctrl_handler = &pipe->video.ctrls.handler;
-	v4l2_dev->ctrl_handler = &pipe->video.ctrls.handler;
 
 	return 0;
 
