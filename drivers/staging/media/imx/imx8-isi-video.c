@@ -1030,7 +1030,7 @@ static int mxc_isi_video_open(struct file *file)
 
 	/* increase usage count for ISI channel */
 	mutex_lock(&pipe->video.lock);
-	atomic_inc(&pipe->usage_count);
+	atomic_inc(&pipe->video.usage_count);
 	mutex_unlock(&pipe->video.lock);
 
 	return 0;
@@ -1047,8 +1047,8 @@ static int mxc_isi_video_release(struct file *file)
 		goto done;
 	}
 
-	if (atomic_read(&pipe->usage_count) > 0 &&
-	    atomic_dec_and_test(&pipe->usage_count))
+	if (atomic_read(&pipe->video.usage_count) > 0 &&
+	    atomic_dec_and_test(&pipe->video.usage_count))
 		mxc_isi_channel_deinit(pipe);
 
 done:
@@ -1076,6 +1076,8 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 
 	mutex_init(&pipe->video.lock);
 	spin_lock_init(&pipe->video.buf_lock);
+
+	atomic_set(&pipe->video.usage_count, 0);
 
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;

@@ -176,6 +176,7 @@ struct mxc_isi_video {
 	struct media_pad		pad;
 
 	struct mutex			lock;
+	atomic_t			usage_count;
 
 	struct v4l2_pix_format_mplane	pix;
 	const struct mxc_isi_format_info *fmtinfo;
@@ -209,9 +210,6 @@ struct mxc_isi_pipe {
 	struct media_pad		pads[MXC_ISI_PIPE_PADS_NUM];
 
 	struct mxc_isi_video		video;
-
-	/* manage share ISI channel resource */
-	atomic_t			usage_count;
 
 	u8				chain_buf;
 	u8				alpha;
