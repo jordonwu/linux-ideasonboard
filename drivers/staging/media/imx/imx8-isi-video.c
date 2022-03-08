@@ -526,18 +526,22 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 		list_add_tail(&buf->list, &pipe->video.out_discard);
 	}
 
-	/*
-	 * Queue two ISI channel output buffers, a discard buffer first, and a
-	 * pending buffer next.
-	 */
+	/* Queue two ISI channel output buffers. */
 	for (i = 0; i < 2; ++i) {
-		struct list_head *list = i == 0 ? &pipe->video.out_discard
-				       : &pipe->video.out_pending;
-		struct mxc_isi_buffer *buf =
-			list_first_entry(list, struct mxc_isi_buffer, list);
 		enum mxc_isi_buf_id buf_id = i == 0 ? MXC_ISI_BUF1
 					   : MXC_ISI_BUF2;
+		struct mxc_isi_buffer *buf;
+		struct list_head *list;
 
+		/*
+		 * We are guaranteed to have at least one buffer in the pending
+		 * list. If there is a second one, queue two pending buffers,
+		 * otherwise use a discard buffer for the second buffer.
+		 */
+		list = i == 1 && list_is_singular(&pipe->video.out_pending) 
+		     ? &pipe->video.out_discard : &pipe->video.out_pending;
+
+		buf = list_first_entry(list, struct mxc_isi_buffer, list);
 		buf->v4l2_buf.vb2_buf.state = VB2_BUF_STATE_ACTIVE;
 
 		mxc_isi_channel_set_outbuf(pipe, buf, buf_id);
