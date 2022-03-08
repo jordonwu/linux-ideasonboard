@@ -398,7 +398,7 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
-			    const struct v4l2_rect *src_compose,
+			    const struct v4l2_rect *scale,
 			    const struct v4l2_rect *crop,
 			    enum mxc_isi_encoding src_encoding,
 			    enum mxc_isi_encoding dst_encoding)
@@ -421,14 +421,13 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 	/* check csc and scaling  */
 	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
 
-	mxc_isi_channel_set_scaling(pipe, src_format, src_compose,
-				    &scaler_bypass);
+	mxc_isi_channel_set_scaling(pipe, src_format, scale, &scaler_bypass);
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe, input);
 
 	mxc_isi_channel_set_alpha(pipe);
-	mxc_isi_channel_set_crop(pipe, src_compose, crop);
+	mxc_isi_channel_set_crop(pipe, scale, crop);
 	mxc_isi_channel_set_flip(pipe);
 
 	mxc_isi_channel_set_panic_threshold(pipe);

@@ -265,7 +265,7 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    const struct v4l2_mbus_framefmt *src_format,
-			    const struct v4l2_rect *src_compose,
+			    const struct v4l2_rect *scale,
 			    const struct v4l2_rect *crop,
 			    enum mxc_isi_encoding src_encoding,
 			    enum mxc_isi_encoding dst_encoding);
