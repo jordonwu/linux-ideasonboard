@@ -378,7 +378,7 @@ static int mxc_isi_pm_suspend(struct device *dev)
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		struct mxc_isi_pipe *pipe = &isi->pipes[i];
 
-		if (pipe->is_streaming) {
+		if (pipe->video.is_streaming) {
 			dev_warn(dev, "running, prevent entering suspend.\n");
 			return -EAGAIN;
 		}

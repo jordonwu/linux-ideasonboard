@@ -714,7 +714,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	if (ret)
 		goto err_free;
 
-	video->pipe->is_streaming = 1;
+	video->is_streaming = true;
 
 	return 0;
 
@@ -738,7 +738,7 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 
 	media_pipeline_stop(video->vdev.entity.pads);
 
-	video->pipe->is_streaming = 0;
+	video->is_streaming = false;
 }
 
 static const struct vb2_ops mxc_isi_vb2_qops = {
