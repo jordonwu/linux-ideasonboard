@@ -281,7 +281,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 			    enum mxc_isi_encoding src_encoding,
 			    enum mxc_isi_encoding dst_encoding);
 
-void mxc_isi_clean_registers(struct mxc_isi_pipe *pipe);
+void mxc_isi_clear_irqs(struct mxc_isi_pipe *pipe);
 
 u32 mxc_isi_get_irq_status(struct mxc_isi_pipe *pipe);
 bool mxc_isi_is_buf_active(struct mxc_isi_pipe *pipe, int buf_id);
