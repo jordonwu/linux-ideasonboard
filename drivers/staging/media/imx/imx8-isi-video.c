@@ -536,9 +536,8 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 					 enum vb2_buffer_state state)
 {
 	struct mxc_isi_buffer *buf;
-	unsigned long flags;
 
-	spin_lock_irqsave(&video->buf_lock, flags);
+	spin_lock_irq(&video->buf_lock);
 
 	while (!list_empty(&video->out_active)) {
 		buf = list_first_entry(&video->out_active,
@@ -567,7 +566,7 @@ static void mxc_isi_video_return_buffers(struct mxc_isi_video *video,
 	INIT_LIST_HEAD(&video->out_pending);
 	INIT_LIST_HEAD(&video->out_discard);
 
-	spin_unlock_irqrestore(&video->buf_lock, flags);
+	spin_unlock_irq(&video->buf_lock);
 }
 
 static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
@@ -676,17 +675,15 @@ static void mxc_isi_vb2_buffer_queue(struct vb2_buffer *vb2)
 	struct vb2_v4l2_buffer *v4l2_buf = to_vb2_v4l2_buffer(vb2);
 	struct mxc_isi_buffer *buf = to_isi_buffer(v4l2_buf);
 	struct mxc_isi_video *video = vb2_get_drv_priv(vb2->vb2_queue);
-	unsigned long flags;
 
-	spin_lock_irqsave(&video->buf_lock, flags);
+	spin_lock_irq(&video->buf_lock);
 	list_add_tail(&buf->list, &video->out_pending);
-	spin_unlock_irqrestore(&video->buf_lock, flags);
+	spin_unlock_irq(&video->buf_lock);
 }
 
 static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_video *video = vb2_get_drv_priv(q);
-	unsigned long flags;
 	unsigned int i;
 	int ret;
 
@@ -712,7 +709,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	mxc_isi_channel_set_output_format(video->pipe, video->fmtinfo,
 					  &video->pix);
 
-	spin_lock_irqsave(&video->buf_lock, flags);
+	spin_lock_irq(&video->buf_lock);
 
 	/* Add the discard buffers to the out_discard list. */
 	for (i = 0; i < ARRAY_SIZE(video->buf_discard); ++i) {
@@ -726,7 +723,8 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	/* Clear frame count */
 	video->frame_count = 0;
-	spin_unlock_irqrestore(&video->buf_lock, flags);
+
+	spin_unlock_irq(&video->buf_lock);
 
 	ret = mxc_isi_pipe_enable(video->pipe);
 	if (ret)
