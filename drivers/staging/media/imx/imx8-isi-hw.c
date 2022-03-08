@@ -238,9 +238,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	u32 val, csc = 0;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~(CHNL_IMG_CTRL_YCBCR_MODE |
-		 CHNL_IMG_CTRL_CSC_BYPASS |
-		 CHNL_IMG_CTRL_CSC_MODE_MASK);
+	val &= ~(CHNL_IMG_CTRL_CSC_BYPASS | CHNL_IMG_CTRL_CSC_MODE_MASK);
 
 	if (src_encoding == MXC_ISI_ENC_YUV &&
 	    dst_encoding == MXC_ISI_ENC_RGB) {
@@ -248,7 +246,6 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		csc = YUV2RGB;
 		/* YCbCr enable???  */
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
-		val |= CHNL_IMG_CTRL_YCBCR_MODE;
 	} else if (src_encoding == MXC_ISI_ENC_RGB &&
 		   dst_encoding == MXC_ISI_ENC_YUV) {
 		/* RGB2YUV */
@@ -295,6 +292,7 @@ static u32 mxc_isi_channel_scaling_ratio(unsigned int from, unsigned int to,
 }
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
+					enum mxc_isi_encoding src_encoding,
 					const struct v4l2_mbus_framefmt *format,
 					const struct v4l2_rect *compose,
 					bool *bypass)
@@ -312,10 +310,21 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 					       &decy);
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val |= CHNL_IMG_CTRL_YCBCR_MODE; //YCbCr  Sandor???
-	val &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK);
+	val &= ~(CHNL_IMG_CTRL_DEC_X_MASK | CHNL_IMG_CTRL_DEC_Y_MASK |
+		 CHNL_IMG_CTRL_YCBCR_MODE);
+
 	val |= CHNL_IMG_CTRL_DEC_X(ilog2(decx))
 	    |  CHNL_IMG_CTRL_DEC_Y(ilog2(decy));
+
+	/*
+	 * Contrary to what the documentation states, YCBCR_MODE does not
+	 * control conversion between YCbCr and RGB, but whether the scaler
+	 * operates in YUV mode or in RGB mode. It must be set when the scaler
+	 * input is YUV.
+	 */
+	if (src_encoding == MXC_ISI_ENC_YUV)
+		val |= CHNL_IMG_CTRL_YCBCR_MODE;
+
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 
 	mxc_isi_write(pipe, CHNL_SCALE_FACTOR,
@@ -392,7 +401,8 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 	/* check csc and scaling  */
 	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
 
-	mxc_isi_channel_set_scaling(pipe, src_format, scale, &scaler_bypass);
+	mxc_isi_channel_set_scaling(pipe, src_encoding, src_format, scale,
+				    &scaler_bypass);
 
 	/* select the source input / src type / virtual channel for mipi*/
 	mxc_isi_channel_source_config(pipe, input);
