@@ -170,6 +170,15 @@ the second byte and Y'\ :sub:`7-0` in the third byte.
       - Byte 2
       - Byte 3
 
+    * .. _V4L2-PIX-FMT-YUV24:
+
+      - ``V4L2_PIX_FMT_YUV24``
+      - 'YUV3'
+
+      - Y'\ :sub:`7-0`
+      - Cb\ :sub:`7-0`
+      - Cr\ :sub:`7-0`
+
     * .. _V4L2-PIX-FMT-YUV32:
 
       - ``V4L2_PIX_FMT_YUV32``
@@ -218,6 +227,26 @@ the second byte and Y'\ :sub:`7-0` in the third byte.
       - Cr\ :sub:`7-0`
       - Cb\ :sub:`7-0`
       - Y'\ :sub:`7-0`
+      - X\ :sub:`7-0`
+
+    * .. _V4L2-PIX-FMT-YUVA32:
+
+      - ``V4L2_PIX_FMT_YUVA32``
+      - 'YUVA'
+
+      - Y'\ :sub:`7-0`
+      - Cb\ :sub:`7-0`
+      - Cr\ :sub:`7-0`
+      - A\ :sub:`7-0`
+
+    * .. _V4L2-PIX-FMT-YUVX32:
+
+      - ``V4L2_PIX_FMT_YUVX32``
+      - 'YUVX'
+
+      - Y'\ :sub:`7-0`
+      - Cb\ :sub:`7-0`
+      - Cr\ :sub:`7-0`
       - X\ :sub:`7-0`
 
     * .. _V4L2-PIX-FMT-YUV24:
