@@ -778,6 +778,12 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_ALPHA_COMPONENT:
 		video->pipe->alpha = ctrl->val;
 		break;
+	case V4L2_CID_VFLIP:
+		video->pipe->vflip = ctrl->val;
+		break;
+	case V4L2_CID_HFLIP:
+		video->pipe->hflip = ctrl->val;
+		break;
 	}
 
 	return 0;
@@ -792,11 +798,17 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_video *video)
 	struct v4l2_ctrl_handler *handler = &video->ctrls.handler;
 	int ret;
 
-	v4l2_ctrl_handler_init(handler, 1);
+	v4l2_ctrl_handler_init(handler, 3);
 
 	video->ctrls.alpha = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
 					       V4L2_CID_ALPHA_COMPONENT,
 					       0, 255, 1, 0);
+
+	video->ctrls.vflip = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
+					       V4L2_CID_VFLIP, 0, 1, 1, 0);
+
+	video->ctrls.hflip = v4l2_ctrl_new_std(handler, &mxc_isi_video_ctrl_ops,
+					       V4L2_CID_HFLIP, 0, 1, 1, 0);
 
 	if (handler->error) {
 		ret = handler->error;
@@ -813,6 +825,8 @@ static void mxc_isi_video_ctrls_delete(struct mxc_isi_video *video)
 {
 	v4l2_ctrl_handler_free(&video->ctrls.handler);
 	video->ctrls.alpha = NULL;
+	video->ctrls.vflip = NULL;
+	video->ctrls.hflip = NULL;
 }
 
 /* -----------------------------------------------------------------------------
