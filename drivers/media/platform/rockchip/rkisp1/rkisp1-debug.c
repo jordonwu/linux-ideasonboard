@@ -219,6 +219,26 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 	debugfs_create_file("input_status", 0444, debug->debugfs_dir, rkisp1,
 			    &rkisp1_debug_input_status_fops);
 
+	debugfs_create_ulong("mi_irq_mblk_line_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_mblk_line_count);
+	debugfs_create_ulong("mi_irq_fill_mp_y_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_fill_mp_y_count);
+	debugfs_create_ulong("mi_irq_frame_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_frame_count);
+	debugfs_create_ulong("mi_irq_wrap_mp_y_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_wrap_mp_y_count);
+	debugfs_create_ulong("mi_irq_wrap_mp_cb_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_wrap_mp_cb_count);
+	debugfs_create_ulong("mi_irq_wrap_mp_cr_count", 0444, debug->debugfs_dir,
+			     &debug->mi_irq_wrap_mp_cr_count);
+
+	debugfs_create_ulong("isp_irq_v_start_count", 0444, debug->debugfs_dir,
+			     &debug->isp_irq_v_start_count);
+	debugfs_create_ulong("isp_irq_frame_count", 0444, debug->debugfs_dir,
+			     &debug->isp_irq_frame_count);
+	debugfs_create_ulong("isp_irq_frame_in_count", 0444, debug->debugfs_dir,
+			     &debug->isp_irq_frame_in_count);
+
 	regs_dir = debugfs_create_dir("regs", debug->debugfs_dir);
 
 	debugfs_create_file("core", 0444, regs_dir, rkisp1,

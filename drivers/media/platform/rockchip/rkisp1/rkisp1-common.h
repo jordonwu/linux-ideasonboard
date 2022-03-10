@@ -364,6 +364,15 @@ struct rkisp1_debug {
 	unsigned long stats_error;
 	unsigned long stop_timeout[2];
 	unsigned long frame_drop[2];
+	unsigned long mi_irq_mblk_line_count;
+	unsigned long mi_irq_fill_mp_y_count;
+	unsigned long mi_irq_frame_count;
+	unsigned long mi_irq_wrap_mp_y_count;
+	unsigned long mi_irq_wrap_mp_cb_count;
+	unsigned long mi_irq_wrap_mp_cr_count;
+	unsigned long isp_irq_v_start_count;
+	unsigned long isp_irq_frame_count;
+	unsigned long isp_irq_frame_in_count;
 };
 
 /*
