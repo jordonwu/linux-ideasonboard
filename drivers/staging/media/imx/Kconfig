@@ -48,8 +48,8 @@ config VIDEO_IMX_CAPTURE
 if VIDEO_IMX_CAPTURE
 menu "i.MX8QXP/QM Camera ISI/MIPI Features support"
 
-config IMX8_ISI_CORE
-	tristate "IMX8 Image Sensor Interface Core Driver"
+config VIDEO_IMX8_ISI
+	tristate "i.MX8 Image Sensor Interface (ISI) driver"
 	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
 	default y
 
