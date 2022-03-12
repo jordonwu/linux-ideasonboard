@@ -176,6 +176,10 @@ static struct v4l2_m2m_buffer *to_v4l2_m2m_buffer(struct vb2_v4l2_buffer *vbuf)
 	return b;
 }
 
+/* -----------------------------------------------------------------------------
+ * V4L2 M2M device operations
+ */
+
 static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_m2m_dev *isi_m2m = mxc_isi->isi_m2m;
@@ -300,6 +304,10 @@ static struct v4l2_m2m_ops mxc_isi_m2m_ops = {
 	.job_ready  = mxc_isi_m2m_job_ready,
 	.job_abort  = mxc_isi_m2m_job_abort,
 };
+
+/* -----------------------------------------------------------------------------
+ * videobuf2 queue operations
+ */
 
 static int m2m_vb2_queue_setup(struct vb2_queue *q,
 		unsigned int *num_buffers, unsigned int *num_planes,
@@ -522,93 +530,80 @@ static int mxc_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 	return ret;
 }
 
-static int mxc_isi_m2m_open(struct file *file)
+/* -----------------------------------------------------------------------------
+ * V4L2 controls
+ */
+
+#define ctrl_to_mxc_isi_m2m(__ctrl) \
+	container_of((__ctrl)->handler, struct mxc_isi_m2m_dev, ctrls.handler)
+
+static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct video_device *vdev = video_devdata(file);
-	struct mxc_isi_m2m_dev *isi_m2m = video_drvdata(file);
+	struct mxc_isi_m2m_dev *isi_m2m = ctrl_to_mxc_isi_m2m(ctrl);
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_m2m->pdev);
-	struct device *dev = &isi_m2m->pdev->dev;
-	struct mxc_isi_ctx *mxc_ctx = NULL;
-	int ret = 0;
+	unsigned long flags;
 
-	if (atomic_read(&mxc_isi->usage_count) > 0) {
-		dev_err(dev, "ISI channel[%d] is busy\n", isi_m2m->id);
-		return -EBUSY;
+	spin_lock_irqsave(&mxc_isi->slock, flags);
+
+	switch (ctrl->id) {
+	case V4L2_CID_HFLIP:
+		mxc_isi->hflip = ctrl->val;
+		break;
+
+	case V4L2_CID_VFLIP:
+		mxc_isi->vflip = ctrl->val;
+		break;
+
+	case V4L2_CID_ALPHA_COMPONENT:
+		mxc_isi->alpha = ctrl->val;
+		break;
 	}
 
-	if (mutex_lock_interruptible(&isi_m2m->lock))
-		return -ERESTARTSYS;
-
-	mxc_ctx = kzalloc(sizeof(*mxc_ctx), GFP_KERNEL);
-	if (!mxc_ctx) {
-		ret = -ENOMEM;
-		goto unlock;
-	}
-
-	mxc_ctx->isi_m2m = isi_m2m;
-
-	v4l2_fh_init(&mxc_ctx->fh, vdev);
-	file->private_data = &mxc_ctx->fh;
-
-	mxc_ctx->fh.m2m_ctx = v4l2_m2m_ctx_init(isi_m2m->m2m_dev,
-						mxc_ctx,
-						mxc_m2m_queue_init);
-	if (IS_ERR(mxc_ctx->fh.m2m_ctx)) {
-		dev_err(dev, "v4l2_m2m_ctx_init fail\n");
-		ret = PTR_ERR(mxc_ctx->fh.m2m_ctx);
-		v4l2_fh_exit(&mxc_ctx->fh);
-		kfree(mxc_ctx);
-		goto unlock;
-	}
-	v4l2_fh_add(&mxc_ctx->fh);
-
-	pm_runtime_get_sync(dev);
-	if (atomic_inc_return(&mxc_isi->usage_count) == 1)
-		mxc_isi_channel_init(mxc_isi);
-
-	/* lock host data */
-	mutex_lock(&mxc_isi->lock);
-	mxc_isi->frame_write_done = mxc_isi_m2m_frame_write_done;
-	mutex_unlock(&mxc_isi->lock);
-unlock:
-	mutex_unlock(&isi_m2m->lock);
-	return ret;
-}
-
-static int mxc_isi_m2m_release(struct file *file)
-{
-	struct mxc_isi_m2m_dev *isi_m2m = video_drvdata(file);
-	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_m2m->pdev);
-	struct device *dev = &isi_m2m->pdev->dev;
-	struct mxc_isi_ctx *mxc_ctx = file_to_ctx(file);
-
-	v4l2_fh_del(&mxc_ctx->fh);
-	v4l2_fh_exit(&mxc_ctx->fh);
-
-	mutex_lock(&isi_m2m->lock);
-	v4l2_m2m_ctx_release(mxc_ctx->fh.m2m_ctx);
-	mutex_unlock(&isi_m2m->lock);
-
-	kfree(mxc_ctx);
-	if (atomic_dec_and_test(&mxc_isi->usage_count))
-		mxc_isi_channel_deinit(mxc_isi);
-
-	mutex_lock(&mxc_isi->lock);
-	mxc_isi->frame_write_done = NULL;
-	mutex_unlock(&mxc_isi->lock);
-
-	pm_runtime_put(dev);
+	spin_unlock_irqrestore(&mxc_isi->slock, flags);
 	return 0;
 }
 
-static const struct v4l2_file_operations mxc_isi_m2m_fops = {
-	.owner			= THIS_MODULE,
-	.open			= mxc_isi_m2m_open,
-	.release		= mxc_isi_m2m_release,
-	.poll			= v4l2_m2m_fop_poll,
-	.unlocked_ioctl = video_ioctl2,
-	.mmap			= v4l2_m2m_fop_mmap,
+static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
+	.s_ctrl = mxc_isi_m2m_s_ctrl,
 };
+
+static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
+{
+	struct mxc_isi_ctrls *ctrls = &isi_m2m->ctrls;
+	struct v4l2_ctrl_handler *handler = &ctrls->handler;
+
+	if (isi_m2m->ctrls.ready)
+		return 0;
+
+	v4l2_ctrl_handler_init(handler, 3);
+
+	ctrls->hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					V4L2_CID_HFLIP, 0, 1, 1, 0);
+	ctrls->vflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					V4L2_CID_VFLIP, 0, 1, 1, 0);
+	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					V4L2_CID_ALPHA_COMPONENT, 0, 0xff, 1, 0);
+
+	if (!handler->error)
+		ctrls->ready = true;
+
+	return handler->error;
+}
+
+void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *isi_m2m)
+{
+	struct mxc_isi_ctrls *ctrls = &isi_m2m->ctrls;
+
+	if (ctrls->ready) {
+		v4l2_ctrl_handler_free(&ctrls->handler);
+		ctrls->ready = false;
+		ctrls->alpha = NULL;
+	}
+}
+
+/* -----------------------------------------------------------------------------
+ * V4L2 ioctls
+ */
 
 static int mxc_isi_m2m_querycap(struct file *file, void *priv,
 					struct v4l2_capability *cap)
@@ -1014,75 +1009,101 @@ static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
 	.vidioc_streamoff	= mxc_isi_m2m_streamoff,
 };
 
-/*
- * V4L2 controls handling
+/* -----------------------------------------------------------------------------
+ * Video device file operations
  */
-#define ctrl_to_mxc_isi_m2m(__ctrl) \
-	container_of((__ctrl)->handler, struct mxc_isi_m2m_dev, ctrls.handler)
 
-static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
+static int mxc_isi_m2m_open(struct file *file)
 {
-	struct mxc_isi_m2m_dev *isi_m2m = ctrl_to_mxc_isi_m2m(ctrl);
+	struct video_device *vdev = video_devdata(file);
+	struct mxc_isi_m2m_dev *isi_m2m = video_drvdata(file);
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_m2m->pdev);
-	unsigned long flags;
+	struct device *dev = &isi_m2m->pdev->dev;
+	struct mxc_isi_ctx *mxc_ctx = NULL;
+	int ret = 0;
 
-	spin_lock_irqsave(&mxc_isi->slock, flags);
-
-	switch (ctrl->id) {
-	case V4L2_CID_HFLIP:
-		mxc_isi->hflip = ctrl->val;
-		break;
-
-	case V4L2_CID_VFLIP:
-		mxc_isi->vflip = ctrl->val;
-		break;
-
-	case V4L2_CID_ALPHA_COMPONENT:
-		mxc_isi->alpha = ctrl->val;
-		break;
+	if (atomic_read(&mxc_isi->usage_count) > 0) {
+		dev_err(dev, "ISI channel[%d] is busy\n", isi_m2m->id);
+		return -EBUSY;
 	}
 
-	spin_unlock_irqrestore(&mxc_isi->slock, flags);
+	if (mutex_lock_interruptible(&isi_m2m->lock))
+		return -ERESTARTSYS;
+
+	mxc_ctx = kzalloc(sizeof(*mxc_ctx), GFP_KERNEL);
+	if (!mxc_ctx) {
+		ret = -ENOMEM;
+		goto unlock;
+	}
+
+	mxc_ctx->isi_m2m = isi_m2m;
+
+	v4l2_fh_init(&mxc_ctx->fh, vdev);
+	file->private_data = &mxc_ctx->fh;
+
+	mxc_ctx->fh.m2m_ctx = v4l2_m2m_ctx_init(isi_m2m->m2m_dev,
+						mxc_ctx,
+						mxc_m2m_queue_init);
+	if (IS_ERR(mxc_ctx->fh.m2m_ctx)) {
+		dev_err(dev, "v4l2_m2m_ctx_init fail\n");
+		ret = PTR_ERR(mxc_ctx->fh.m2m_ctx);
+		v4l2_fh_exit(&mxc_ctx->fh);
+		kfree(mxc_ctx);
+		goto unlock;
+	}
+	v4l2_fh_add(&mxc_ctx->fh);
+
+	pm_runtime_get_sync(dev);
+	if (atomic_inc_return(&mxc_isi->usage_count) == 1)
+		mxc_isi_channel_init(mxc_isi);
+
+	/* lock host data */
+	mutex_lock(&mxc_isi->lock);
+	mxc_isi->frame_write_done = mxc_isi_m2m_frame_write_done;
+	mutex_unlock(&mxc_isi->lock);
+unlock:
+	mutex_unlock(&isi_m2m->lock);
+	return ret;
+}
+
+static int mxc_isi_m2m_release(struct file *file)
+{
+	struct mxc_isi_m2m_dev *isi_m2m = video_drvdata(file);
+	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_m2m->pdev);
+	struct device *dev = &isi_m2m->pdev->dev;
+	struct mxc_isi_ctx *mxc_ctx = file_to_ctx(file);
+
+	v4l2_fh_del(&mxc_ctx->fh);
+	v4l2_fh_exit(&mxc_ctx->fh);
+
+	mutex_lock(&isi_m2m->lock);
+	v4l2_m2m_ctx_release(mxc_ctx->fh.m2m_ctx);
+	mutex_unlock(&isi_m2m->lock);
+
+	kfree(mxc_ctx);
+	if (atomic_dec_and_test(&mxc_isi->usage_count))
+		mxc_isi_channel_deinit(mxc_isi);
+
+	mutex_lock(&mxc_isi->lock);
+	mxc_isi->frame_write_done = NULL;
+	mutex_unlock(&mxc_isi->lock);
+
+	pm_runtime_put(dev);
 	return 0;
 }
 
-static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
-	.s_ctrl = mxc_isi_m2m_s_ctrl,
+static const struct v4l2_file_operations mxc_isi_m2m_fops = {
+	.owner			= THIS_MODULE,
+	.open			= mxc_isi_m2m_open,
+	.release		= mxc_isi_m2m_release,
+	.poll			= v4l2_m2m_fop_poll,
+	.unlocked_ioctl = video_ioctl2,
+	.mmap			= v4l2_m2m_fop_mmap,
 };
 
-static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
-{
-	struct mxc_isi_ctrls *ctrls = &isi_m2m->ctrls;
-	struct v4l2_ctrl_handler *handler = &ctrls->handler;
-
-	if (isi_m2m->ctrls.ready)
-		return 0;
-
-	v4l2_ctrl_handler_init(handler, 3);
-
-	ctrls->hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_HFLIP, 0, 1, 1, 0);
-	ctrls->vflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_VFLIP, 0, 1, 1, 0);
-	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_ALPHA_COMPONENT, 0, 0xff, 1, 0);
-
-	if (!handler->error)
-		ctrls->ready = true;
-
-	return handler->error;
-}
-
-void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *isi_m2m)
-{
-	struct mxc_isi_ctrls *ctrls = &isi_m2m->ctrls;
-
-	if (ctrls->ready) {
-		v4l2_ctrl_handler_free(&ctrls->handler);
-		ctrls->ready = false;
-		ctrls->alpha = NULL;
-	}
-}
+/* -----------------------------------------------------------------------------
+ * Registration
+ */
 
 static int isi_m2m_probe(struct platform_device *pdev)
 {
