@@ -35,8 +35,6 @@ struct regmap;
 #define MXC_ISI_PIPE_PAD_SOURCE		1
 #define MXC_ISI_PIPE_PADS_NUM		2
 
-#define ISI_2K				2048
-
 /*
  * Absolute limits based on register field widths, not taking the scaler and
  * line buffer constraints into account. The hardware may have additional
