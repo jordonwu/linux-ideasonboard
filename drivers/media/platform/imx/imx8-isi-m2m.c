@@ -50,9 +50,6 @@ struct mxc_isi_m2m_dev {
 	unsigned int aborting;
 	unsigned int frame_count;
 
-	u32 req_cap_buf_num;
-	u32 req_out_buf_num;
-
 	u8 id;
 };
 
@@ -324,14 +321,12 @@ static int m2m_vb2_queue_setup(struct vb2_queue *q,
 			return -EINVAL;
 		}
 		frame = &isi_m2m->dst_f;
-		isi_m2m->req_cap_buf_num = *num_buffers;
 	} else {
 		if (*num_buffers < 1) {
 			dev_err(dev, "%s at least need one buffer\n", __func__);
 			return -EINVAL;
 		}
 		frame = &isi_m2m->src_f;
-		isi_m2m->req_out_buf_num = *num_buffers;
 	}
 
 	fmt = frame->fmt;
@@ -1075,35 +1070,8 @@ unlock:
 	return ret;
 }
 
-static int mxc_isi_m2m_g_ctrl(struct v4l2_ctrl *ctrl)
-{
-	struct mxc_isi_m2m_dev *isi_m2m = ctrl_to_mxc_isi_m2m(ctrl);
-	unsigned long flags;
-	int ret = 0;
-
-	spin_lock_irqsave(&isi_m2m->slock, flags);
-
-	switch (ctrl->id) {
-	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
-		ctrl->val = isi_m2m->req_cap_buf_num;
-		break;
-	case V4L2_CID_MIN_BUFFERS_FOR_OUTPUT:
-		ctrl->val = isi_m2m->req_out_buf_num;
-		break;
-	default:
-		dev_err(&isi_m2m->pdev->dev, "%s: Not support %d CID\n",
-					__func__, ctrl->id);
-		ret = -EINVAL;
-	}
-
-	spin_unlock_irqrestore(&isi_m2m->slock, flags);
-	return ret;
-
-}
-
 static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
 	.s_ctrl = mxc_isi_m2m_s_ctrl,
-	.g_volatile_ctrl = mxc_isi_m2m_g_ctrl,
 };
 
 static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
@@ -1114,7 +1082,7 @@ static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
 	if (isi_m2m->ctrls.ready)
 		return 0;
 
-	v4l2_ctrl_handler_init(handler, 4);
+	v4l2_ctrl_handler_init(handler, 3);
 
 	ctrls->hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
 					V4L2_CID_HFLIP, 0, 1, 1, 0);
@@ -1122,10 +1090,6 @@ static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
 					V4L2_CID_VFLIP, 0, 1, 1, 0);
 	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
 					V4L2_CID_ALPHA_COMPONENT, 0, 0xff, 1, 0);
-	ctrls->num_cap_buf = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_MIN_BUFFERS_FOR_CAPTURE, 3, 16, 1, 3);
-	ctrls->num_out_buf = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_MIN_BUFFERS_FOR_OUTPUT, 1, 16, 1, 1);
 
 	if (!handler->error)
 		ctrls->ready = true;
