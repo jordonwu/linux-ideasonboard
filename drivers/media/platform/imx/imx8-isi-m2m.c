@@ -184,20 +184,20 @@ static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *mxc_isi)
 {
 	struct mxc_isi_m2m_dev *isi_m2m = mxc_isi->m2m;
 	struct v4l2_fh *fh;
-	struct mxc_isi_ctx *curr_mxc_ctx;
+	struct mxc_isi_ctx *curr_ctx;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
 	struct mxc_isi_buffer *src_buf, *dst_buf;
 	struct v4l2_m2m_buffer *b;
 
 	dev_dbg(isi_m2m->isi->dev, "%s\n", __func__);
 
-	curr_mxc_ctx = v4l2_m2m_get_curr_priv(isi_m2m->m2m_dev);
-	if (!curr_mxc_ctx) {
+	curr_ctx = v4l2_m2m_get_curr_priv(isi_m2m->m2m_dev);
+	if (!curr_ctx) {
 		dev_err(isi_m2m->isi->dev,
 			"Instance released before the end of transaction\n");
 		return;
 	}
-	fh = &curr_mxc_ctx->fh;
+	fh = &curr_ctx->fh;
 
 	if (isi_m2m->aborting) {
 		mxc_isi_channel_disable(mxc_isi);
@@ -242,10 +242,10 @@ job_finish:
 
 static void mxc_isi_m2m_device_run(void *priv)
 {
-	struct mxc_isi_ctx *mxc_ctx = priv;
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = priv;
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	struct mxc_isi_dev *mxc_isi = isi_m2m->isi;
-	struct v4l2_fh *fh = &mxc_ctx->fh;
+	struct v4l2_fh *fh = &ctx->fh;
 	struct vb2_v4l2_buffer *vbuf;
 	struct mxc_isi_buffer *src_buf;
 	unsigned long flags;
@@ -271,9 +271,9 @@ unlock:
 
 static int mxc_isi_m2m_job_ready(void *priv)
 {
-	struct mxc_isi_ctx *mxc_ctx = priv;
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
-	struct v4l2_fh *fh = &mxc_ctx->fh;
+	struct mxc_isi_ctx *ctx = priv;
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
+	struct v4l2_fh *fh = &ctx->fh;
 	unsigned int num_src_bufs_ready;
 	unsigned int num_dst_bufs_ready;
 	unsigned long flags;
@@ -292,8 +292,8 @@ static int mxc_isi_m2m_job_ready(void *priv)
 
 static void mxc_isi_m2m_job_abort(void *priv)
 {
-	struct mxc_isi_ctx *mxc_ctx = priv;
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = priv;
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 
 	isi_m2m->aborting = 1;
 	dev_dbg(isi_m2m->isi->dev, "Abort requested\n");
@@ -313,8 +313,8 @@ static int m2m_vb2_queue_setup(struct vb2_queue *q,
 		unsigned int *num_buffers, unsigned int *num_planes,
 		unsigned int sizes[], struct device *alloc_devs[])
 {
-	struct mxc_isi_ctx *mxc_ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = vb2_get_drv_priv(q);
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	struct device *dev = isi_m2m->isi->dev;
 	struct mxc_isi_frame *frame;
 	struct mxc_isi_fmt *fmt;
@@ -364,8 +364,8 @@ static int m2m_vb2_queue_setup(struct vb2_queue *q,
 static int m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *vq = vb2->vb2_queue;
-	struct mxc_isi_ctx *mxc_ctx = vb2_get_drv_priv(vq);
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = vb2_get_drv_priv(vq);
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	struct mxc_isi_frame *frame;
 	int i;
 
@@ -395,18 +395,18 @@ static int m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 static void m2m_vb2_buffer_queue(struct vb2_buffer *vb2)
 {
 	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb2);
-	struct mxc_isi_ctx *mxc_ctx = vb2_get_drv_priv(vb2->vb2_queue);
-	struct v4l2_fh *fh = &mxc_ctx->fh;
+	struct mxc_isi_ctx *ctx = vb2_get_drv_priv(vb2->vb2_queue);
+	struct v4l2_fh *fh = &ctx->fh;
 
 	v4l2_m2m_buf_queue(fh->m2m_ctx, vbuf);
 }
 
 static int m2m_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
-	struct mxc_isi_ctx *mxc_ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = vb2_get_drv_priv(q);
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	struct mxc_isi_dev *mxc_isi = isi_m2m->isi;
-	struct v4l2_fh *fh = &mxc_ctx->fh;
+	struct v4l2_fh *fh = &ctx->fh;
 	struct vb2_v4l2_buffer *dst_vbuf;
 	struct  v4l2_m2m_buffer *b;
 	struct mxc_isi_buffer *dst_buf;
@@ -460,18 +460,18 @@ unlock:
 
 static void m2m_vb2_stop_streaming(struct vb2_queue *q)
 {
-	struct mxc_isi_ctx *mxc_ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = vb2_get_drv_priv(q);
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *vb2;
 	struct mxc_isi_buffer *buf;
 	unsigned long flags;
 
 	spin_lock_irqsave(&isi_m2m->slock, flags);
 
-	while ((vb2 = v4l2_m2m_src_buf_remove(mxc_ctx->fh.m2m_ctx)) != NULL)
+	while ((vb2 = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx)) != NULL)
 		v4l2_m2m_buf_done(vb2, VB2_BUF_STATE_ERROR);
 
-	while ((vb2 = v4l2_m2m_dst_buf_remove(mxc_ctx->fh.m2m_ctx)) != NULL)
+	while ((vb2 = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx)) != NULL)
 		v4l2_m2m_buf_done(vb2, VB2_BUF_STATE_ERROR);
 
 	while (!list_empty(&isi_m2m->out_active)) {
@@ -498,13 +498,13 @@ static struct vb2_ops mxc_m2m_vb2_qops = {
 static int mxc_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 			      struct vb2_queue *dst_vq)
 {
-	struct mxc_isi_ctx *mxc_ctx = priv;
-	struct mxc_isi_m2m_dev *isi_m2m = mxc_ctx->m2m;
+	struct mxc_isi_ctx *ctx = priv;
+	struct mxc_isi_m2m_dev *isi_m2m = ctx->m2m;
 	int ret;
 
 	src_vq->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
 	src_vq->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
-	src_vq->drv_priv = mxc_ctx;
+	src_vq->drv_priv = ctx;
 	src_vq->buf_struct_size = sizeof(struct mxc_isi_buffer);
 	src_vq->ops = &mxc_m2m_vb2_qops;
 	src_vq->mem_ops = &vb2_dma_contig_memops;
@@ -518,7 +518,7 @@ static int mxc_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 
 	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	dst_vq->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
-	dst_vq->drv_priv = mxc_ctx;
+	dst_vq->drv_priv = ctx;
 	dst_vq->buf_struct_size = sizeof(struct mxc_isi_buffer);
 	dst_vq->ops = &mxc_m2m_vb2_qops;
 	dst_vq->mem_ops = &vb2_dma_contig_memops;
@@ -1058,16 +1058,16 @@ static int mxc_isi_m2m_release(struct file *file)
 	struct mxc_isi_m2m_dev *isi_m2m = video_drvdata(file);
 	struct mxc_isi_dev *mxc_isi = isi_m2m->isi;
 	struct device *dev = isi_m2m->isi->dev;
-	struct mxc_isi_ctx *mxc_ctx = file_to_ctx(file);
+	struct mxc_isi_ctx *ctx = file_to_ctx(file);
 
-	v4l2_fh_del(&mxc_ctx->fh);
-	v4l2_fh_exit(&mxc_ctx->fh);
+	v4l2_fh_del(&ctx->fh);
+	v4l2_fh_exit(&ctx->fh);
 
 	mutex_lock(&isi_m2m->lock);
-	v4l2_m2m_ctx_release(mxc_ctx->fh.m2m_ctx);
+	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
 	mutex_unlock(&isi_m2m->lock);
 
-	kfree(mxc_ctx);
+	kfree(ctx);
 	if (atomic_dec_and_test(&mxc_isi->usage_count))
 		mxc_isi_channel_deinit(mxc_isi);
 
