@@ -34,7 +34,6 @@ struct mxc_isi_m2m_dev {
 	struct platform_device	*pdev;
 
 	struct video_device vdev;
-	struct v4l2_device  v4l2_dev;
 	struct v4l2_m2m_dev *m2m_dev;
 	struct v4l2_fh      fh;
 	struct v4l2_pix_format_mplane pix;
@@ -1155,9 +1154,7 @@ void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *isi_m2m)
 
 static int isi_m2m_probe(struct platform_device *pdev)
 {
-	struct mxc_isi_dev *mxc_isi;
 	struct mxc_isi_m2m_dev *isi_m2m;
-	struct v4l2_device *v4l2_dev;
 	struct video_device *vdev;
 	int ret = -ENOMEM;
 
@@ -1165,22 +1162,6 @@ static int isi_m2m_probe(struct platform_device *pdev)
 	if (!isi_m2m)
 		return -ENOMEM;
 	isi_m2m->pdev = pdev;
-
-	pdev->dev.parent = mxc_isi_dev_get_parent(pdev);
-	if (!pdev->dev.parent) {
-		dev_info(&pdev->dev, "deferring %s device registration\n",
-			 dev_name(&pdev->dev));
-		return -EPROBE_DEFER;
-	}
-
-	mxc_isi = mxc_isi_get_hostdata(pdev);
-	if (!mxc_isi) {
-		dev_info(&pdev->dev, "deferring %s device registration\n",
-			 dev_name(&pdev->dev));
-		return -EPROBE_DEFER;
-	}
-	mxc_isi->isi_m2m = isi_m2m;
-	isi_m2m->id = mxc_isi->id;
 
 	spin_lock_init(&isi_m2m->slock);
 	mutex_init(&isi_m2m->lock);
@@ -1190,16 +1171,6 @@ static int isi_m2m_probe(struct platform_device *pdev)
 	if (IS_ERR(isi_m2m->m2m_dev)) {
 		dev_err(&pdev->dev, "%s fail to get m2m device\n", __func__);
 		return PTR_ERR(isi_m2m->m2m_dev);
-	}
-
-	/* V4L2 device */
-	v4l2_dev = &isi_m2m->v4l2_dev;
-	strlcpy(v4l2_dev->name, "mx8-isi-m2m", sizeof(v4l2_dev->name));
-
-	ret = v4l2_device_register(&pdev->dev, v4l2_dev);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Failed to register v4l2_device\n");
-		return -EINVAL;
 	}
 
 	INIT_LIST_HEAD(&isi_m2m->out_active);
@@ -1229,8 +1200,6 @@ static int isi_m2m_probe(struct platform_device *pdev)
 
 	vdev->ctrl_handler = &isi_m2m->ctrls.handler;
 	video_set_drvdata(vdev, isi_m2m);
-	platform_set_drvdata(pdev, isi_m2m);
-	pm_runtime_enable(&pdev->dev);
 
 	dev_info(&pdev->dev, "Register m2m success for ISI.%d\n", isi_m2m->id);
 
@@ -1255,41 +1224,6 @@ static int isi_m2m_remove(struct platform_device *pdev)
 		media_entity_cleanup(&vdev->entity);
 	}
 	v4l2_m2m_release(isi_m2m->m2m_dev);
-	v4l2_device_unregister(&isi_m2m->v4l2_dev);
-	pm_runtime_disable(&isi_m2m->pdev->dev);
 
 	return 0;
 }
-
-static const struct of_device_id isi_m2m_of_match[] = {
-	{.compatible = "imx-isi-m2m",},
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(of, isi_m2m_of_match);
-
-static struct platform_driver isi_m2m_driver = {
-	.probe  = isi_m2m_probe,
-	.remove = isi_m2m_remove,
-	.driver = {
-		.of_match_table = isi_m2m_of_match,
-		.name		= "isi-m2m",
-	},
-};
-
-static int __init mxc_isi_m2m_init(void)
-{
-	return platform_driver_register(&isi_m2m_driver);
-}
-late_initcall(mxc_isi_m2m_init);
-
-static void __exit mxc_isi_m2m_exit(void)
-{
-	platform_driver_unregister(&isi_m2m_driver);
-}
-module_exit(mxc_isi_m2m_exit);
-
-MODULE_AUTHOR("Freescale Semiconductor, Inc.");
-MODULE_DESCRIPTION("IMX8 Image Sensor Interface memory to memory driver");
-MODULE_LICENSE("GPL");
-MODULE_ALIAS("ISI M2M");
-MODULE_VERSION("1.0");
