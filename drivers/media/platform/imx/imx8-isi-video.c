@@ -326,6 +326,53 @@ mxc_isi_format_by_fourcc(u32 fourcc, enum mxc_isi_video_type type)
 	return NULL;
 }
 
+void mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
+			const struct mxc_isi_format_info **info,
+			enum mxc_isi_video_type type)
+{
+	const struct mxc_isi_format_info *fmt;
+	unsigned int i;
+
+	fmt = mxc_isi_format_by_fourcc(pix->pixelformat, type);
+	if (!fmt)
+		fmt = &mxc_isi_formats[0];
+
+	pix->width = clamp(pix->width, MXC_ISI_MIN_WIDTH, MXC_ISI_MAX_WIDTH);
+	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
+	pix->pixelformat = fmt->fourcc;
+	pix->field = V4L2_FIELD_NONE;
+	pix->colorspace = V4L2_COLORSPACE_JPEG;
+	pix->num_planes = fmt->memplanes;
+
+	for (i = 0; i < pix->num_planes; i++) {
+		struct v4l2_plane_pix_format *plane = &pix->plane_fmt[i];
+		unsigned int bpl;
+
+		/* The pitch must be identical for all planes. */
+		if (i == 0)
+			bpl = clamp(plane->bytesperline,
+				    pix->width * fmt->depth[0] / 8,
+				    65535U);
+		else
+			bpl = pix->plane_fmt[0].bytesperline;
+
+		plane->bytesperline = bpl;
+
+		plane->sizeimage = plane->bytesperline * pix->height;
+		if (i >= 1)
+			plane->sizeimage /= fmt->vsub;
+	}
+
+	pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);
+	pix->quantization =
+		V4L2_MAP_QUANTIZATION_DEFAULT(fmt->encoding == MXC_ISI_ENC_RGB,
+					      pix->colorspace, pix->ycbcr_enc);
+	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
+
+	if (info)
+		*info = fmt;
+}
+
 /* -----------------------------------------------------------------------------
  * videobuf2 queue operations
  */
@@ -944,57 +991,10 @@ static int mxc_isi_video_g_fmt(struct file *file, void *fh,
 	return 0;
 }
 
-void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
-			     const struct mxc_isi_format_info **info,
-			     enum mxc_isi_video_type type)
-{
-	const struct mxc_isi_format_info *fmt;
-	unsigned int i;
-
-	fmt = mxc_isi_format_by_fourcc(pix->pixelformat, type);
-	if (!fmt)
-		fmt = &mxc_isi_formats[0];
-
-	pix->width = clamp(pix->width, MXC_ISI_MIN_WIDTH, MXC_ISI_MAX_WIDTH);
-	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
-	pix->pixelformat = fmt->fourcc;
-	pix->field = V4L2_FIELD_NONE;
-	pix->colorspace = V4L2_COLORSPACE_JPEG;
-	pix->num_planes = fmt->memplanes;
-
-	for (i = 0; i < pix->num_planes; i++) {
-		struct v4l2_plane_pix_format *plane = &pix->plane_fmt[i];
-		unsigned int bpl;
-
-		/* The pitch must be identical for all planes. */
-		if (i == 0)
-			bpl = clamp(plane->bytesperline,
-				    pix->width * fmt->depth[0] / 8,
-				    65535U);
-		else
-			bpl = pix->plane_fmt[0].bytesperline;
-
-		plane->bytesperline = bpl;
-
-		plane->sizeimage = plane->bytesperline * pix->height;
-		if (i >= 1)
-			plane->sizeimage /= fmt->vsub;
-	}
-
-	pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);
-	pix->quantization =
-		V4L2_MAP_QUANTIZATION_DEFAULT(fmt->encoding == MXC_ISI_ENC_RGB,
-					      pix->colorspace, pix->ycbcr_enc);
-	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
-
-	if (info)
-		*info = fmt;
-}
-
 static int mxc_isi_video_try_fmt(struct file *file, void *fh,
 				 struct v4l2_format *f)
 {
-	__mxc_isi_video_try_fmt(&f->fmt.pix_mp, NULL, MXC_ISI_VIDEO_CAP);
+	mxc_isi_format_try(&f->fmt.pix_mp, NULL, MXC_ISI_VIDEO_CAP);
 	return 0;
 }
 
@@ -1008,7 +1008,7 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 	if (vb2_is_busy(&video->vb2_q))
 		return -EBUSY;
 
-	__mxc_isi_video_try_fmt(pix, &fmt, MXC_ISI_VIDEO_CAP);
+	mxc_isi_format_try(pix, &fmt, MXC_ISI_VIDEO_CAP);
 
 	video->pix = *pix;
 	video->fmtinfo = fmt;
@@ -1184,7 +1184,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
-	__mxc_isi_video_try_fmt(pix, &fmt, MXC_ISI_VIDEO_CAP);
+	mxc_isi_format_try(pix, &fmt, MXC_ISI_VIDEO_CAP);
 
 	video->fmtinfo = fmt;
 
