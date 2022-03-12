@@ -78,6 +78,7 @@ enum isi_csi_coeff {
 struct mxc_isi_format_info {
 	u32	mbus_code;
 	u32	fourcc;
+	u32	isi_in_format;
 	u32	isi_out_format;
 	u16	memplanes;
 	u8	depth[MXC_MAX_PLANES];
