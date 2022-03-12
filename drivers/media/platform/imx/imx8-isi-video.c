@@ -33,7 +33,7 @@
 #include "imx8-isi-regs.h"
 
 /* Keep the first entry matching MXC_ISI_DEF_PIXEL_FORMAT */
-static const struct mxc_isi_format_info mxc_isi_out_formats[] = {
+static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	/* YUV formats */
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
@@ -279,8 +279,8 @@ static const struct mxc_isi_format_info *mxc_isi_format_by_fourcc(u32 fourcc)
 {
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-		const struct mxc_isi_format_info *fmt = &mxc_isi_out_formats[i];
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_formats); i++) {
+		const struct mxc_isi_format_info *fmt = &mxc_isi_formats[i];
 
 		if (fmt->fourcc == fourcc)
 			return fmt;
@@ -870,8 +870,8 @@ static int mxc_isi_video_enum_fmt(struct file *file, void *priv,
 		 * If a media bus code is specified, only enumerate formats
 		 * compatible with it.
 		 */
-		for (i = 0; i < ARRAY_SIZE(mxc_isi_out_formats); i++) {
-			fmt = &mxc_isi_out_formats[i];
+		for (i = 0; i < ARRAY_SIZE(mxc_isi_formats); i++) {
+			fmt = &mxc_isi_formats[i];
 			if (fmt->mbus_code != f->mbus_code)
 				continue;
 
@@ -881,14 +881,14 @@ static int mxc_isi_video_enum_fmt(struct file *file, void *priv,
 			index--;
 		}
 
-		if (i == ARRAY_SIZE(mxc_isi_out_formats))
+		if (i == ARRAY_SIZE(mxc_isi_formats))
 			return -EINVAL;
 	} else {
 		/* Otherwise, enumerate all formatS. */
-		if (f->index >= ARRAY_SIZE(mxc_isi_out_formats))
+		if (f->index >= ARRAY_SIZE(mxc_isi_formats))
 			return -EINVAL;
 
-		fmt = &mxc_isi_out_formats[f->index];
+		fmt = &mxc_isi_formats[f->index];
 	}
 
 	f->pixelformat = fmt->fourcc;
@@ -914,7 +914,7 @@ static void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
 
 	fmt = mxc_isi_format_by_fourcc(pix->pixelformat);
 	if (!fmt)
-		fmt = &mxc_isi_out_formats[0];
+		fmt = &mxc_isi_formats[0];
 
 	pix->width = clamp(pix->width, MXC_ISI_MIN_WIDTH, MXC_ISI_MAX_WIDTH);
 	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
