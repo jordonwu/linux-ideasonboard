@@ -326,6 +326,26 @@ mxc_isi_format_by_fourcc(u32 fourcc, enum mxc_isi_video_type type)
 	return NULL;
 }
 
+const struct mxc_isi_format_info *
+mxc_isi_format_enum(unsigned int index, enum mxc_isi_video_type type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mxc_isi_formats); i++) {
+		const struct mxc_isi_format_info *fmt = &mxc_isi_formats[i];
+
+		if (!(fmt->type & type))
+			continue;
+
+		if (!index)
+			return fmt;
+
+		index--;
+	}
+
+	return NULL;
+}
+
 void mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 			const struct mxc_isi_format_info **info,
 			enum mxc_isi_video_type type)
