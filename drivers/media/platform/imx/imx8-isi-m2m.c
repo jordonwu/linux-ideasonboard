@@ -30,25 +30,6 @@
 #include "imx8-isi-hw.h"
 #include "imx8-common.h"
 
-enum mxc_isi_m2m_in_fmt {
-	MXC_ISI_M2M_IN_FMT_BGR8P	= 0x0,
-	MXC_ISI_M2M_IN_FMT_RGB8P,
-	MXC_ISI_M2M_IN_FMT_XRGB8,
-	MXC_ISI_M2M_IN_FMT_RGBX8,
-	MXC_ISI_M2M_IN_FMT_XBGR8,
-	MXC_ISI_M2M_IN_FMT_RGB565,
-	MXC_ISI_M2M_IN_FMT_A2BGR10,
-	MXC_ISI_M2M_IN_FMT_A2RGB10,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P8P,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P10,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P10P,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P12,
-	MXC_ISI_M2M_IN_FMT_YUV444_1P8,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P8P,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P10,
-	MXC_ISI_M2M_IN_FMT_YUV422_1P10P,
-};
-
 struct mxc_isi_m2m_dev {
 	struct platform_device	*pdev;
 
@@ -162,35 +143,35 @@ struct mxc_isi_fmt mxc_isi_input_formats[] = {
 		.name		= "XBGR32",
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
 		.depth		= { 32 },
-		.color =	MXC_ISI_M2M_IN_FMT_XRGB8,
+		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_XRGB8,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
 		.name		= "RGB565",
 		.fourcc		= V4L2_PIX_FMT_RGB565,
 		.depth		= { 16 },
-		.color =	MXC_ISI_M2M_IN_FMT_RGB565,
+		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB565,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
 		.name		= "YUV24 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUV24,
 		.depth		= { 24 },
-		.color = MXC_ISI_M2M_IN_FMT_YUV444_1P8P,
+		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV444_1P8P,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
 		.name		= "YUV16 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUYV,
 		.depth		= { 16 },
-		.color = MXC_ISI_M2M_IN_FMT_YUV422_1P8P,
+		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV422_1P8P,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
 		.name		= "RGBA (R-G-B-A)",
 		.fourcc		= V4L2_PIX_FMT_RGBA32,
 		.depth		= { 32 },
-		.color = MXC_ISI_M2M_IN_FMT_XBGR8,
+		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_XBGR8,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}
