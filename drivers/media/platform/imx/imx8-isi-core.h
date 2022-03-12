@@ -68,6 +68,11 @@ enum mxc_isi_encoding {
 	MXC_ISI_ENC_YUV,
 };
 
+enum mxc_isi_video_type {
+	MXC_ISI_VIDEO_OUT = BIT(0),
+	MXC_ISI_VIDEO_CAP = BIT(1),
+};
+
 enum isi_csi_coeff {
 	YUV2RGB = 0,
 	RGB2YUV,
@@ -76,6 +81,7 @@ enum isi_csi_coeff {
 struct mxc_isi_format_info {
 	u32	mbus_code;
 	u32	fourcc;
+	enum mxc_isi_video_type type;
 	u32	isi_in_format;
 	u32	isi_out_format;
 	u16	memplanes;
@@ -243,6 +249,8 @@ void mxc_isi_crossbar_unregister(struct mxc_isi_crossbar *xbar);
 
 const struct mxc_isi_bus_format_info *
 mxc_isi_bus_format_by_index(unsigned int index, unsigned int pad);
+const struct mxc_isi_format_info *
+mxc_isi_format_by_fourcc(u32 fourcc, enum mxc_isi_video_type type);
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
