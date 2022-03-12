@@ -139,35 +139,30 @@ static struct mxc_isi_fmt mxc_isi_out_formats[9] = {};
 struct mxc_isi_fmt mxc_isi_input_formats[] = {
 	/* Pixel link input format */
 	{
-		.name		= "XBGR32",
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
 		.depth		= { 32 },
 		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_XRGB8,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
-		.name		= "RGB565",
 		.fourcc		= V4L2_PIX_FMT_RGB565,
 		.depth		= { 16 },
 		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB565,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
-		.name		= "YUV24 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUV24,
 		.depth		= { 24 },
 		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV444_1P8P,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
-		.name		= "YUV16 (X-Y-U-V)",
 		.fourcc		= V4L2_PIX_FMT_YUYV,
 		.depth		= { 16 },
 		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV422_1P8P,
 		.memplanes	= 1,
 		.colplanes	= 1,
 	}, {
-		.name		= "RGBA (R-G-B-A)",
 		.fourcc		= V4L2_PIX_FMT_RGBA32,
 		.depth		= { 32 },
 		.color		= CHNL_MEM_RD_CTRL_IMG_TYPE_XBGR8,
@@ -646,7 +641,6 @@ static int mxc_isi_m2m_enum_fmt_vid_out(struct file *file, void *priv,
 		return -EINVAL;
 
 	fmt = &mxc_isi_input_formats[f->index];
-	strncpy(f->description, fmt->name, sizeof(f->description) - 1);
 
 	f->pixelformat = fmt->fourcc;
 
@@ -664,7 +658,6 @@ static int mxc_isi_m2m_enum_fmt_vid_cap(struct file *file, void *priv,
 		return -EINVAL;
 
 	fmt = &mxc_isi_out_formats[f->index];
-	strncpy(f->description, fmt->name, sizeof(f->description) - 1);
 
 	f->pixelformat = fmt->fourcc;
 
