@@ -54,8 +54,8 @@ struct mxc_isi_m2m_dev {
 };
 
 struct mxc_isi_ctx {
+	struct v4l2_fh fh;
 	struct mxc_isi_m2m_dev *isi_m2m;
-	struct v4l2_fh	    fh;
 };
 
 static void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *mxc_isi,
@@ -987,15 +987,12 @@ static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
 
 	.vidioc_enum_fmt_vid_cap	= mxc_isi_m2m_enum_fmt_vid_cap,
 	.vidioc_enum_fmt_vid_out	= mxc_isi_m2m_enum_fmt_vid_out,
-
-	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_m2m_try_fmt_vid_cap,
-	.vidioc_try_fmt_vid_out_mplane	= mxc_isi_m2m_try_fmt_vid_out,
-
-	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_m2m_s_fmt_vid_cap,
-	.vidioc_s_fmt_vid_out_mplane	= mxc_isi_m2m_s_fmt_vid_out,
-
 	.vidioc_g_fmt_vid_cap_mplane	= mxc_isi_m2m_g_fmt_vid_cap,
 	.vidioc_g_fmt_vid_out_mplane	= mxc_isi_m2m_g_fmt_vid_out,
+	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_m2m_s_fmt_vid_cap,
+	.vidioc_s_fmt_vid_out_mplane	= mxc_isi_m2m_s_fmt_vid_out,
+	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_m2m_try_fmt_vid_cap,
+	.vidioc_try_fmt_vid_out_mplane	= mxc_isi_m2m_try_fmt_vid_out,
 
 	.vidioc_reqbufs			= v4l2_m2m_ioctl_reqbufs,
 	.vidioc_querybuf		= v4l2_m2m_ioctl_querybuf,
