@@ -985,28 +985,28 @@ static int mxc_isi_m2m_streamoff(struct file *file, void *priv,
 static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
 	.vidioc_querycap		= mxc_isi_m2m_querycap,
 
-	.vidioc_enum_fmt_vid_cap = mxc_isi_m2m_enum_fmt_vid_cap,
-	.vidioc_enum_fmt_vid_out = mxc_isi_m2m_enum_fmt_vid_out,
+	.vidioc_enum_fmt_vid_cap	= mxc_isi_m2m_enum_fmt_vid_cap,
+	.vidioc_enum_fmt_vid_out	= mxc_isi_m2m_enum_fmt_vid_out,
 
-	.vidioc_try_fmt_vid_cap_mplane = mxc_isi_m2m_try_fmt_vid_cap,
-	.vidioc_try_fmt_vid_out_mplane = mxc_isi_m2m_try_fmt_vid_out,
+	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_m2m_try_fmt_vid_cap,
+	.vidioc_try_fmt_vid_out_mplane	= mxc_isi_m2m_try_fmt_vid_out,
 
-	.vidioc_s_fmt_vid_cap_mplane = mxc_isi_m2m_s_fmt_vid_cap,
-	.vidioc_s_fmt_vid_out_mplane = mxc_isi_m2m_s_fmt_vid_out,
+	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_m2m_s_fmt_vid_cap,
+	.vidioc_s_fmt_vid_out_mplane	= mxc_isi_m2m_s_fmt_vid_out,
 
-	.vidioc_g_fmt_vid_cap_mplane = mxc_isi_m2m_g_fmt_vid_cap,
-	.vidioc_g_fmt_vid_out_mplane = mxc_isi_m2m_g_fmt_vid_out,
+	.vidioc_g_fmt_vid_cap_mplane	= mxc_isi_m2m_g_fmt_vid_cap,
+	.vidioc_g_fmt_vid_out_mplane	= mxc_isi_m2m_g_fmt_vid_out,
 
-	.vidioc_reqbufs		= v4l2_m2m_ioctl_reqbufs,
-	.vidioc_querybuf	= v4l2_m2m_ioctl_querybuf,
-	.vidioc_qbuf		= v4l2_m2m_ioctl_qbuf,
-	.vidioc_dqbuf		= v4l2_m2m_ioctl_dqbuf,
-	.vidioc_expbuf		= v4l2_m2m_ioctl_expbuf,
-	.vidioc_prepare_buf	= v4l2_m2m_ioctl_prepare_buf,
-	.vidioc_create_bufs	= v4l2_m2m_ioctl_create_bufs,
+	.vidioc_reqbufs			= v4l2_m2m_ioctl_reqbufs,
+	.vidioc_querybuf		= v4l2_m2m_ioctl_querybuf,
+	.vidioc_qbuf			= v4l2_m2m_ioctl_qbuf,
+	.vidioc_dqbuf			= v4l2_m2m_ioctl_dqbuf,
+	.vidioc_expbuf			= v4l2_m2m_ioctl_expbuf,
+	.vidioc_prepare_buf		= v4l2_m2m_ioctl_prepare_buf,
+	.vidioc_create_bufs		= v4l2_m2m_ioctl_create_bufs,
 
-	.vidioc_streamon	= mxc_isi_m2m_streamon,
-	.vidioc_streamoff	= mxc_isi_m2m_streamoff,
+	.vidioc_streamon		= mxc_isi_m2m_streamon,
+	.vidioc_streamoff		= mxc_isi_m2m_streamoff,
 };
 
 /* -----------------------------------------------------------------------------
@@ -1093,12 +1093,12 @@ static int mxc_isi_m2m_release(struct file *file)
 }
 
 static const struct v4l2_file_operations mxc_isi_m2m_fops = {
-	.owner			= THIS_MODULE,
-	.open			= mxc_isi_m2m_open,
-	.release		= mxc_isi_m2m_release,
-	.poll			= v4l2_m2m_fop_poll,
-	.unlocked_ioctl = video_ioctl2,
-	.mmap			= v4l2_m2m_fop_mmap,
+	.owner		= THIS_MODULE,
+	.open		= mxc_isi_m2m_open,
+	.release	= mxc_isi_m2m_release,
+	.poll		= v4l2_m2m_fop_poll,
+	.unlocked_ioctl	= video_ioctl2,
+	.mmap		= v4l2_m2m_fop_mmap,
 };
 
 /* -----------------------------------------------------------------------------
@@ -1163,7 +1163,6 @@ ctrl_free:
 free_m2m:
 	v4l2_m2m_release(isi_m2m->m2m_dev);
 	return ret;
-
 }
 
 static int isi_m2m_remove(struct platform_device *pdev)
