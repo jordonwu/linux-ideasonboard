@@ -38,6 +38,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_YUYV,
+		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV422_1P8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV422_1P8P,
 		.memplanes	= 1,
 		.depth		= { 16 },
@@ -81,6 +82,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_RGB565,
+		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB565,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_RGB565,
 		.memplanes	= 1,
 		.depth		= { 16 },
@@ -88,6 +90,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_RGB24,
+		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_BGR8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_BGR888P,
 		.memplanes	= 1,
 		.depth		= { 24 },
@@ -95,6 +98,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_BGR24,
+		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_RGB888P,
 		.memplanes	= 1,
 		.depth		= { 24 },
@@ -102,6 +106,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
+		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_XBGR8,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_XRGB888,
 		.memplanes	= 1,
 		.depth		= { 32 },
