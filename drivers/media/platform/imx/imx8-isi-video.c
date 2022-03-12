@@ -346,9 +346,9 @@ mxc_isi_format_enum(unsigned int index, enum mxc_isi_video_type type)
 	return NULL;
 }
 
-void mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
-			const struct mxc_isi_format_info **info,
-			enum mxc_isi_video_type type)
+const struct mxc_isi_format_info *
+mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
+		   enum mxc_isi_video_type type)
 {
 	const struct mxc_isi_format_info *fmt;
 	unsigned int i;
@@ -389,8 +389,7 @@ void mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 					      pix->colorspace, pix->ycbcr_enc);
 	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
 
-	if (info)
-		*info = fmt;
+	return fmt;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1014,7 +1013,7 @@ static int mxc_isi_video_g_fmt(struct file *file, void *fh,
 static int mxc_isi_video_try_fmt(struct file *file, void *fh,
 				 struct v4l2_format *f)
 {
-	mxc_isi_format_try(&f->fmt.pix_mp, NULL, MXC_ISI_VIDEO_CAP);
+	mxc_isi_format_try(&f->fmt.pix_mp, MXC_ISI_VIDEO_CAP);
 	return 0;
 }
 
@@ -1023,15 +1022,12 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 {
 	struct mxc_isi_video *video = video_drvdata(file);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	const struct mxc_isi_format_info *fmt;
 
 	if (vb2_is_busy(&video->vb2_q))
 		return -EBUSY;
 
-	mxc_isi_format_try(pix, &fmt, MXC_ISI_VIDEO_CAP);
-
+	video->fmtinfo = mxc_isi_format_try(pix, MXC_ISI_VIDEO_CAP);
 	video->pix = *pix;
-	video->fmtinfo = fmt;
 
 	return 0;
 }
@@ -1193,7 +1189,6 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	struct v4l2_pix_format_mplane *pix = &video->pix;
 	struct video_device *vdev = &video->vdev;
 	struct vb2_queue *q = &video->vb2_q;
-	const struct mxc_isi_format_info *fmt;
 	int ret = -ENOMEM;
 
 	video->pipe = pipe;
@@ -1204,9 +1199,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
-	mxc_isi_format_try(pix, &fmt, MXC_ISI_VIDEO_CAP);
-
-	video->fmtinfo = fmt;
+	video->fmtinfo = mxc_isi_format_try(pix, MXC_ISI_VIDEO_CAP);
 
 	memset(vdev, 0, sizeof(*vdev));
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.capture", pipe->id);
