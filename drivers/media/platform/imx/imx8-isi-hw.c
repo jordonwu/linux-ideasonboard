@@ -142,7 +142,7 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 {
 	u32 val;
 
-	if (format->width > ISI_2K) {
+	if (format->width > 2048) {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
