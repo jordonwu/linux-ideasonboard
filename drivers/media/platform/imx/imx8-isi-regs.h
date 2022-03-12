@@ -378,4 +378,25 @@
 #define CHNL_FLOW_CTRL_FC_NUMER_MASK				GENMASK(23, 16)
 #define CHNL_FLOW_CTRL_FC_NUMER(n)				((n) << 0)
 
+/* Channel Output Y-Buffer 1 Extended Address Bits */
+#define CHNL_Y_BUF1_XTND_ADDR					0x00a0
+
+/* Channel Output U-Buffer 1 Extended Address Bits */
+#define CHNL_U_BUF1_XTND_ADDR					0x00a4
+
+/* Channel Output V-Buffer 1 Extended Address Bits */
+#define CHNL_V_BUF1_XTND_ADDR					0x00a8
+
+/* Channel Output Y-Buffer 2 Extended Address Bits */
+#define CHNL_Y_BUF2_XTND_ADDR					0x00ac
+
+/* Channel Output U-Buffer 2 Extended Address Bits */
+#define CHNL_U_BUF2_XTND_ADDR					0x00b0
+
+/* Channel Output V-Buffer 2 Extended Address Bits */
+#define CHNL_V_BUF2_XTND_ADDR					0x00b4
+
+/* Channel Input Buffer Extended Address Bits */
+#define CHNL_IN_BUF_XTND_ADDR					0x00b8
+
 #endif /* __IMX8_ISI_REGS_H__ */
