@@ -414,7 +414,7 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
-	val |= CHNL_IMG_CTRL_FORMAT(info->isi_format);
+	val |= CHNL_IMG_CTRL_FORMAT(info->isi_out_format);
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 
 	/* line pitch */
