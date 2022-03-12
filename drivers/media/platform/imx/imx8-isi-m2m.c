@@ -58,8 +58,8 @@ struct mxc_isi_ctx {
 	struct v4l2_fh	    fh;
 };
 
-void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *mxc_isi,
-			struct mxc_isi_buffer *buf)
+static void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *mxc_isi,
+					     struct mxc_isi_buffer *buf)
 {
 	struct vb2_buffer *vb2_buf = &buf->v4l2_buf.vb2_buf;
 	struct frame_addr *paddr = &buf->paddr;
@@ -69,8 +69,8 @@ void mxc_isi_channel_set_m2m_src_addr(struct mxc_isi_dev *mxc_isi,
 	writel(paddr->y, mxc_isi->regs + CHNL_IN_BUF_ADDR);
 }
 
-void mxc_isi_m2m_config_src(struct mxc_isi_dev *mxc_isi,
-			    struct mxc_isi_frame *src_f)
+static void mxc_isi_m2m_config_src(struct mxc_isi_dev *mxc_isi,
+				   struct mxc_isi_frame *src_f)
 {
 	u32 val;
 
@@ -90,8 +90,8 @@ void mxc_isi_m2m_config_src(struct mxc_isi_dev *mxc_isi,
 	writel(val, mxc_isi->regs + CHNL_IN_BUF_PITCH);
 }
 
-void mxc_isi_m2m_config_dst(struct mxc_isi_dev *mxc_isi,
-			    struct mxc_isi_frame *dst_f)
+static void mxc_isi_m2m_config_dst(struct mxc_isi_dev *mxc_isi,
+				   struct mxc_isi_frame *dst_f)
 {
 	u32 val;
 
@@ -108,7 +108,7 @@ void mxc_isi_m2m_config_dst(struct mxc_isi_dev *mxc_isi,
 	writel(val, mxc_isi->regs + CHNL_OUT_BUF_PITCH);
 }
 
-void mxc_isi_m2m_start_read(struct mxc_isi_dev *mxc_isi)
+static void mxc_isi_m2m_start_read(struct mxc_isi_dev *mxc_isi)
 {
 	u32 val;
 
@@ -133,7 +133,7 @@ extern struct mxc_isi_fmt mxc_isi_out_formats[9];
 static struct mxc_isi_fmt mxc_isi_out_formats[9] = {};
 #endif
 
-struct mxc_isi_fmt mxc_isi_input_formats[] = {
+static struct mxc_isi_fmt mxc_isi_input_formats[] = {
 	/* Pixel link input format */
 	{
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
@@ -590,7 +590,7 @@ static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *isi_m2m)
 	return handler->error;
 }
 
-void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *isi_m2m)
+static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *isi_m2m)
 {
 	struct mxc_isi_ctrls *ctrls = &isi_m2m->ctrls;
 
