@@ -703,20 +703,13 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 {
 	struct mxc_isi_m2m *m2m = &isi->m2m;
 	struct video_device *vdev = &m2m->vdev;
+	struct media_link *link;
 	int ret;
 
 	m2m->isi = isi;
 	m2m->pipe = &isi->pipes[0];
 
 	mutex_init(&m2m->lock);
-
-	/* Initialize the media entity. */
-	m2m->pads[0].flags = MEDIA_PAD_FL_SINK;
-	m2m->pads[1].flags = MEDIA_PAD_FL_SOURCE;
-	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
-	ret = media_entity_pads_init(&vdev->entity, 2, m2m->pads);
-	if (ret)
-		goto err_mutex;
 
 	/* Initialize the video device and create controls. */
 	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.m2m");
@@ -736,7 +729,7 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 	if (IS_ERR(m2m->m2m_dev)) {
 		dev_err(isi->dev, "failed to initialize m2m device\n");
 		ret = PTR_ERR(m2m->m2m_dev);
-		goto err_entity;
+		goto err_mutex;
 	}
 
 	/* Register the video device. */
@@ -746,13 +739,32 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 		goto err_m2m;
 	}
 
-	/* Create links. */
-	ret = media_create_pad_link(&m2m->pipe->sd.entity,
-				    MXC_ISI_PIPE_PAD_SOURCE,
-				    &vdev->entity, 0,
-				    MEDIA_LNK_FL_IMMUTABLE);
+	/*
+	 * Populate the media graph. We can't use the mem2mem helper
+	 * v4l2_m2m_register_media_controller() as the M2M interface needs to
+	 * be connected to the existing entities in the graph, so we have to
+	 * wire things up manually:
+	 *
+	 * - The entity in the video_device, which isn't touched by the V4L2
+	 *   core for M2M devices, is used as the source I/O entity in the
+	 *   graph, connected to the crossbar switch.
+	 *
+	 * - The video device at the end of the pipeline provides the sink
+	 *   entity, and is already wired up in the graph.
+	 *
+	 * - A new interface is created, pointing at both entities. The sink
+	 *   entity will thus have two interfaces pointing to it.
+	 */
+	m2m->pad.flags = MEDIA_PAD_FL_SOURCE;
+	vdev->entity.name = "mxc_isi.output";
+	vdev->entity.function = MEDIA_ENT_F_IO_V4L;
+	ret = media_entity_pads_init(&vdev->entity, 1, &m2m->pad);
 	if (ret)
 		goto err_video;
+
+	ret = media_device_register_entity(v4l2_dev->mdev, &vdev->entity);
+	if (ret)
+		goto err_entity_cleanup;
 
 	ret = media_create_pad_link(&vdev->entity, 0,
 				    &m2m->isi->crossbar.sd.entity,
@@ -760,16 +772,44 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 				    MEDIA_LNK_FL_IMMUTABLE |
 				    MEDIA_LNK_FL_ENABLED);
 	if (ret)
-		goto err_video;
+		goto err_entity_unreg;
+
+	m2m->intf = media_devnode_create(v4l2_dev->mdev, MEDIA_INTF_T_V4L_VIDEO,
+					 0, VIDEO_MAJOR, vdev->minor);
+	if (!m2m->intf) {
+		ret = -ENOMEM;
+		goto err_entity_unreg;
+	}
+
+	link = media_create_intf_link(&vdev->entity, &m2m->intf->intf,
+				      MEDIA_LNK_FL_IMMUTABLE |
+				      MEDIA_LNK_FL_ENABLED);
+	if (!link) {
+		ret = -ENOMEM;
+		goto err_devnode;
+	}
+
+	link = media_create_intf_link(&m2m->pipe->video.vdev.entity,
+				      &m2m->intf->intf,
+				      MEDIA_LNK_FL_IMMUTABLE |
+				      MEDIA_LNK_FL_ENABLED);
+	if (!link) {
+		ret = -ENOMEM;
+		goto err_devnode;
+	}
 
 	return 0;
 
+err_devnode:
+	media_devnode_remove(m2m->intf);
+err_entity_unreg:
+	media_device_unregister_entity(&vdev->entity);
+err_entity_cleanup:
+	media_entity_cleanup(&vdev->entity);
 err_video:
 	video_unregister_device(vdev);
 err_m2m:
 	v4l2_m2m_release(m2m->m2m_dev);
-err_entity:
-	media_entity_cleanup(&vdev->entity);
 err_mutex:
 	mutex_destroy(&m2m->lock);
 	return ret;
@@ -783,6 +823,7 @@ int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 	video_unregister_device(vdev);
 
 	v4l2_m2m_release(m2m->m2m_dev);
+	media_devnode_remove(m2m->intf);
 	media_entity_cleanup(&vdev->entity);
 	mutex_destroy(&m2m->lock);
 
