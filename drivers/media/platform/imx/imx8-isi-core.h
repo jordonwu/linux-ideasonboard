@@ -27,6 +27,7 @@
 #include <media/videobuf2-v4l2.h>
 
 struct clk_bulk_data;
+struct dentry;
 struct device;
 struct regmap;
 
@@ -240,6 +241,8 @@ struct mxc_isi_dev {
 	struct media_device		media_dev;
 	struct v4l2_device		v4l2_dev;
 	struct v4l2_async_notifier	notifier;
+
+	struct dentry			*debugfs_root;
 };
 
 int mxc_isi_crossbar_init(struct mxc_isi_dev *isi);
@@ -301,5 +304,17 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 
 u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
 void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe);
+
+#if IS_ENABLED(CONFIG_DEBUG_FS)
+void mxc_isi_debug_init(struct mxc_isi_dev *isi);
+void mxc_isi_debug_cleanup(struct mxc_isi_dev *isi);
+#else
+static inline void mxc_isi_debug_init(struct mxc_isi_dev *isi)
+{
+}
+static inline void mxc_isi_debug_cleanup(struct mxc_isi_dev *isi)
+{
+}
+#endif
 
 #endif /* __MXC_ISI_CORE_H__ */
