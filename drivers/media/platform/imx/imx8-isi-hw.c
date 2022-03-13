@@ -115,7 +115,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
  */
 
 static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
-					  unsigned int input)
+					  enum mxc_isi_input input)
 {
 	u32 val;
 
@@ -123,13 +123,12 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
 	val &= ~(CHNL_CTRL_MIPI_VC_ID_MASK | CHNL_CTRL_SRC_TYPE_MASK |
 		  CHNL_CTRL_SRC_INPUT_MASK);
 
-	val |= CHNL_CTRL_SRC_INPUT(input);
-	val |= CHNL_CTRL_MIPI_VC_ID(0); /* FIXME: For CSI-2 only */
-
-	/*
-	 * FIXME: Support memory input
-	 * val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_MEMORY);
-	 */
+	if (input == MXC_ISI_INPUT_MEM) {
+		val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_MEMORY);
+	} else {
+		val |= CHNL_CTRL_SRC_INPUT(input);
+		val |= CHNL_CTRL_MIPI_VC_ID(0); /* FIXME: For CSI-2 only */
+	}
 
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
@@ -357,7 +356,7 @@ static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
 }
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 			    const struct v4l2_area *in_size,
 			    const struct v4l2_area *scale,
 			    const struct v4l2_rect *crop,
