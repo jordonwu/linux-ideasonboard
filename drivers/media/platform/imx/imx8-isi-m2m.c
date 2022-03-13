@@ -517,6 +517,12 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 				       &in_size, &scale, &crop,
 				       ctx->formats.out.info->encoding,
 				       ctx->formats.cap.info->encoding);
+		mxc_isi_channel_set_input_format(m2m->pipe,
+						 ctx->formats.out.info,
+						 &ctx->formats.out.format);
+		mxc_isi_channel_set_output_format(m2m->pipe,
+						  ctx->formats.cap.info,
+						  &ctx->formats.cap.format);
 	}
 
 	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
