@@ -245,10 +245,12 @@ struct mxc_isi_m2m {
 		struct v4l2_ctrl *hflip;
 	} ctrls;
 
+	/* Protects last_ctx and usage_count */
 	struct mutex			lock;
 	spinlock_t			slock;
 
 	struct mxc_isi_m2m_ctx		*last_ctx;
+	int				usage_count;
 };
 
 struct mxc_isi_dev {

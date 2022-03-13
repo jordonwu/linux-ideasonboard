@@ -12,6 +12,7 @@
 #include <linux/device.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
+#include <linux/limits.h>
 #include <linux/minmax.h>
 #include <linux/mutex.h>
 #include <linux/pm_runtime.h>
@@ -112,7 +113,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 	struct mxc_isi_m2m_buffer *src_buf, *dst_buf;
 	unsigned long flags;
 
-	spin_lock_irqsave(&m2m->slock, flags);
+	mutex_lock(&m2m->lock);
 
 	/* If the context has changed, reconfigure the channel. */
 	if (m2m->last_ctx != ctx) {
@@ -146,6 +147,10 @@ static void mxc_isi_m2m_device_run(void *priv)
 
 		m2m->last_ctx = ctx;
 	}
+
+	mutex_unlock(&m2m->lock);
+
+	spin_lock_irqsave(&m2m->slock, flags);
 
 	src_vbuf = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
 	dst_vbuf = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
@@ -514,25 +519,63 @@ static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 				enum v4l2_buf_type type)
 {
+	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	int ret;
 
-	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
+	mutex_lock(&m2m->lock);
 
+	if (m2m->usage_count == INT_MAX) {
+		ret = -EOVERFLOW;
+		goto unlock;
+	}
+
+	/* Initialize the channel with the first user of the M2M device. */
+	if (m2m->usage_count == 0)
+		mxc_isi_channel_init(m2m->pipe);
+
+	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
+	if (ret) {
+		if (m2m->usage_count == 0)
+			mxc_isi_channel_deinit(m2m->pipe);
+		goto unlock;
+	}
+
+	m2m->usage_count++;
+
+unlock:
+	mutex_unlock(&m2m->lock);
 	return ret;
 }
 
 static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
 				 enum v4l2_buf_type type)
 {
-	struct mxc_isi_m2m *m2m = video_drvdata(file);
-	int ret;
+	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 
-	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
+	mutex_lock(&m2m->lock);
+
+	v4l2_m2m_ioctl_streamoff(file, fh, type);
+
+	/*
+	 * If the last context is this one, reset it to make sure the device
+	 * will be reconfigured when streaming is restarted.
+	 */
+	if (m2m->last_ctx == ctx)
+		m2m->last_ctx = NULL;
+
+	/* Turn off the light with the last user. */
+	if (--m2m->usage_count == 0) {
 		mxc_isi_channel_disable(m2m->pipe);
+		mxc_isi_channel_deinit(m2m->pipe);
+	}
 
-	ret = v4l2_m2m_ioctl_streamoff(file, fh, type);
+	WARN_ON(m2m->usage_count < 0);
 
-	return ret;
+	mutex_unlock(&m2m->lock);
+
+	return 0;
 }
 
 static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
@@ -605,9 +648,6 @@ static int mxc_isi_m2m_open(struct file *file)
 	if (ret)
 		goto error;
 
-	if (atomic_inc_return(&m2m->usage_count) == 1)
-		mxc_isi_channel_init(m2m->pipe);
-
 	return 0;
 
 error:
@@ -627,22 +667,10 @@ static int mxc_isi_m2m_release(struct file *file)
 	v4l2_fh_exit(&ctx->fh);
 
 	mutex_lock(&m2m->lock);
-
-	/*
-	 * If the last context is this one, reset it to make sure any newly
-	 * allocated context won't match the address by chance.
-	 */
-	if (m2m->last_ctx == ctx)
-		m2m->last_ctx = NULL;
-
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
-
 	mutex_unlock(&m2m->lock);
 
 	kfree(ctx);
-
-	if (atomic_dec_and_test(&m2m->usage_count))
-		mxc_isi_channel_deinit(m2m->pipe);
 
 	pm_runtime_put(m2m->isi->dev);
 
