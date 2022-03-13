@@ -37,7 +37,7 @@ struct mxc_isi_m2m_buffer {
 	u32 dma_addrs[3];
 };
 
-struct mxc_isi_m2m_ctx_format {
+struct mxc_isi_m2m_ctx_queue_data {
 	struct v4l2_pix_format_mplane format;
 	const struct mxc_isi_format_info *info;
 };
@@ -47,9 +47,9 @@ struct mxc_isi_m2m_ctx {
 	struct mxc_isi_m2m *m2m;
 
 	struct {
-		struct mxc_isi_m2m_ctx_format out;
-		struct mxc_isi_m2m_ctx_format cap;
-	} formats;
+		struct mxc_isi_m2m_ctx_queue_data out;
+		struct mxc_isi_m2m_ctx_queue_data cap;
+	} queues;
 };
 
 static inline struct mxc_isi_m2m_buffer *
@@ -107,30 +107,30 @@ static void mxc_isi_m2m_device_run(void *priv)
 	/* If the context has changed, reconfigure the channel. */
 	if (m2m->last_ctx != ctx) {
 		const struct v4l2_area in_size = {
-			.width = ctx->formats.out.format.width,
-			.height = ctx->formats.out.format.height,
+			.width = ctx->queues.out.format.width,
+			.height = ctx->queues.out.format.height,
 		};
 		const struct v4l2_area scale = {
-			.width = ctx->formats.cap.format.width,
-			.height = ctx->formats.cap.format.height,
+			.width = ctx->queues.cap.format.width,
+			.height = ctx->queues.cap.format.height,
 		};
 		const struct v4l2_rect crop = {
-			.width = ctx->formats.cap.format.width,
-			.height = ctx->formats.cap.format.height,
+			.width = ctx->queues.cap.format.width,
+			.height = ctx->queues.cap.format.height,
 		};
 
 		mxc_isi_channel_disable(m2m->pipe);
 
 		mxc_isi_channel_config(m2m->pipe, MXC_ISI_INPUT_MEM,
 				       &in_size, &scale, &crop,
-				       ctx->formats.out.info->encoding,
-				       ctx->formats.cap.info->encoding);
+				       ctx->queues.out.info->encoding,
+				       ctx->queues.cap.info->encoding);
 		mxc_isi_channel_set_input_format(m2m->pipe,
-						 ctx->formats.out.info,
-						 &ctx->formats.out.format);
+						 ctx->queues.out.info,
+						 &ctx->queues.out.format);
 		mxc_isi_channel_set_output_format(m2m->pipe,
-						  ctx->formats.cap.info,
-						  &ctx->formats.cap.format);
+						  ctx->queues.cap.info,
+						  &ctx->queues.cap.format);
 
 		mxc_isi_channel_enable(m2m->pipe);
 
@@ -175,11 +175,11 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 	unsigned int i;
 
 	if (q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-		pix = &ctx->formats.cap.format;
-		info = ctx->formats.cap.info;
+		pix = &ctx->queues.cap.format;
+		info = ctx->queues.cap.info;
 	} else {
-		pix = &ctx->formats.out.format;
-		info = ctx->formats.out.info;
+		pix = &ctx->queues.out.format;
+		info = ctx->queues.out.info;
 	}
 
 	*num_planes = info->memplanes;
@@ -205,15 +205,15 @@ static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
 	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_buffer *buf = to_isi_m2m_buffer(to_vb2_v4l2_buffer(vb2));
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vb2->vb2_queue);
-	struct mxc_isi_m2m_ctx_format *format;
+	const struct mxc_isi_format_info *info;
 	unsigned int i;
 
 	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		format = &ctx->formats.cap;
+		info = ctx->queues.cap.info;
 	else
-		format = &ctx->formats.out;
+		info = ctx->queues.out.info;
 
-	for (i = 0; i < format->info->memplanes; ++i)
+	for (i = 0; i < info->memplanes; ++i)
 		buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2, i);
 
 	return 0;
@@ -224,16 +224,20 @@ static int mxc_isi_m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vq);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
-	struct mxc_isi_m2m_ctx_format *format;
+	const struct mxc_isi_format_info *info;
+	struct v4l2_pix_format_mplane *pix;
 	unsigned int i;
 
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		format = &ctx->formats.cap;
-	else
-		format = &ctx->formats.out;
+	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+		pix = &ctx->queues.cap.format;
+		info = ctx->queues.cap.info;
+	} else {
+		pix = &ctx->queues.out.format;
+		info = ctx->queues.out.info;
+	}
 
-	for (i = 0; i < format->info->memplanes; ++i) {
-		unsigned long size = format->format.plane_fmt[i].sizeimage;
+	for (i = 0; i < info->memplanes; ++i) {
+		unsigned long size = pix->plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
 			dev_err(m2m->isi->dev,
@@ -456,8 +460,8 @@ __mxc_isi_m2m_try_fmt_vid(struct mxc_isi_m2m_ctx *ctx,
 		pix->width = min(pix->width, 2048U);
 	} else {
 		/* Downscaling only */
-		pix->width = min(pix->width, ctx->formats.out.format.width);
-		pix->height = min(pix->height, ctx->formats.out.format.height);
+		pix->width = min(pix->width, ctx->queues.out.format.width);
+		pix->height = min(pix->height, ctx->queues.out.format.height);
 	}
 
 	return mxc_isi_format_try(pix, type);
@@ -482,9 +486,9 @@ static int mxc_isi_m2m_g_fmt_vid(struct file *file, void *fh,
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 
 	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
-		f->fmt.pix_mp = ctx->formats.out.format;
+		f->fmt.pix_mp = ctx->queues.out.format;
 	else
-		f->fmt.pix_mp = ctx->formats.cap.format;
+		f->fmt.pix_mp = ctx->queues.cap.format;
 
 	return 0;
 }
@@ -510,16 +514,16 @@ static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 	info = __mxc_isi_m2m_try_fmt_vid(ctx, pix, type);
 
 	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-		ctx->formats.out.format = *pix;
-		ctx->formats.out.info = info;
+		ctx->queues.out.format = *pix;
+		ctx->queues.out.info = info;
 	}
 
 	/*
 	 * Always set the format on the capture side, due to either format
 	 * propagation or direct setting.
 	 */
-	ctx->formats.cap.format = *pix;
-	ctx->formats.cap.info = info;
+	ctx->queues.cap.format = *pix;
+	ctx->queues.cap.info = info;
 
 	return 0;
 }
@@ -576,14 +580,14 @@ static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
  * Video device file operations
  */
 
-static void mxc_isi_m2m_init_format(struct mxc_isi_m2m_ctx_format *format,
+static void mxc_isi_m2m_init_format(struct mxc_isi_m2m_ctx_queue_data *qdata,
 				    enum mxc_isi_video_type type)
 {
-	format->format.width = MXC_ISI_DEF_WIDTH;
-	format->format.height = MXC_ISI_DEF_HEIGHT;
-	format->format.pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
+	qdata->format.width = MXC_ISI_DEF_WIDTH;
+	qdata->format.height = MXC_ISI_DEF_HEIGHT;
+	qdata->format.pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
 
-	format->info = mxc_isi_format_try(&format->format, type);
+	qdata->info = mxc_isi_format_try(&qdata->format, type);
 }
 
 static int mxc_isi_m2m_open(struct file *file)
@@ -609,8 +613,8 @@ static int mxc_isi_m2m_open(struct file *file)
 		goto error;
 	}
 
-	mxc_isi_m2m_init_format(&ctx->formats.out, MXC_ISI_VIDEO_OUT);
-	mxc_isi_m2m_init_format(&ctx->formats.cap, MXC_ISI_VIDEO_CAP);
+	mxc_isi_m2m_init_format(&ctx->queues.out, MXC_ISI_VIDEO_OUT);
+	mxc_isi_m2m_init_format(&ctx->queues.cap, MXC_ISI_VIDEO_CAP);
 
 	v4l2_fh_add(&ctx->fh);
 
