@@ -29,6 +29,7 @@
 struct clk_bulk_data;
 struct dentry;
 struct device;
+struct media_intf_devnode;
 struct regmap;
 struct v4l2_m2m_dev;
 
@@ -234,8 +235,9 @@ struct mxc_isi_m2m {
 	struct mxc_isi_dev		*isi;
 	struct mxc_isi_pipe		*pipe;
 
-	struct media_pad		pads[2];
+	struct media_pad		pad;
 	struct video_device		vdev;
+	struct media_intf_devnode	*intf;
 	struct v4l2_m2m_dev		*m2m_dev;
 
 	/* Protects last_ctx and usage_count */
