@@ -55,6 +55,13 @@ struct mxc_isi_m2m_ctx {
 		struct mxc_isi_m2m_ctx_queue_data out;
 		struct mxc_isi_m2m_ctx_queue_data cap;
 	} queues;
+
+	struct {
+		struct v4l2_ctrl_handler handler;
+		unsigned int alpha;
+		bool hflip;
+		bool vflip;
+	} ctrls;
 };
 
 static inline struct mxc_isi_m2m_buffer *
@@ -151,6 +158,11 @@ static void mxc_isi_m2m_device_run(void *priv)
 	}
 
 	mutex_unlock(&m2m->lock);
+
+	mutex_lock(ctx->ctrls.handler.lock);
+	mxc_isi_channel_set_alpha(m2m->pipe, ctx->ctrls.alpha);
+	mxc_isi_channel_set_flip(m2m->pipe, ctx->ctrls.hflip, ctx->ctrls.vflip);
+	mutex_unlock(ctx->ctrls.handler.lock);
 
 	src_vbuf = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
 	dst_vbuf = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
@@ -330,50 +342,50 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
  * V4L2 controls
  */
 
-static inline struct mxc_isi_m2m *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl)
+static inline struct mxc_isi_m2m_ctx *
+ctrl_to_mxc_isi_m2m_ctx(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct mxc_isi_m2m, ctrls.handler);
+	return container_of(ctrl->handler, struct mxc_isi_m2m_ctx, ctrls.handler);
 }
 
-static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
+static int mxc_isi_m2m_ctx_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct mxc_isi_m2m *m2m = ctrl_to_mxc_isi_m2m(ctrl);
+	struct mxc_isi_m2m_ctx *ctx = ctrl_to_mxc_isi_m2m_ctx(ctrl);
 
 	switch (ctrl->id) {
 	case V4L2_CID_HFLIP:
-		m2m->pipe->hflip = ctrl->val;
+		ctx->ctrls.hflip = ctrl->val;
 		break;
 
 	case V4L2_CID_VFLIP:
-		m2m->pipe->vflip = ctrl->val;
+		ctx->ctrls.vflip = ctrl->val;
 		break;
 
 	case V4L2_CID_ALPHA_COMPONENT:
-		m2m->pipe->alpha = ctrl->val;
+		ctx->ctrls.alpha = ctrl->val;
 		break;
 	}
 
 	return 0;
 }
 
-static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
-	.s_ctrl = mxc_isi_m2m_s_ctrl,
+static const struct v4l2_ctrl_ops mxc_isi_m2m_ctx_ctrl_ops = {
+	.s_ctrl = mxc_isi_m2m_ctx_s_ctrl,
 };
 
-static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m *m2m)
+static int mxc_isi_m2m_ctx_ctrls_create(struct mxc_isi_m2m_ctx *ctx)
 {
-	struct v4l2_ctrl_handler *handler = &m2m->ctrls.handler;
+	struct v4l2_ctrl_handler *handler = &ctx->ctrls.handler;
 	int ret;
 
 	v4l2_ctrl_handler_init(handler, 3);
 
-	m2m->ctrls.alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					     V4L2_CID_ALPHA_COMPONENT,
-					     0, 255, 1, 0);
-	m2m->ctrls.hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					     V4L2_CID_HFLIP, 0, 1, 1, 0);
-	m2m->ctrls.vflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					     V4L2_CID_VFLIP, 0, 1, 1, 0);
+	v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctx_ctrl_ops,
+			  V4L2_CID_ALPHA_COMPONENT, 0, 255, 1, 0);
+	v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctx_ctrl_ops,
+			  V4L2_CID_HFLIP, 0, 1, 1, 0);
+	v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctx_ctrl_ops,
+			  V4L2_CID_VFLIP, 0, 1, 1, 0);
 
 	if (handler->error) {
 		ret = handler->error;
@@ -381,14 +393,14 @@ static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m *m2m)
 		return ret;
 	}
 
-	m2m->vdev.ctrl_handler = handler;
+	ctx->fh.ctrl_handler = handler;
 
 	return 0;
 }
 
-static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m *m2m)
+static void mxc_isi_m2m_ctx_ctrls_delete(struct mxc_isi_m2m_ctx *ctx)
 {
-	v4l2_ctrl_handler_free(&m2m->ctrls.handler);
+	v4l2_ctrl_handler_free(&ctx->ctrls.handler);
 }
 
 /* -----------------------------------------------------------------------------
@@ -626,23 +638,29 @@ static int mxc_isi_m2m_open(struct file *file)
 	if (IS_ERR(ctx->fh.m2m_ctx)) {
 		ret = PTR_ERR(ctx->fh.m2m_ctx);
 		ctx->fh.m2m_ctx = NULL;
-		goto error;
+		goto err_fh;
 	}
 
 	mxc_isi_m2m_init_format(&ctx->queues.out, MXC_ISI_VIDEO_OUT);
 	mxc_isi_m2m_init_format(&ctx->queues.cap, MXC_ISI_VIDEO_CAP);
 
+	ret = mxc_isi_m2m_ctx_ctrls_create(ctx);
+	if (ret)
+		goto err_ctx;
+
 	ret = pm_runtime_resume_and_get(m2m->isi->dev);
 	if (ret)
-		goto error;
+		goto err_ctrls;
 
 	v4l2_fh_add(&ctx->fh);
 
 	return 0;
 
-error:
-	if (ctx->fh.m2m_ctx)
-		v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+err_ctrls:
+	mxc_isi_m2m_ctx_ctrls_delete(ctx);
+err_ctx:
+	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+err_fh:
 	v4l2_fh_exit(&ctx->fh);
 	mutex_destroy(&ctx->vb2_lock);
 	kfree(ctx);
@@ -655,6 +673,7 @@ static int mxc_isi_m2m_release(struct file *file)
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(file->private_data);
 
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+	mxc_isi_m2m_ctx_ctrls_delete(ctx);
 
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
@@ -712,16 +731,12 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_M2M_MPLANE;
 	video_set_drvdata(vdev, m2m);
 
-	ret = mxc_isi_m2m_ctrls_create(m2m);
-	if (ret)
-		goto err_entity;
-
 	/* Create the M2M device. */
 	m2m->m2m_dev = v4l2_m2m_init(&mxc_isi_m2m_ops);
 	if (IS_ERR(m2m->m2m_dev)) {
 		dev_err(isi->dev, "failed to initialize m2m device\n");
 		ret = PTR_ERR(m2m->m2m_dev);
-		goto err_ctrls;
+		goto err_entity;
 	}
 
 	/* Register the video device. */
@@ -753,8 +768,6 @@ err_video:
 	video_unregister_device(vdev);
 err_m2m:
 	v4l2_m2m_release(m2m->m2m_dev);
-err_ctrls:
-	mxc_isi_m2m_ctrls_delete(m2m);
 err_entity:
 	media_entity_cleanup(&vdev->entity);
 err_mutex:
@@ -770,7 +783,6 @@ int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 	video_unregister_device(vdev);
 
 	v4l2_m2m_release(m2m->m2m_dev);
-	mxc_isi_m2m_ctrls_delete(m2m);
 	media_entity_cleanup(&vdev->entity);
 	mutex_destroy(&m2m->lock);
 
