@@ -88,24 +88,22 @@ static void mxc_isi_pipe_dump_regs(struct mxc_isi_pipe *pipe)
  */
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf,
+				const u32 dma_addrs[3],
 				enum mxc_isi_buf_id buf_id)
 {
 	int val;
 
-	buf->id = buf_id;
-
 	val = mxc_isi_read(pipe, CHNL_OUT_BUF_CTRL);
 
 	if (buf_id == MXC_ISI_BUF1) {
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, buf->dma_addrs[0]);
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, buf->dma_addrs[1]);
-		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, buf->dma_addrs[2]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, dma_addrs[0]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, dma_addrs[1]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR;
 	} else  {
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, buf->dma_addrs[0]);
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, buf->dma_addrs[1]);
-		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, buf->dma_addrs[2]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, dma_addrs[0]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, dma_addrs[1]);
+		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, dma_addrs[2]);
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR;
 	}
 

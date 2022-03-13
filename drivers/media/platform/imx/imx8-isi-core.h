@@ -283,7 +283,7 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       struct v4l2_pix_format_mplane *format);
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				struct mxc_isi_buffer *buf,
+				const u32 dma_addrs[3],
 				enum mxc_isi_buf_id buf_id);
 
 u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
