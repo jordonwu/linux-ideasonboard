@@ -119,7 +119,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 	spin_unlock_irqrestore(&m2m->slock, flags);
 }
 
-static struct v4l2_m2m_ops mxc_isi_m2m_ops = {
+static const struct v4l2_m2m_ops mxc_isi_m2m_ops = {
 	.device_run = mxc_isi_m2m_device_run,
 };
 
