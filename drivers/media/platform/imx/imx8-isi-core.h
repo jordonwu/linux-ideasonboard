@@ -68,6 +68,11 @@ enum mxc_isi_encoding {
 	MXC_ISI_ENC_YUV,
 };
 
+enum mxc_isi_input {
+	/* Inputs from the crossbar switch range from 0 to 15 */
+	MXC_ISI_INPUT_MEM = 16,
+};
+
 enum mxc_isi_video_type {
 	MXC_ISI_VIDEO_OUT = BIT(0),
 	MXC_ISI_VIDEO_CAP = BIT(1),
@@ -271,7 +276,7 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 			    const struct v4l2_area *in_size,
 			    const struct v4l2_area *scale,
 			    const struct v4l2_rect *crop,
