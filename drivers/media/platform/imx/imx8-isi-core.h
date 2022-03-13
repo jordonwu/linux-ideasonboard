@@ -249,7 +249,6 @@ struct mxc_isi_m2m {
 	spinlock_t			slock;
 
 	struct mxc_isi_m2m_ctx		*last_ctx;
-	unsigned int			frame_count;
 };
 
 struct mxc_isi_dev {

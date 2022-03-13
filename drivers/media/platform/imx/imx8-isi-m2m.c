@@ -40,6 +40,7 @@ struct mxc_isi_m2m_buffer {
 struct mxc_isi_m2m_ctx_queue_data {
 	struct v4l2_pix_format_mplane format;
 	const struct mxc_isi_format_info *info;
+	u32 sequence;
 };
 
 struct mxc_isi_m2m_ctx {
@@ -94,8 +95,8 @@ static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *isi)
 
 	v4l2_m2m_buf_copy_metadata(src_vbuf, dst_vbuf, false);
 
-	m2m->frame_count++;
-	dst_vbuf->sequence = m2m->frame_count;
+	src_vbuf->sequence = ctx->queues.out.sequence++;
+	dst_vbuf->sequence = ctx->queues.cap.sequence++;
 
 	v4l2_m2m_buf_done(src_vbuf, VB2_BUF_STATE_DONE);
 	v4l2_m2m_buf_done(dst_vbuf, VB2_BUF_STATE_DONE);
@@ -143,7 +144,6 @@ static void mxc_isi_m2m_device_run(void *priv)
 
 		mxc_isi_channel_enable(m2m->pipe);
 
-		m2m->frame_count = 0;
 		m2m->last_ctx = ctx;
 	}
 
@@ -255,14 +255,8 @@ static int mxc_isi_m2m_vb2_start_streaming(struct vb2_queue *q,
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
 	struct mxc_isi_m2m_ctx_queue_data *qdata =
 		mxc_isi_m2m_ctx_qdata(ctx, q->type);
-	unsigned long flags;
 
-	if (V4L2_TYPE_IS_OUTPUT(q->type))
-		return 0;
-
-	spin_lock_irqsave(&m2m->slock, flags);
-	m2m->frame_count = 1;
-	spin_unlock_irqrestore(&m2m->slock, flags);
+	qdata->sequence = 0;
 
 	return 0;
 }
