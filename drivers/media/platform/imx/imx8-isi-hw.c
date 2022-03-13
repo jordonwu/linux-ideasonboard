@@ -172,7 +172,7 @@ static u32 mxc_isi_channel_scaling_ratio(unsigned int from, unsigned int to,
 }
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
-					enum mxc_isi_encoding src_encoding,
+					enum mxc_isi_encoding encoding,
 					const struct v4l2_mbus_framefmt *format,
 					const struct v4l2_rect *compose,
 					bool *bypass)
@@ -202,7 +202,7 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	 * operates in YUV mode or in RGB mode. It must be set when the scaler
 	 * input is YUV.
 	 */
-	if (src_encoding == MXC_ISI_ENC_YUV)
+	if (encoding == MXC_ISI_ENC_YUV)
 		val |= CHNL_IMG_CTRL_YCBCR_MODE;
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
