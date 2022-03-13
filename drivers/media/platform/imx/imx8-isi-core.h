@@ -112,17 +112,17 @@ struct mxc_isi_reg {
 };
 
 struct mxc_isi_ier_reg {
-	/* Overflow Y/U/V triggier enable*/
+	/* Overflow Y/U/V trigger enable*/
 	struct mxc_isi_reg oflw_y_buf_en;
 	struct mxc_isi_reg oflw_u_buf_en;
 	struct mxc_isi_reg oflw_v_buf_en;
 
-	/* Excess overflow Y/U/V triggier enable*/
+	/* Excess overflow Y/U/V trigger enable*/
 	struct mxc_isi_reg excs_oflw_y_buf_en;
 	struct mxc_isi_reg excs_oflw_u_buf_en;
 	struct mxc_isi_reg excs_oflw_v_buf_en;
 
-	/* Panic Y/U/V triggier enable*/
+	/* Panic Y/U/V trigger enable*/
 	struct mxc_isi_reg panic_y_buf_en;
 	struct mxc_isi_reg panic_v_buf_en;
 	struct mxc_isi_reg panic_u_buf_en;
