@@ -135,11 +135,11 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
 }
 
 static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
-			      const struct v4l2_mbus_framefmt *format)
+			      const struct v4l2_area *in_size)
 {
 	u32 val;
 
-	if (format->width > 2048) {
+	if (in_size->width > 2048) {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
@@ -173,20 +173,21 @@ static u32 mxc_isi_channel_scaling_ratio(unsigned int from, unsigned int to,
 
 static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 					enum mxc_isi_encoding encoding,
-					const struct v4l2_mbus_framefmt *format,
-					const struct v4l2_rect *compose,
+					const struct v4l2_area *in_size,
+					const struct v4l2_area *out_size,
 					bool *bypass)
 {
 	u32 xscale, yscale;
 	u32 decx, decy;
 	u32 val;
 
-	dev_dbg(pipe->isi->dev, "input_size %ux%u, output_size %ux%u\n",
-		format->width, format->height, compose->width, compose->height);
+	dev_dbg(pipe->isi->dev, "input %ux%u, output %ux%u\n",
+		in_size->width, in_size->height,
+		out_size->width, out_size->height);
 
-	xscale = mxc_isi_channel_scaling_ratio(format->width, compose->width,
+	xscale = mxc_isi_channel_scaling_ratio(in_size->width, out_size->width,
 					       &decx);
-	yscale = mxc_isi_channel_scaling_ratio(format->height, compose->height,
+	yscale = mxc_isi_channel_scaling_ratio(in_size->height, out_size->height,
 					       &decy);
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
@@ -214,15 +215,15 @@ static void mxc_isi_channel_set_scaling(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_SCALE_OFFSET, 0);
 
 	mxc_isi_write(pipe, CHNL_SCL_IMG_CFG,
-		      CHNL_SCL_IMG_CFG_HEIGHT(compose->height) |
-		      CHNL_SCL_IMG_CFG_WIDTH(compose->width));
+		      CHNL_SCL_IMG_CFG_HEIGHT(out_size->height) |
+		      CHNL_SCL_IMG_CFG_WIDTH(out_size->width));
 
-	*bypass = format->height == compose->height &&
-		  format->width == compose->width;
+	*bypass = in_size->height == out_size->height &&
+		  in_size->width == out_size->width;
 }
 
 static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
-				     const struct v4l2_rect *src,
+				     const struct v4l2_area *src,
 				     const struct v4l2_rect *dst)
 {
 	u32 val, val0, val1;
@@ -261,8 +262,8 @@ static const u32 mxc_isi_rgb2yuv_coeffs[6] = {
 };
 
 static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
-				    enum mxc_isi_encoding src_encoding,
-				    enum mxc_isi_encoding dst_encoding,
+				    enum mxc_isi_encoding in_encoding,
+				    enum mxc_isi_encoding out_encoding,
 				    bool *bypass)
 {
 	static const char * const encodings[] = {
@@ -277,14 +278,14 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~(CHNL_IMG_CTRL_CSC_BYPASS | CHNL_IMG_CTRL_CSC_MODE_MASK);
 
-	if (src_encoding == MXC_ISI_ENC_YUV &&
-	    dst_encoding == MXC_ISI_ENC_RGB) {
+	if (in_encoding == MXC_ISI_ENC_YUV &&
+	    out_encoding == MXC_ISI_ENC_RGB) {
 		/* YUV2RGB */
 		coeffs = mxc_isi_yuv2rgb_coeffs;
 		/* YCbCr enable???  */
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
-	} else if (src_encoding == MXC_ISI_ENC_RGB &&
-		   dst_encoding == MXC_ISI_ENC_YUV) {
+	} else if (in_encoding == MXC_ISI_ENC_RGB &&
+		   out_encoding == MXC_ISI_ENC_YUV) {
 		/* RGB2YUV */
 		coeffs = mxc_isi_rgb2yuv_coeffs;
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
@@ -295,7 +296,7 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	}
 
 	dev_dbg(pipe->isi->dev, "CSC: %s -> %s\n",
-		encodings[src_encoding], encodings[dst_encoding]);
+		encodings[in_encoding], encodings[out_encoding]);
 
 	if (cscen) {
 		mxc_isi_write(pipe, CHNL_CSC_COEFF0, coeffs[0]);
@@ -357,11 +358,11 @@ static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 }
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
-			    const struct v4l2_mbus_framefmt *src_format,
-			    const struct v4l2_rect *scale,
+			    const struct v4l2_area *in_size,
+			    const struct v4l2_area *scale,
 			    const struct v4l2_rect *crop,
-			    enum mxc_isi_encoding src_encoding,
-			    enum mxc_isi_encoding dst_encoding)
+			    enum mxc_isi_encoding in_encoding,
+			    enum mxc_isi_encoding out_encoding)
 {
 	bool csc_bypass;
 	bool scaler_bypass;
@@ -372,17 +373,17 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, unsigned int input,
 
 	/* Input frame size */
 	mxc_isi_write(pipe, CHNL_IMG_CFG,
-		      CHNL_IMG_CFG_HEIGHT(src_format->height) |
-		      CHNL_IMG_CFG_WIDTH(src_format->width));
+		      CHNL_IMG_CFG_HEIGHT(in_size->height) |
+		      CHNL_IMG_CFG_WIDTH(in_size->width));
 
 	/* Scaling */
-	mxc_isi_chain_buf(pipe, src_format);
-	mxc_isi_channel_set_scaling(pipe, src_encoding, src_format, scale,
+	mxc_isi_chain_buf(pipe, in_size);
+	mxc_isi_channel_set_scaling(pipe, in_encoding, in_size, scale,
 				    &scaler_bypass);
 	mxc_isi_channel_set_crop(pipe, scale, crop);
 
 	/* CSC */
-	mxc_isi_channel_set_csc(pipe, src_encoding, dst_encoding, &csc_bypass);
+	mxc_isi_channel_set_csc(pipe, in_encoding, out_encoding, &csc_bypass);
 
 	/* Output buffer management, including global alpha and flipping */
 	mxc_isi_channel_set_alpha(pipe);

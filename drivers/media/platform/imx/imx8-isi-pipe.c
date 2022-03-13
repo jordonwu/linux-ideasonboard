@@ -240,6 +240,7 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	const struct v4l2_mbus_framefmt *src_fmt;
 	const struct v4l2_rect *compose;
 	const struct v4l2_rect *crop;
+	struct v4l2_area in_size, scale;
 	struct v4l2_subdev_state *state;
 	struct v4l2_subdev *sd = &pipe->sd;
 	u32 input;
@@ -271,7 +272,12 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	src_info = mxc_isi_bus_format_by_code(src_fmt->code,
 					      MXC_ISI_PIPE_PAD_SOURCE);
 
-	mxc_isi_channel_config(pipe, input, sink_fmt, compose, crop,
+	in_size.width = sink_fmt->width;
+	in_size.height = sink_fmt->height;
+	scale.width = compose->width;
+	scale.height = compose->height;
+
+	mxc_isi_channel_config(pipe, input, &in_size, &scale, crop,
 			       sink_info->encoding, src_info->encoding);
 
 	v4l2_subdev_unlock_state(state);
