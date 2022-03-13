@@ -87,6 +87,11 @@ static void mxc_isi_pipe_dump_regs(struct mxc_isi_pipe *pipe)
  * Buffers
  */
 
+void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr)
+{
+	mxc_isi_write(pipe, CHNL_IN_BUF_ADDR, dma_addr);
+}
+
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				const u32 dma_addrs[3],
 				enum mxc_isi_buf_id buf_id)
@@ -401,6 +406,18 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 		val |= CHNL_CTRL_CHNL_BYPASS;
 
 	mxc_isi_write(pipe, CHNL_CTRL, val);
+}
+
+void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
+				      const struct mxc_isi_format_info *info,
+				      const struct v4l2_pix_format_mplane *format)
+{
+	unsigned int bpl = format->plane_fmt[0].bytesperline;
+
+	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL,
+		      CHNL_MEM_RD_CTRL_IMG_TYPE(info->isi_in_format));
+	mxc_isi_write(pipe, CHNL_IN_BUF_PITCH,
+		      CHNL_IN_BUF_PITCH_LINE_PITCH(bpl));
 }
 
 void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,

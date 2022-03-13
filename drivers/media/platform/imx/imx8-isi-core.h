@@ -283,10 +283,14 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 			    enum mxc_isi_encoding in_encoding,
 			    enum mxc_isi_encoding out_encoding);
 
+void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
+				      const struct mxc_isi_format_info *info,
+				      const struct v4l2_pix_format_mplane *format);
 void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       const struct mxc_isi_format_info *info,
 				       struct v4l2_pix_format_mplane *format);
 
+void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr);
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				const u32 dma_addrs[3],
 				enum mxc_isi_buf_id buf_id);
