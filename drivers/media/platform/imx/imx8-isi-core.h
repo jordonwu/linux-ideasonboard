@@ -238,13 +238,6 @@ struct mxc_isi_m2m {
 	struct video_device		vdev;
 	struct v4l2_m2m_dev		*m2m_dev;
 
-	struct {
-		struct v4l2_ctrl_handler handler;
-		struct v4l2_ctrl *alpha;
-		struct v4l2_ctrl *vflip;
-		struct v4l2_ctrl *hflip;
-	} ctrls;
-
 	/* Protects last_ctx and usage_count */
 	struct mutex			lock;
 
