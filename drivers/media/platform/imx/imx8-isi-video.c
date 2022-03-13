@@ -513,7 +513,8 @@ void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 		}
 	}
 
-	mxc_isi_channel_set_outbuf(pipe, next_buf, buf_id);
+	mxc_isi_channel_set_outbuf(pipe, next_buf->dma_addrs, buf_id);
+	next_buf->id = buf_id;
 
 	/*
 	 * Check if we have raced with the end of frame interrupt. If so, we
@@ -701,7 +702,8 @@ static void mxc_isi_video_queue_first_buffers(struct mxc_isi_video *video)
 		list = i < discard ? &video->out_discard : &video->out_pending;
 		buf = list_first_entry(list, struct mxc_isi_buffer, list);
 
-		mxc_isi_channel_set_outbuf(video->pipe, buf, buf_id);
+		mxc_isi_channel_set_outbuf(video->pipe, buf->dma_addrs, buf_id);
+		buf->id = buf_id;
 		list_move_tail(&buf->list, &video->out_active);
 	}
 }
