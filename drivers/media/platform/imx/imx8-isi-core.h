@@ -247,7 +247,6 @@ struct mxc_isi_m2m {
 
 	/* Protects last_ctx and usage_count */
 	struct mutex			lock;
-	spinlock_t			slock;
 
 	struct mxc_isi_m2m_ctx		*last_ctx;
 	int				usage_count;
