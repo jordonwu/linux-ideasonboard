@@ -352,26 +352,25 @@ static inline struct mxc_isi_m2m_dev *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl
 static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_m2m_dev *m2m = ctrl_to_mxc_isi_m2m(ctrl);
-	struct mxc_isi_dev *isi = m2m->isi;
 	unsigned long flags;
 
-	spin_lock_irqsave(&isi->slock, flags);
+	spin_lock_irqsave(&m2m->isi->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_HFLIP:
-		isi->hflip = ctrl->val;
+		m2m->pipe->hflip = ctrl->val;
 		break;
 
 	case V4L2_CID_VFLIP:
-		isi->vflip = ctrl->val;
+		m2m->pipe->vflip = ctrl->val;
 		break;
 
 	case V4L2_CID_ALPHA_COMPONENT:
-		isi->alpha = ctrl->val;
+		m2m->pipe->alpha = ctrl->val;
 		break;
 	}
 
-	spin_unlock_irqrestore(&isi->slock, flags);
+	spin_unlock_irqrestore(&m2m->isi->slock, flags);
 	return 0;
 }
 
