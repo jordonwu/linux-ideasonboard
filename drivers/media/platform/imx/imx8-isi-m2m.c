@@ -32,7 +32,7 @@
 
 #include "imx8-isi-core.h"
 
-struct mxc_isi_m2m_dev {
+struct mxc_isi_m2m {
 	struct mxc_isi_dev *isi;
 	struct mxc_isi_pipe *pipe;
 
@@ -65,7 +65,7 @@ struct mxc_isi_m2m_ctx_format {
 
 struct mxc_isi_m2m_ctx {
 	struct v4l2_fh fh;
-	struct mxc_isi_m2m_dev *m2m;
+	struct mxc_isi_m2m *m2m;
 
 	struct {
 		struct mxc_isi_m2m_ctx_format out;
@@ -90,7 +90,7 @@ static inline struct mxc_isi_m2m_ctx *to_isi_m2m_ctx(struct v4l2_fh *fh)
 
 static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_m2m_dev *m2m = &isi->m2m;
+	struct mxc_isi_m2m *m2m = &isi->m2m;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
 	struct mxc_isi_m2m_ctx *ctx;
 
@@ -118,7 +118,7 @@ static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *isi)
 static void mxc_isi_m2m_device_run(void *priv)
 {
 	struct mxc_isi_m2m_ctx *ctx = priv;
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
 	struct mxc_isi_m2m_buffer *src_buf, dst_buf;
 	unsigned long flags;
@@ -155,7 +155,7 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 				       struct device *alloc_devs[])
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct v4l2_pix_format_mplane *pix;
 	struct mxc_isi_format_info *info;
 	unsigned long wh;
@@ -191,7 +191,7 @@ static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
 {
 	struct mxc_isi_m2m_buffer *buf = to_isi_m2m_buffer(to_vb2_v4l2_buffer(vb2));
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vb2->vb2_queue);
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct mxc_isi_m2m_ctx_format *format;
 	unsigned int i;
 
@@ -210,7 +210,7 @@ static int mxc_isi_m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 {
 	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vq);
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct mxc_isi_m2m_ctx_format *format;
 	unsigned int i;
 
@@ -247,7 +247,7 @@ static int mxc_isi_m2m_vb2_start_streaming(struct vb2_queue *q,
 					   unsigned int count)
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	unsigned long flags;
 
 	if (V4L2_TYPE_IS_OUTPUT(q->type))
@@ -263,7 +263,7 @@ static int mxc_isi_m2m_vb2_start_streaming(struct vb2_queue *q,
 static void mxc_isi_m2m_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *vbuf;
 	unsigned long flags;
 
@@ -298,7 +298,7 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 				  struct vb2_queue *dst_vq)
 {
 	struct mxc_isi_m2m_ctx *ctx = priv;
-	struct mxc_isi_m2m_dev *m2m = ctx->m2m;
+	struct mxc_isi_m2m *m2m = ctx->m2m;
 	int ret;
 
 	src_vq->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
@@ -332,14 +332,14 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
  * V4L2 controls
  */
 
-static inline struct mxc_isi_m2m_dev *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl)
+static inline struct mxc_isi_m2m *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct mxc_isi_m2m_dev, ctrls.handler);
+	return container_of(ctrl->handler, struct mxc_isi_m2m, ctrls.handler);
 }
 
 static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct mxc_isi_m2m_dev *m2m = ctrl_to_mxc_isi_m2m(ctrl);
+	struct mxc_isi_m2m *m2m = ctrl_to_mxc_isi_m2m(ctrl);
 	unsigned long flags;
 
 	spin_lock_irqsave(&m2m->isi->slock, flags);
@@ -366,7 +366,7 @@ static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
 	.s_ctrl = mxc_isi_m2m_s_ctrl,
 };
 
-static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *m2m)
+static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m *m2m)
 {
 	struct v4l2_ctrl_handler *handler = &m2m->ctrls.handler;
 	int ret;
@@ -392,7 +392,7 @@ static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *m2m)
 	return 0;
 }
 
-static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *m2m)
+static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m *m2m)
 {
 	v4l2_ctrl_handler_free(&m2m->ctrls.handler);
 }
@@ -404,7 +404,7 @@ static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *m2m)
 static int mxc_isi_m2m_querycap(struct file *file, void *priv,
 					struct v4l2_capability *cap)
 {
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 
 	strlcpy(cap->driver, MXC_ISI_M2M, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_M2M, sizeof(cap->card));
@@ -449,7 +449,7 @@ static int mxc_isi_m2m_try_fmt_vid_out(struct file *file, void *fh,
 static int mxc_isi_m2m_try_fmt_vid_cap(struct file *file, void *fh,
 				   struct v4l2_format *f)
 {
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	struct device *dev = m2m->isi->dev;
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	struct mxc_isi_format_info *info;
@@ -510,7 +510,7 @@ static int mxc_isi_m2m_streamon(struct file *file, void *priv,
 	const enum mxc_isi_video_type type =
 		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
 		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	int ret;
 
 	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
@@ -526,7 +526,7 @@ static int mxc_isi_m2m_streamon(struct file *file, void *priv,
 static int mxc_isi_m2m_streamoff(struct file *file, void *priv,
 			    enum v4l2_buf_type type)
 {
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	int ret;
 
 	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
@@ -578,7 +578,7 @@ static void mxc_isi_m2m_init_format(struct mxc_isi_m2m_ctx_format *format,
 static int mxc_isi_m2m_open(struct file *file)
 {
 	struct video_device *vdev = video_devdata(file);
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	struct mxc_isi_dev *isi = m2m->isi;
 	struct device *dev = isi->dev;
 	struct mxc_isi_m2m_ctx *ctx;
@@ -624,7 +624,7 @@ error:
 
 static int mxc_isi_m2m_release(struct file *file)
 {
-	struct mxc_isi_m2m_dev *m2m = video_drvdata(file);
+	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(file->private_data);
 
 	v4l2_fh_del(&ctx->fh);
@@ -658,7 +658,7 @@ static const struct v4l2_file_operations mxc_isi_m2m_fops = {
 
 int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 {
-	struct mxc_isi_m2m_dev *m2m = &isi->m2m;
+	struct mxc_isi_m2m *m2m = &isi->m2m;
 	struct video_device *vdev = &m2m->vdev;
 	int ret;
 
@@ -741,7 +741,7 @@ err_mutex:
 
 int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_m2m_dev *m2m = &isi->m2m;
+	struct mxc_isi_m2m *m2m = &isi->m2m;
 	struct video_device *vdev = &m2m->vdev;
 
 	video_unregister_device(vdev);
