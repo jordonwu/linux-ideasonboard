@@ -21,31 +21,37 @@
 #include <linux/slab.h>
 #include <linux/of_graph.h>
 #include <linux/videodev2.h>
+
 #include <media/v4l2-device.h>
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-mem2mem.h>
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
-#include "imx8-isi-hw.h"
 #include "imx8-common.h"
+#include "imx8-isi-hw.h"
 
 struct mxc_isi_m2m_dev {
 	struct mxc_isi_dev *isi;
 
+	struct media_pad pads[2];
 	struct video_device vdev;
 	struct v4l2_m2m_dev *m2m_dev;
 
+	struct {
+		struct v4l2_ctrl_handler handler;
+		struct v4l2_ctrl *alpha;
+		struct v4l2_ctrl *vflip;
+		struct v4l2_ctrl *hflip;
+	} ctrls;
+
 	struct list_head	out_active;
-	struct mxc_isi_ctrls	ctrls;
 
 	struct mutex lock;
-	spinlock_t   slock;
+	spinlock_t slock;
 
 	unsigned int aborting;
 	unsigned int frame_count;
-
-	u8 id;
 };
 
 struct mxc_isi_ctx_format {
@@ -534,36 +540,33 @@ static const struct v4l2_ctrl_ops mxc_isi_m2m_ctrl_ops = {
 
 static int mxc_isi_m2m_ctrls_create(struct mxc_isi_m2m_dev *m2m)
 {
-	struct mxc_isi_ctrls *ctrls = &m2m->ctrls;
-	struct v4l2_ctrl_handler *handler = &ctrls->handler;
-
-	if (m2m->ctrls.ready)
-		return 0;
+	struct v4l2_ctrl_handler *handler = &m2m->ctrls.handler;
+	int ret;
 
 	v4l2_ctrl_handler_init(handler, 3);
 
-	ctrls->hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_HFLIP, 0, 1, 1, 0);
-	ctrls->vflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_VFLIP, 0, 1, 1, 0);
-	ctrls->alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
-					V4L2_CID_ALPHA_COMPONENT, 0, 0xff, 1, 0);
+	m2m->ctrls.alpha = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					     V4L2_CID_ALPHA_COMPONENT,
+					     0, 255, 1, 0);
+	m2m->ctrls.hflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					     V4L2_CID_HFLIP, 0, 1, 1, 0);
+	m2m->ctrls.vflip = v4l2_ctrl_new_std(handler, &mxc_isi_m2m_ctrl_ops,
+					     V4L2_CID_VFLIP, 0, 1, 1, 0);
 
-	if (!handler->error)
-		ctrls->ready = true;
+	if (handler->error) {
+		ret = handler->error;
+		v4l2_ctrl_handler_free(handler);
+		return ret;
+	}
 
-	return handler->error;
+	m2m->vdev.ctrl_handler = handler;
+
+	return 0;
 }
 
 static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m_dev *m2m)
 {
-	struct mxc_isi_ctrls *ctrls = &m2m->ctrls;
-
-	if (ctrls->ready) {
-		v4l2_ctrl_handler_free(&ctrls->handler);
-		ctrls->ready = false;
-		ctrls->alpha = NULL;
-	}
+	v4l2_ctrl_handler_free(&m2m->ctrls.handler);
 }
 
 /* -----------------------------------------------------------------------------
@@ -577,8 +580,8 @@ static int mxc_isi_m2m_querycap(struct file *file, void *priv,
 
 	strlcpy(cap->driver, MXC_ISI_M2M, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_M2M, sizeof(cap->card));
-	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%d",
-		 dev_name(m2m->isi->dev), m2m->id);
+	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s",
+		 dev_name(m2m->isi->dev));
 	cap->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_M2M_MPLANE;
 	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
@@ -829,77 +832,82 @@ static const struct v4l2_file_operations mxc_isi_m2m_fops = {
  * Registration
  */
 
-static int isi_m2m_probe(struct platform_device *pdev)
+int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 {
-	struct mxc_isi_m2m_dev *m2m;
-	struct video_device *vdev;
-	int ret = -ENOMEM;
+	struct mxc_isi_m2m_dev *m2m = &isi->m2m;
+	struct video_device *vdev = &m2m->vdev;
+	int ret;
 
-	m2m = devm_kzalloc(&pdev->dev, sizeof(*m2m), GFP_KERNEL);
-	if (!m2m)
-		return -ENOMEM;
-	m2m->pdev = pdev;
+	m2m->isi = isi;
 
+	INIT_LIST_HEAD(&m2m->out_active);
 	spin_lock_init(&m2m->slock);
 	mutex_init(&m2m->lock);
 
-	/* m2m */
-	m2m->m2m_dev = v4l2_m2m_init(&mxc_isi_m2m_ops);
-	if (IS_ERR(m2m->m2m_dev)) {
-		dev_err(&pdev->dev, "%s fail to get m2m device\n", __func__);
-		return PTR_ERR(m2m->m2m_dev);
-	}
+	/* Initialize the media entity. */
+	m2m->pads[0].flags = MEDIA_PAD_FL_SINK;
+	m2m->pads[1].flags = MEDIA_PAD_FL_SOURCE;
+	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
+	ret = media_entity_pads_init(&vdev->entity, 2, &m2m->pads);
+	if (ret)
+		goto err_mutex;
 
-	INIT_LIST_HEAD(&m2m->out_active);
-
-	/* Video device */
-	vdev = &m2m->vdev;
-	memset(vdev, 0, sizeof(*vdev));
-	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.%d.m2m", m2m->id);
+	/* Initialize the video device and create controls. */
+	snprintf(vdev->name, sizeof(vdev->name), "mxc_isi.m2m");
 
 	vdev->fops	= &mxc_isi_m2m_fops;
 	vdev->ioctl_ops	= &mxc_isi_m2m_ioctl_ops;
 	vdev->v4l2_dev	= v4l2_dev;
 	vdev->minor	= -1;
 	vdev->release	= video_device_release_empty;
-	vdev->vfl_dir = VFL_DIR_M2M;
+	vdev->vfl_dir	= VFL_DIR_M2M;
+
 	vdev->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_M2M_MPLANE;
+	video_set_drvdata(vdev, m2m);
 
 	ret = mxc_isi_m2m_ctrls_create(m2m);
 	if (ret)
-		goto free_m2m;
+		goto err_entity;
 
-	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "%s fail to register video device\n", __func__);
-		goto ctrl_free;
+	/* Create the M2M device. */
+	m2m->m2m_dev = v4l2_m2m_init(&mxc_isi_m2m_ops);
+	if (IS_ERR(m2m->m2m_dev)) {
+		dev_err(isi->dev, "failed to initialize m2m device\n");
+		ret = PTR_ERR(m2m->m2m_dev);
+		goto err_ctrls;
 	}
 
-	vdev->ctrl_handler = &m2m->ctrls.handler;
-	video_set_drvdata(vdev, m2m);
-
-	dev_info(&pdev->dev, "Register m2m success for ISI.%d\n", m2m->id);
+	/* Register the video device. */
+	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to register m2m device\n");
+		goto err_m2m;
+	}
 
 	return 0;
 
-ctrl_free:
-	mxc_isi_m2m_ctrls_delete(m2m);
-free_m2m:
+err_m2m:
 	v4l2_m2m_release(m2m->m2m_dev);
+err_ctrls:
+	mxc_isi_m2m_ctrls_delete(m2m);
+err_entity:
+	media_entity_cleanup(&vdev->entity);
+err_mutex:
+	mutex_destroy(&m2m->lock);
 	return ret;
 }
 
-static int isi_m2m_remove(struct platform_device *pdev)
+int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 {
-	struct mxc_isi_m2m_dev *m2m = platform_get_drvdata(pdev);
+	struct mxc_isi_m2m_dev *m2m = &isi->m2m;
 	struct video_device *vdev = &m2m->vdev;
 
-	if (video_is_registered(vdev)) {
-		video_unregister_device(vdev);
-		mxc_isi_m2m_ctrls_delete(m2m);
-		media_entity_cleanup(&vdev->entity);
-	}
+	video_unregister_device(vdev);
+
 	v4l2_m2m_release(m2m->m2m_dev);
+	mxc_isi_m2m_ctrls_delete(m2m);
+	media_entity_cleanup(&vdev->entity);
+	mutex_destroy(&m2m->lock);
 
 	return 0;
 }
