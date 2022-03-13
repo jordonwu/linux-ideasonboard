@@ -48,6 +48,9 @@ struct mxc_isi_m2m_ctx {
 	struct v4l2_fh fh;
 	struct mxc_isi_m2m *m2m;
 
+	/* Protects the m2m vb2 queues */
+	struct mutex vb2_lock;
+
 	struct {
 		struct mxc_isi_m2m_ctx_queue_data out;
 		struct mxc_isi_m2m_ctx_queue_data cap;
@@ -303,7 +306,7 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 	src_vq->ops = &mxc_isi_m2m_vb2_qops;
 	src_vq->mem_ops = &vb2_dma_contig_memops;
 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
-	src_vq->lock = &m2m->lock;
+	src_vq->lock = &ctx->vb2_lock;
 	src_vq->dev = m2m->isi->dev;
 
 	ret = vb2_queue_init(src_vq);
@@ -317,7 +320,7 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
 	dst_vq->ops = &mxc_isi_m2m_vb2_qops;
 	dst_vq->mem_ops = &vb2_dma_contig_memops;
 	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
-	dst_vq->lock = &m2m->lock;
+	dst_vq->lock = &ctx->vb2_lock;
 	dst_vq->dev = m2m->isi->dev;
 
 	return vb2_queue_init(dst_vq);
@@ -613,6 +616,8 @@ static int mxc_isi_m2m_open(struct file *file)
 		return -ENOMEM;
 
 	ctx->m2m = m2m;
+	mutex_init(&ctx->vb2_lock);
+
 	v4l2_fh_init(&ctx->fh, vdev);
 	file->private_data = &ctx->fh;
 
@@ -639,6 +644,7 @@ error:
 	if (ctx->fh.m2m_ctx)
 		v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
 	v4l2_fh_exit(&ctx->fh);
+	mutex_destroy(&ctx->vb2_lock);
 	kfree(ctx);
 	return ret;
 }
@@ -648,11 +654,12 @@ static int mxc_isi_m2m_release(struct file *file)
 	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(file->private_data);
 
+	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
 
-	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
-
+	mutex_destroy(&ctx->vb2_lock);
 	kfree(ctx);
 
 	pm_runtime_put(m2m->isi->dev);
