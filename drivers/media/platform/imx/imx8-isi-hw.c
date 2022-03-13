@@ -544,3 +544,16 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 	val &= ~CHNL_CTRL_CLK_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
+
+void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe)
+{
+	u32 val;
+
+	val = mxc_isi_read(pipe, CHNL_MEM_RD_CTRL);
+	val &= ~CHNL_MEM_RD_CTRL_READ_MEM;
+	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL, val);
+	udelay(300);
+
+	val |= CHNL_MEM_RD_CTRL_READ_MEM;
+	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL, val);
+}
