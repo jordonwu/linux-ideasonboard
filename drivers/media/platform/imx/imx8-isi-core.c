@@ -152,6 +152,13 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 			goto err_v4l2;
 	}
 
+	/* Register the M2M device. */
+	ret = mxc_isi_m2m_register(isi, v4l2_dev);
+	if (ret < 0) {
+		dev_err(isi->dev, "Failed to register M2M device: %d\n", ret);
+		goto err_v4l2;
+	}
+
 	/* Initialize, fill and register the async notifier. */
 	v4l2_async_nf_init(&isi->notifier);
 	isi->notifier.ops = &mxc_isi_async_notifier_ops;
@@ -173,7 +180,7 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 
 		if (IS_ERR(masd)) {
 			ret = PTR_ERR(masd);
-			goto err_notifier;
+			goto err_m2m;
 		}
 
 		masd->port = i;
@@ -183,12 +190,13 @@ static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 	if (ret < 0) {
 		dev_err(isi->dev,
 			"Failed to register async notifier: %d\n", ret);
-		goto err_notifier;
+		goto err_m2m;
 	}
 
 	return 0;
 
-err_notifier:
+err_m2m:
+	mxc_isi_m2m_unregister(isi);
 	v4l2_async_nf_cleanup(&isi->notifier);
 err_v4l2:
 	v4l2_device_unregister(v4l2_dev);
@@ -206,6 +214,8 @@ static void mxc_isi_v4l2_cleanup(struct mxc_isi_dev *isi)
 
 	v4l2_device_unregister(&isi->v4l2_dev);
 	media_device_unregister(&isi->media_dev);
+
+	mxc_isi_m2m_unregister(isi);
 
 	for (i = 0; i < isi->pdata->num_channels; ++i)
 		mxc_isi_pipe_unregister(&isi->pipes[i]);
