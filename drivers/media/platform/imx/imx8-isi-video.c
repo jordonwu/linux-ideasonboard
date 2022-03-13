@@ -940,9 +940,6 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_video *video)
 static void mxc_isi_video_ctrls_delete(struct mxc_isi_video *video)
 {
 	v4l2_ctrl_handler_free(&video->ctrls.handler);
-	video->ctrls.alpha = NULL;
-	video->ctrls.vflip = NULL;
-	video->ctrls.hflip = NULL;
 }
 
 /* -----------------------------------------------------------------------------
