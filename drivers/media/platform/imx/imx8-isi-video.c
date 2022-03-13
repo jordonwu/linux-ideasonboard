@@ -1251,11 +1251,13 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 				    &vdev->entity, 0,
 				    MEDIA_LNK_FL_IMMUTABLE |
 				    MEDIA_LNK_FL_ENABLED);
-	if (ret < 0)
-		goto err_ctrl_free;
+	if (ret)
+		goto err_video_unreg;
 
 	return 0;
 
+err_video_unreg:
+	video_unregister_device(vdev);
 err_ctrl_free:
 	mxc_isi_video_ctrls_delete(video);
 err_me_cleanup:
