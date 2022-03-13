@@ -6,30 +6,31 @@
  * used to process image from camera sensor or memory to memory or DC
  *
  * Copyright (c) 2019 NXP Semiconductor
- *
  */
 
-#include <linux/bug.h>
+#include <linux/container_of.h>
 #include <linux/device.h>
 #include <linux/errno.h>
-#include <linux/interrupt.h>
 #include <linux/kernel.h>
-#include <linux/list.h>
-#include <linux/module.h>
-#include <linux/of_graph.h>
+#include <linux/minmax.h>
+#include <linux/mutex.h>
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
+#include <linux/spinlock.h>
+#include <linux/string.h>
 #include <linux/types.h>
 #include <linux/videodev2.h>
 
+#include <media/media-entity.h>
+#include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
+#include <media/v4l2-fh.h>
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-mem2mem.h>
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
-#include "imx8-common.h"
-#include "imx8-isi-hw.h"
+#include "imx8-isi-core.h"
 
 struct mxc_isi_m2m_dev {
 	struct mxc_isi_dev *isi;
