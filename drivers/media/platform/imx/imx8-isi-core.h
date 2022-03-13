@@ -298,6 +298,21 @@ void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe);
 void mxc_isi_video_suspend(struct mxc_isi_pipe *pipe);
 int mxc_isi_video_resume(struct mxc_isi_pipe *pipe);
 
+#ifdef CONFIG_VIDEO_IMX8_ISI_M2M
+int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev);
+int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi);
+#else
+static inline int mxc_isi_m2m_register(struct mxc_isi_dev *isi,
+				       struct v4l2_device *v4l2_dev)
+{
+	return 0;
+}
+static inline int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
+{
+	return 0;
+}
+#endif
+
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
