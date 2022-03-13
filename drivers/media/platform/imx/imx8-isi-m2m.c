@@ -104,6 +104,40 @@ static void mxc_isi_m2m_device_run(void *priv)
 
 	spin_lock_irqsave(&m2m->slock, flags);
 
+	/* If the context has changed, reconfigure the channel. */
+	if (m2m->last_ctx != ctx) {
+		const struct v4l2_area in_size = {
+			.width = ctx->formats.out.format.width,
+			.height = ctx->formats.out.format.height,
+		};
+		const struct v4l2_area scale = {
+			.width = ctx->formats.cap.format.width,
+			.height = ctx->formats.cap.format.height,
+		};
+		const struct v4l2_rect crop = {
+			.width = ctx->formats.cap.format.width,
+			.height = ctx->formats.cap.format.height,
+		};
+
+		mxc_isi_channel_disable(m2m->pipe);
+
+		mxc_isi_channel_config(m2m->pipe, MXC_ISI_INPUT_MEM,
+				       &in_size, &scale, &crop,
+				       ctx->formats.out.info->encoding,
+				       ctx->formats.cap.info->encoding);
+		mxc_isi_channel_set_input_format(m2m->pipe,
+						 ctx->formats.out.info,
+						 &ctx->formats.out.format);
+		mxc_isi_channel_set_output_format(m2m->pipe,
+						  ctx->formats.cap.info,
+						  &ctx->formats.cap.format);
+
+		mxc_isi_channel_enable(m2m->pipe);
+
+		m2m->frame_count = 0;
+		m2m->last_ctx = ctx;
+	}
+
 	src_vbuf = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
 	dst_vbuf = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
 
@@ -114,7 +148,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 	mxc_isi_channel_set_outbuf(m2m->pipe, dst_buf->dma_addrs, MXC_ISI_BUF1);
 	mxc_isi_channel_set_outbuf(m2m->pipe, dst_buf->dma_addrs, MXC_ISI_BUF2);
 
-	mxc_isi_channel_enable(m2m->pipe);
+	mxc_isi_channel_m2m_start(m2m->pipe);
 
 	spin_unlock_irqrestore(&m2m->slock, flags);
 }
@@ -493,37 +527,7 @@ static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 				enum v4l2_buf_type type)
 {
-	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
-	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	int ret;
-
-	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-		const struct v4l2_area in_size = {
-			.width = ctx->formats.out.format.width,
-			.height = ctx->formats.out.format.height,
-		};
-		const struct v4l2_area scale = {
-			.width = ctx->formats.cap.format.width,
-			.height = ctx->formats.cap.format.height,
-		};
-		const struct v4l2_rect crop = {
-			.width = ctx->formats.cap.format.width,
-			.height = ctx->formats.cap.format.height,
-		};
-
-		m2m->frame_count = 0;
-
-		mxc_isi_channel_config(m2m->pipe, MXC_ISI_INPUT_MEM,
-				       &in_size, &scale, &crop,
-				       ctx->formats.out.info->encoding,
-				       ctx->formats.cap.info->encoding);
-		mxc_isi_channel_set_input_format(m2m->pipe,
-						 ctx->formats.out.info,
-						 &ctx->formats.out.format);
-		mxc_isi_channel_set_output_format(m2m->pipe,
-						  ctx->formats.cap.info,
-						  &ctx->formats.cap.format);
-	}
 
 	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
 
@@ -636,7 +640,16 @@ static int mxc_isi_m2m_release(struct file *file)
 	v4l2_fh_exit(&ctx->fh);
 
 	mutex_lock(&m2m->lock);
+
+	/*
+	 * If the last context is this one, reset it to make sure any newly
+	 * allocated context won't match the address by chance.
+	 */
+	if (m2m->last_ctx == ctx)
+		m2m->last_ctx = NULL;
+
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+
 	mutex_unlock(&m2m->lock);
 
 	kfree(ctx);

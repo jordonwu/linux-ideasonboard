@@ -59,6 +59,7 @@ struct v4l2_m2m_dev;
 #define MXC_MAX_PLANES			3
 
 struct mxc_isi_dev;
+struct mxc_isi_m2m_ctx;
 
 enum mxc_isi_buf_id {
 	MXC_ISI_BUF1 = 0x0,
@@ -247,6 +248,7 @@ struct mxc_isi_m2m {
 	struct mutex			lock;
 	spinlock_t			slock;
 
+	struct mxc_isi_m2m_ctx		*last_ctx;
 	unsigned int			frame_count;
 };
 
