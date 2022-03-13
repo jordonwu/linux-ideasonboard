@@ -83,23 +83,6 @@ static inline struct mxc_isi_m2m_ctx *to_isi_m2m_ctx(struct v4l2_fh *fh)
 	return container_of(fh, struct mxc_isi_m2m_ctx, fh);
 }
 
-void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr)
-{
-	mxc_isi_write(pipe, CHNL_IN_BUF_ADDR, dma_addr);
-}
-
-void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
-				      const struct mxc_isi_format_info *info,
-				      const struct v4l2_pix_format_mplane *format)
-{
-	unsigned int bpl = format->plane_fmt[0].bytesperline;
-
-	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL,
-		      CHNL_MEM_RD_CTRL_IMG_TYPE(info->isi_in_format));
-	mxc_isi_write(pipe, CHNL_IN_BUF_PITCH,
-		      CHNL_IN_BUF_PITCH_LINE_PITCH(bpl));
-}
-
 static void mxc_isi_m2m_start_read(struct mxc_isi_dev *isi)
 {
 	u32 val;
@@ -361,8 +344,10 @@ static int mxc_isi_m2m_queue_init(void *priv, struct vb2_queue *src_vq,
  * V4L2 controls
  */
 
-#define ctrl_to_mxc_isi_m2m(__ctrl) \
-	container_of((__ctrl)->handler, struct mxc_isi_m2m_dev, ctrls.handler)
+static inline struct mxc_isi_m2m_dev *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl)
+{
+	return container_of(ctrl->handler, struct mxc_isi_m2m_dev, ctrls.handler);
+}
 
 static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 {
