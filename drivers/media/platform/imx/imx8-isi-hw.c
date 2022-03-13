@@ -251,14 +251,16 @@ static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
  * A2,A1,      B1, A3,     B3, B2,
  * C2, C1,     D1, C3,     D3, D2
  */
-static const u32 mxc_isi_coeffs[2][6] = {
-	/* YUV2RGB */
-	{ 0x0000012a, 0x012a0198, 0x0730079c,
-	  0x0204012a, 0x01f00000, 0x01800180 },
+static const u32 mxc_isi_yuv2rgb_coeffs[6] = {
+	/* YUV -> RGB */
+	0x0000012a, 0x012a0198, 0x0730079c,
+	0x0204012a, 0x01f00000, 0x01800180
+};
 
+static const u32 mxc_isi_rgb2yuv_coeffs[6] = {
 	/* RGB->YUV */
-	{ 0x00810041, 0x07db0019, 0x007007b6,
-	  0x07a20070, 0x001007ee, 0x00800080 },
+	0x00810041, 0x07db0019, 0x007007b6,
+	0x07a20070, 0x001007ee, 0x00800080
 };
 
 static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
@@ -271,8 +273,9 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		[MXC_ISI_ENC_RGB] = "RGB",
 		[MXC_ISI_ENC_YUV] = "YUV",
 	};
+	const u32 *coeffs;
 	bool cscen = true;
-	u32 val, csc = 0;
+	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~(CHNL_IMG_CTRL_CSC_BYPASS | CHNL_IMG_CTRL_CSC_MODE_MASK);
@@ -280,13 +283,13 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	if (src_encoding == MXC_ISI_ENC_YUV &&
 	    dst_encoding == MXC_ISI_ENC_RGB) {
 		/* YUV2RGB */
-		csc = YUV2RGB;
+		coeffs = mxc_isi_yuv2rgb_coeffs;
 		/* YCbCr enable???  */
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_YCBCR2RGB);
 	} else if (src_encoding == MXC_ISI_ENC_RGB &&
 		   dst_encoding == MXC_ISI_ENC_YUV) {
 		/* RGB2YUV */
-		csc = RGB2YUV;
+		coeffs = mxc_isi_rgb2yuv_coeffs;
 		val |= CHNL_IMG_CTRL_CSC_MODE(CHNL_IMG_CTRL_CSC_MODE_RGB2YCBCR);
 	} else {
 		/* Bypass CSC */
@@ -298,12 +301,12 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 		encodings[src_encoding], encodings[dst_encoding]);
 
 	if (cscen) {
-		mxc_isi_write(pipe, CHNL_CSC_COEFF0, mxc_isi_coeffs[csc][0]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF1, mxc_isi_coeffs[csc][1]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF2, mxc_isi_coeffs[csc][2]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF3, mxc_isi_coeffs[csc][3]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF4, mxc_isi_coeffs[csc][4]);
-		mxc_isi_write(pipe, CHNL_CSC_COEFF5, mxc_isi_coeffs[csc][5]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF0, coeffs[0]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF1, coeffs[1]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF2, coeffs[2]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF3, coeffs[3]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF4, coeffs[4]);
+		mxc_isi_write(pipe, CHNL_CSC_COEFF5, coeffs[5]);
 	}
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);

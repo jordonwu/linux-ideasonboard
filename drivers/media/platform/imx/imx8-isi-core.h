@@ -73,11 +73,6 @@ enum mxc_isi_video_type {
 	MXC_ISI_VIDEO_CAP = BIT(1),
 };
 
-enum isi_csi_coeff {
-	YUV2RGB = 0,
-	RGB2YUV,
-};
-
 struct mxc_isi_format_info {
 	u32	mbus_code;
 	u32	fourcc;
