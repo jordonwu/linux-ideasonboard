@@ -316,27 +316,27 @@ static void mxc_isi_channel_set_csc(struct mxc_isi_pipe *pipe,
 	*bypass = !cscen;
 }
 
-static void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe)
+void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe, u8 alpha)
 {
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~CHNL_IMG_CTRL_GBL_ALPHA_VAL_MASK;
-	val |= CHNL_IMG_CTRL_GBL_ALPHA_VAL(pipe->alpha) |
+	val |= CHNL_IMG_CTRL_GBL_ALPHA_VAL(alpha) |
 	       CHNL_IMG_CTRL_GBL_ALPHA_EN;
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
 
-static void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe)
+void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe, bool hflip, bool vflip)
 {
 	u32 val;
 
 	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
 	val &= ~(CHNL_IMG_CTRL_VFLIP_EN | CHNL_IMG_CTRL_HFLIP_EN);
 
-	if (pipe->vflip)
+	if (vflip)
 		val |= CHNL_IMG_CTRL_VFLIP_EN;
-	if (pipe->hflip)
+	if (hflip)
 		val |= CHNL_IMG_CTRL_HFLIP_EN;
 
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
@@ -390,8 +390,8 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 	mxc_isi_channel_set_csc(pipe, in_encoding, out_encoding, &csc_bypass);
 
 	/* Output buffer management, including global alpha and flipping */
-	mxc_isi_channel_set_alpha(pipe);
-	mxc_isi_channel_set_flip(pipe);
+	mxc_isi_channel_set_alpha(pipe, pipe->alpha);
+	mxc_isi_channel_set_flip(pipe, pipe->hflip, pipe->vflip);
 
 	mxc_isi_channel_set_panic_threshold(pipe);
 

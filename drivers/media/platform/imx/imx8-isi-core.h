@@ -291,6 +291,9 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       const struct mxc_isi_format_info *info,
 				       struct v4l2_pix_format_mplane *format);
 
+void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe, u8 alpha);
+void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe, bool hflip, bool vflip);
+
 void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr);
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				const u32 dma_addrs[3],
