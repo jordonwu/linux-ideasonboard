@@ -797,23 +797,6 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	unsigned int i;
 	int ret;
 
-	ret = media_pipeline_start(video->vdev.entity.pads, &video->pipe->pipe);
-	if (ret < 0)
-		goto err_bufs;
-
-	/*
-	 * Verify that the configured format matches the output of the
-	 * subdev.
-	 */
-	ret = mxc_isi_video_validate_format(video);
-	if (ret)
-		goto err_stop;
-
-	/* Create buffers for discard operation. */
-	ret = mxc_isi_video_alloc_discard_buffers(video);
-	if (ret)
-		goto err_stop;
-
 	/* Initialize the ISI channel. */
 	mxc_isi_channel_init(video->pipe);
 	mxc_isi_channel_set_output_format(video->pipe, video->fmtinfo,
@@ -838,17 +821,11 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	ret = mxc_isi_pipe_enable(video->pipe);
 	if (ret)
-		goto err_free;
-
-	video->is_streaming = true;
+		goto error;
 
 	return 0;
 
-err_free:
-	mxc_isi_video_free_discard_buffers(video);
-err_stop:
-	media_pipeline_stop(video->vdev.entity.pads);
-err_bufs:
+error:
 	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_QUEUED);
 	return ret;
 }
@@ -861,11 +838,6 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	mxc_isi_channel_deinit(video->pipe);
 
 	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_ERROR);
-	mxc_isi_video_free_discard_buffers(video);
-
-	media_pipeline_stop(video->vdev.entity.pads);
-
-	video->is_streaming = false;
 }
 
 static const struct vb2_ops mxc_isi_vb2_qops = {
@@ -1030,6 +1002,66 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 	return 0;
 }
 
+static int mxc_isi_video_streamon(struct file *file, void *priv,
+				  enum v4l2_buf_type type)
+{
+	struct mxc_isi_video *video = video_drvdata(file);
+	int ret;
+
+	/*
+	 * Start pipeline and veify that the configured format matches the
+	 * output of the subdev. This must be done here and not in the queue
+	 * .start_streaming() handler, so that validation errors can be
+	 * reported from VIDIOC_STREAMON and not delayed until subsequent
+	 * VIDIOC_QBUF calls.
+	 */
+	ret = media_pipeline_start(video->vdev.entity.pads, &video->pipe->pipe);
+	if (ret)
+		return ret;
+
+	ret = mxc_isi_video_validate_format(video);
+	if (ret)
+		goto err_stop;
+
+	/* Allocate buffers for discard operation. */
+	ret = mxc_isi_video_alloc_discard_buffers(video);
+	if (ret)
+		goto err_stop;
+
+	ret = vb2_ioctl_streamon(file, priv, type);
+	if (ret)
+		goto err_free;
+
+	video->is_streaming = true;
+
+	return 0;
+
+err_free:
+	mxc_isi_video_free_discard_buffers(video);
+err_stop:
+	media_pipeline_stop(video->vdev.entity.pads);
+	return ret;
+}
+
+static int mxc_isi_video_streamoff(struct file *file, void *priv,
+				   enum v4l2_buf_type type)
+{
+	struct mxc_isi_video *video = video_drvdata(file);
+	int ret;
+
+	ret = vb2_ioctl_streamoff(file, priv, type);
+	if (ret)
+		return ret;
+
+	mxc_isi_video_free_discard_buffers(video);
+
+	media_pipeline_stop(video->vdev.entity.pads);
+
+	video->is_streaming = false;
+
+	return 0;
+}
+
 static int mxc_isi_video_enum_framesizes(struct file *file, void *priv,
 					 struct v4l2_frmsizeenum *fsize)
 {
@@ -1074,8 +1106,8 @@ static const struct v4l2_ioctl_ops mxc_isi_video_ioctl_ops = {
 	.vidioc_prepare_buf		= vb2_ioctl_prepare_buf,
 	.vidioc_create_bufs		= vb2_ioctl_create_bufs,
 
-	.vidioc_streamon		= vb2_ioctl_streamon,
-	.vidioc_streamoff		= vb2_ioctl_streamoff,
+	.vidioc_streamon		= mxc_isi_video_streamon,
+	.vidioc_streamoff		= mxc_isi_video_streamoff,
 
 	.vidioc_enum_framesizes		= mxc_isi_video_enum_framesizes,
 };
