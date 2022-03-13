@@ -632,11 +632,11 @@ static int mxc_isi_m2m_open(struct file *file)
 	mxc_isi_m2m_init_format(&ctx->queues.out, MXC_ISI_VIDEO_OUT);
 	mxc_isi_m2m_init_format(&ctx->queues.cap, MXC_ISI_VIDEO_CAP);
 
-	v4l2_fh_add(&ctx->fh);
-
 	ret = pm_runtime_resume_and_get(m2m->isi->dev);
 	if (ret)
 		goto error;
+
+	v4l2_fh_add(&ctx->fh);
 
 	return 0;
 
