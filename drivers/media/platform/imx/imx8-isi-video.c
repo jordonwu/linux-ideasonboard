@@ -944,13 +944,14 @@ static int mxc_isi_video_g_fmt(struct file *file, void *fh,
 	return 0;
 }
 
-static void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
-				    const struct mxc_isi_format_info **info)
+void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
+			     const struct mxc_isi_format_info **info,
+			     enum mxc_isi_video_type type)
 {
 	const struct mxc_isi_format_info *fmt;
 	unsigned int i;
 
-	fmt = mxc_isi_format_by_fourcc(pix->pixelformat, MXC_ISI_VIDEO_CAP);
+	fmt = mxc_isi_format_by_fourcc(pix->pixelformat, type);
 	if (!fmt)
 		fmt = &mxc_isi_formats[0];
 
@@ -993,7 +994,7 @@ static void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
 static int mxc_isi_video_try_fmt(struct file *file, void *fh,
 				 struct v4l2_format *f)
 {
-	__mxc_isi_video_try_fmt(&f->fmt.pix_mp, NULL);
+	__mxc_isi_video_try_fmt(&f->fmt.pix_mp, NULL, MXC_ISI_VIDEO_CAP);
 	return 0;
 }
 
@@ -1007,7 +1008,7 @@ static int mxc_isi_video_s_fmt(struct file *file, void *priv,
 	if (vb2_is_busy(&video->vb2_q))
 		return -EBUSY;
 
-	__mxc_isi_video_try_fmt(pix, &fmt);
+	__mxc_isi_video_try_fmt(pix, &fmt, MXC_ISI_VIDEO_CAP);
 
 	video->pix = *pix;
 	video->fmtinfo = fmt;
@@ -1183,7 +1184,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
-	__mxc_isi_video_try_fmt(pix, &fmt);
+	__mxc_isi_video_try_fmt(pix, &fmt, MXC_ISI_VIDEO_CAP);
 
 	video->fmtinfo = fmt;
 

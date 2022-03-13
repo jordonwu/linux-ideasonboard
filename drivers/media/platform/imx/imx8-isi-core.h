@@ -265,6 +265,9 @@ void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe);
 void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status);
 void mxc_isi_video_suspend(struct mxc_isi_pipe *pipe);
 int mxc_isi_video_resume(struct mxc_isi_pipe *pipe);
+void __mxc_isi_video_try_fmt(struct v4l2_pix_format_mplane *pix,
+			     const struct mxc_isi_format_info **info,
+			     enum mxc_isi_video_type type);
 
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
