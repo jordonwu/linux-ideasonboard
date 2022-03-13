@@ -111,7 +111,6 @@ static void mxc_isi_m2m_device_run(void *priv)
 	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
 	struct mxc_isi_m2m_buffer *src_buf, *dst_buf;
-	unsigned long flags;
 
 	mutex_lock(&m2m->lock);
 
@@ -150,8 +149,6 @@ static void mxc_isi_m2m_device_run(void *priv)
 
 	mutex_unlock(&m2m->lock);
 
-	spin_lock_irqsave(&m2m->slock, flags);
-
 	src_vbuf = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
 	dst_vbuf = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
 
@@ -163,8 +160,6 @@ static void mxc_isi_m2m_device_run(void *priv)
 	mxc_isi_channel_set_outbuf(m2m->pipe, dst_buf->dma_addrs, MXC_ISI_BUF2);
 
 	mxc_isi_channel_m2m_start(m2m->pipe);
-
-	spin_unlock_irqrestore(&m2m->slock, flags);
 }
 
 static const struct v4l2_m2m_ops mxc_isi_m2m_ops = {
@@ -269,11 +264,7 @@ static int mxc_isi_m2m_vb2_start_streaming(struct vb2_queue *q,
 static void mxc_isi_m2m_vb2_stop_streaming(struct vb2_queue *q)
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *vbuf;
-	unsigned long flags;
-
-	spin_lock_irqsave(&m2m->slock, flags);
 
 	for (;;) {
 		if (q->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
@@ -285,8 +276,6 @@ static void mxc_isi_m2m_vb2_stop_streaming(struct vb2_queue *q)
 
 		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
 	}
-
-	spin_unlock_irqrestore(&m2m->slock, flags);
 }
 
 static const struct vb2_ops mxc_isi_m2m_vb2_qops = {
@@ -346,9 +335,6 @@ static inline struct mxc_isi_m2m *ctrl_to_mxc_isi_m2m(struct v4l2_ctrl *ctrl)
 static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct mxc_isi_m2m *m2m = ctrl_to_mxc_isi_m2m(ctrl);
-	unsigned long flags;
-
-	spin_lock_irqsave(&m2m->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_HFLIP:
@@ -364,7 +350,6 @@ static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 	}
 
-	spin_unlock_irqrestore(&m2m->slock, flags);
 	return 0;
 }
 
@@ -666,9 +651,7 @@ static int mxc_isi_m2m_release(struct file *file)
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
 
-	mutex_lock(&m2m->lock);
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
-	mutex_unlock(&m2m->lock);
 
 	kfree(ctx);
 
@@ -699,7 +682,6 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 	m2m->isi = isi;
 	m2m->pipe = &isi->pipes[0];
 
-	spin_lock_init(&m2m->slock);
 	mutex_init(&m2m->lock);
 
 	/* Initialize the media entity. */
