@@ -253,8 +253,8 @@ static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
  */
 static const u32 mxc_isi_coeffs[2][6] = {
 	/* YUV2RGB */
-	{ 0x0000012a, 0x012A0198, 0x0730079C,
-	  0x0204012a, 0x01F00000, 0x01800180 },
+	{ 0x0000012a, 0x012a0198, 0x0730079c,
+	  0x0204012a, 0x01f00000, 0x01800180 },
 
 	/* RGB->YUV */
 	{ 0x00810041, 0x07db0019, 0x007007b6,
