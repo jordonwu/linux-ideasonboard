@@ -928,7 +928,7 @@ static int mxc_isi_video_ctrls_create(struct mxc_isi_video *video)
 
 	if (handler->error) {
 		ret = handler->error;
-		v4l2_ctrl_handler_free(&video->ctrls.handler);
+		v4l2_ctrl_handler_free(handler);
 		return ret;
 	}
 
