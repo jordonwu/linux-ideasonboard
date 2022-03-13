@@ -710,8 +710,18 @@ static irqreturn_t mxc_isi_pipe_irq_handler(int irq, void *priv)
 
 	status = mxc_isi_channel_irq_status(pipe, true);
 
-	if (status & CHNL_STS_FRM_STRD)
-		mxc_isi_video_frame_write_done(pipe, status);
+	if (status & CHNL_STS_FRM_STRD) {
+		mxc_isi_pipe_irq_t irq_handler;
+
+		spin_lock(&pipe->lock);
+		irq_handler = pipe->irq_handler;
+		spin_unlock(&pipe->lock);
+
+		WARN_ON(!irq_handler);
+
+		if (irq_handler)
+			irq_handler(pipe, status);
+	}
 
 	if (status & (CHNL_STS_AXI_WR_ERR_Y |
 		      CHNL_STS_AXI_WR_ERR_U |
@@ -754,6 +764,8 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 	pipe->id = id;
 	pipe->isi = isi;
 	pipe->regs = isi->regs + id * isi->pdata->reg_offset;
+
+	spin_lock_init(&pipe->lock);
 
 	sd = &pipe->sd;
 	v4l2_subdev_init(sd, &mxc_isi_pipe_subdev_ops);
@@ -821,4 +833,26 @@ int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe)
 void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
 {
 	mxc_isi_video_unregister(pipe);
+}
+
+int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
+			 mxc_isi_pipe_irq_t irq_handler)
+{
+	int ret = 0;
+
+	spin_lock_irq(&pipe->lock);
+	if (!pipe->irq_handler)
+		pipe->irq_handler = irq_handler;
+	else
+		ret = -EBUSY;
+	spin_unlock_irq(&pipe->lock);
+
+	return ret;
+}
+
+void mxc_isi_pipe_release(struct mxc_isi_pipe *pipe)
+{
+	spin_lock_irq(&pipe->lock);
+	pipe->irq_handler = NULL;
+	spin_unlock_irq(&pipe->lock);
 }

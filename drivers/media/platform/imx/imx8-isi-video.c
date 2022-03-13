@@ -396,7 +396,8 @@ mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
  * videobuf2 queue operations
  */
 
-void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
+static void mxc_isi_video_frame_write_done(struct mxc_isi_pipe *pipe,
+					   u32 status)
 {
 	struct mxc_isi_video *video = &pipe->video;
 	struct device *dev = pipe->isi->dev;
@@ -1008,6 +1009,10 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 	struct mxc_isi_video *video = video_drvdata(file);
 	int ret;
 
+	ret = mxc_isi_pipe_acquire(video->pipe, &mxc_isi_video_frame_write_done);
+	if (ret)
+		return ret;
+
 	/*
 	 * Start pipeline and veify that the configured format matches the
 	 * output of the subdev. This must be done here and not in the queue
@@ -1017,7 +1022,7 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 	 */
 	ret = media_pipeline_start(video->vdev.entity.pads, &video->pipe->pipe);
 	if (ret)
-		return ret;
+		goto err_release;
 
 	ret = mxc_isi_video_validate_format(video);
 	if (ret)
@@ -1040,6 +1045,8 @@ err_free:
 	mxc_isi_video_free_discard_buffers(video);
 err_stop:
 	media_pipeline_stop(video->vdev.entity.pads);
+err_release:
+	mxc_isi_pipe_release(video->pipe);
 	return ret;
 }
 
@@ -1054,8 +1061,8 @@ static int mxc_isi_video_streamoff(struct file *file, void *priv,
 		return ret;
 
 	mxc_isi_video_free_discard_buffers(video);
-
 	media_pipeline_stop(video->vdev.entity.pads);
+	mxc_isi_pipe_release(video->pipe);
 
 	video->is_streaming = false;
 
