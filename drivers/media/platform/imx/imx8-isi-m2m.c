@@ -88,9 +88,9 @@ mxc_isi_m2m_ctx_qdata(struct mxc_isi_m2m_ctx *ctx, enum v4l2_buf_type type)
  * V4L2 M2M device operations
  */
 
-static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *isi)
+static void mxc_isi_m2m_frame_write_done(struct mxc_isi_pipe *pipe, u32 status)
 {
-	struct mxc_isi_m2m *m2m = &isi->m2m;
+	struct mxc_isi_m2m *m2m = &pipe->isi->m2m;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
 	struct mxc_isi_m2m_ctx *ctx;
 
@@ -530,14 +530,25 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 		goto unlock;
 	}
 
-	/* Initialize the channel with the first user of the M2M device. */
-	if (m2m->usage_count == 0)
+	/*
+	 * Acquire the pipe and initialize the channel with the first user of
+	 * the M2M device.
+	 */
+	if (m2m->usage_count == 0) {
+		ret = mxc_isi_pipe_acquire(m2m->pipe,
+					   &mxc_isi_m2m_frame_write_done);
+		if (ret)
+			goto unlock;
+
 		mxc_isi_channel_init(m2m->pipe);
+	}
 
 	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
 	if (ret) {
-		if (m2m->usage_count == 0)
+		if (m2m->usage_count == 0) {
 			mxc_isi_channel_deinit(m2m->pipe);
+			mxc_isi_pipe_release(m2m->pipe);
+		}
 		goto unlock;
 	}
 
@@ -569,6 +580,7 @@ static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
 	if (--m2m->usage_count == 0) {
 		mxc_isi_channel_disable(m2m->pipe);
 		mxc_isi_channel_deinit(m2m->pipe);
+		mxc_isi_pipe_release(m2m->pipe);
 	}
 
 	WARN_ON(m2m->usage_count < 0);
