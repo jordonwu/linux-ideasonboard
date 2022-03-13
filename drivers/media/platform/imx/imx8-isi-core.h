@@ -55,6 +55,7 @@ struct v4l2_m2m_dev;
 
 #define MXC_ISI_DRIVER_NAME		"mxc-isi"
 #define MXC_ISI_CAPTURE			"mxc-isi-cap"
+#define MXC_ISI_M2M			"mxc-isi-m2m"
 #define MXC_MAX_PLANES			3
 
 struct mxc_isi_dev;
