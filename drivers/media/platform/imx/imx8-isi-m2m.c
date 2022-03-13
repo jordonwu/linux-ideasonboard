@@ -720,8 +720,26 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 		goto err_m2m;
 	}
 
+	/* Create links. */
+	ret = media_create_pad_link(&m2m->pipe->sd.entity,
+				    MXC_ISI_PIPE_PAD_SOURCE,
+				    &vdev->entity, 0,
+				    MEDIA_LNK_FL_IMMUTABLE);
+	if (ret)
+		goto err_video;
+
+	ret = media_create_pad_link(&vdev->entity, 0,
+				    &m2m->isi->crossbar.sd.entity,
+				    &m2m->isi->crossbar.num_sinks - 1,
+				    MEDIA_LNK_FL_IMMUTABLE |
+				    MEDIA_LNK_FL_ENABLED);
+	if (ret)
+		goto err_video;
+
 	return 0;
 
+err_video:
+	video_unregister_device(vdev);
 err_m2m:
 	v4l2_m2m_release(m2m->m2m_dev);
 err_ctrls:
