@@ -23,66 +23,6 @@ static inline void mxc_isi_write(struct mxc_isi_pipe *pipe, u32 reg, u32 val)
 	writel(val, pipe->regs + reg);
 }
 
-static void mxc_isi_pipe_dump_regs(struct mxc_isi_pipe *pipe)
-{
-#ifdef DEBUG
-	struct device *dev = pipe->isi->dev;
-	struct {
-		u32 offset;
-		const char *const name;
-	} registers[] = {
-		{ 0x00, "CHNL_CTRL" },
-		{ 0x04, "CHNL_IMG_CTRL" },
-		{ 0x08, "CHNL_OUT_BUF_CTRL" },
-		{ 0x0c, "CHNL_IMG_CFG" },
-		{ 0x10, "CHNL_IER" },
-		{ 0x14, "CHNL_STS" },
-		{ 0x18, "CHNL_SCALE_FACTOR" },
-		{ 0x1c, "CHNL_SCALE_OFFSET" },
-		{ 0x20, "CHNL_CROP_ULC" },
-		{ 0x24, "CHNL_CROP_LRC" },
-		{ 0x28, "CHNL_CSC_COEFF0" },
-		{ 0x2c, "CHNL_CSC_COEFF1" },
-		{ 0x30, "CHNL_CSC_COEFF2" },
-		{ 0x34, "CHNL_CSC_COEFF3" },
-		{ 0x38, "CHNL_CSC_COEFF4" },
-		{ 0x3c, "CHNL_CSC_COEFF5" },
-		{ 0x40, "CHNL_ROI_0_ALPHA" },
-		{ 0x44, "CHNL_ROI_0_ULC" },
-		{ 0x48, "CHNL_ROI_0_LRC" },
-		{ 0x4c, "CHNL_ROI_1_ALPHA" },
-		{ 0x50, "CHNL_ROI_1_ULC" },
-		{ 0x54, "CHNL_ROI_1_LRC" },
-		{ 0x58, "CHNL_ROI_2_ALPHA" },
-		{ 0x5c, "CHNL_ROI_2_ULC" },
-		{ 0x60, "CHNL_ROI_2_LRC" },
-		{ 0x64, "CHNL_ROI_3_ALPHA" },
-		{ 0x68, "CHNL_ROI_3_ULC" },
-		{ 0x6c, "CHNL_ROI_3_LRC" },
-		{ 0x70, "CHNL_OUT_BUF1_ADDR_Y" },
-		{ 0x74, "CHNL_OUT_BUF1_ADDR_U" },
-		{ 0x78, "CHNL_OUT_BUF1_ADDR_V" },
-		{ 0x7c, "CHNL_OUT_BUF_PITCH" },
-		{ 0x80, "CHNL_IN_BUF_ADDR" },
-		{ 0x84, "CHNL_IN_BUF_PITCH" },
-		{ 0x88, "CHNL_MEM_RD_CTRL" },
-		{ 0x8c, "CHNL_OUT_BUF2_ADDR_Y" },
-		{ 0x90, "CHNL_OUT_BUF2_ADDR_U" },
-		{ 0x94, "CHNL_OUT_BUF2_ADDR_V" },
-		{ 0x98, "CHNL_SCL_IMG_CFG" },
-		{ 0x9c, "CHNL_FLOW_CTRL" },
-	};
-	u32 i;
-
-	dev_dbg(dev, "ISI CHNLC register dump, pipe%d\n", pipe->id);
-	for (i = 0; i < ARRAY_SIZE(registers); i++) {
-		u32 reg = mxc_isi_pip_read(pipe, registers[i].offset);
-		dev_dbg(dev, "%20s[0x%.2x]: %.2x\n",
-			registers[i].name, registers[i].offset, reg);
-	}
-#endif
-}
-
 /* -----------------------------------------------------------------------------
  * Buffers
  */
@@ -528,7 +468,6 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 
-	mxc_isi_pipe_dump_regs(pipe);
 	msleep(300);
 }
 
