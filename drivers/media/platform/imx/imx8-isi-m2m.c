@@ -84,19 +84,6 @@ static inline struct mxc_isi_m2m_ctx *to_isi_m2m_ctx(struct v4l2_fh *fh)
 	return container_of(fh, struct mxc_isi_m2m_ctx, fh);
 }
 
-static void mxc_isi_m2m_start_read(struct mxc_isi_dev *isi)
-{
-	u32 val;
-
-	val = readl(isi->regs + CHNL_MEM_RD_CTRL);
-	val &= ~ CHNL_MEM_RD_CTRL_READ_MEM_MASK;
-	writel(val, isi->regs + CHNL_MEM_RD_CTRL);
-	udelay(300);
-
-	val |= CHNL_MEM_RD_CTRL_READ_MEM_ENABLE << CHNL_MEM_RD_CTRL_READ_MEM_OFFSET;
-	writel(val, isi->regs + CHNL_MEM_RD_CTRL);
-}
-
 /* -----------------------------------------------------------------------------
  * V4L2 M2M device operations
  */
