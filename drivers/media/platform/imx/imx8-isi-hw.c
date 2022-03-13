@@ -525,7 +525,6 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val |= CHNL_CTRL_BLANK_PXL(0xff);
-
 	val |= CHNL_CTRL_CHNL_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 
@@ -541,7 +540,6 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
 	val &= ~CHNL_CTRL_CHNL_EN;
-	val &= ~CHNL_CTRL_CLK_EN;
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
