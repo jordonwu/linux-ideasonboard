@@ -63,6 +63,15 @@ static inline struct mxc_isi_m2m_ctx *to_isi_m2m_ctx(struct v4l2_fh *fh)
 	return container_of(fh, struct mxc_isi_m2m_ctx, fh);
 }
 
+static inline struct mxc_isi_m2m_ctx_queue_data *
+mxc_isi_m2m_ctx_qdata(struct mxc_isi_m2m_ctx *ctx, enum v4l2_buf_type type)
+{
+	if (V4L2_TYPE_IS_OUTPUT(type))
+		return &ctx->queues.out;
+	else
+		return &ctx->queues.cap;
+}
+
 /* -----------------------------------------------------------------------------
  * V4L2 M2M device operations
  */
@@ -169,32 +178,24 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
-	const struct mxc_isi_format_info *info;
-	struct v4l2_pix_format_mplane *pix;
+	const struct mxc_isi_m2m_ctx_queue_data *qdata =
+		mxc_isi_m2m_ctx_qdata(ctx, q->type);
 	unsigned long wh;
 	unsigned int i;
 
-	if (q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-		pix = &ctx->queues.cap.format;
-		info = ctx->queues.cap.info;
-	} else {
-		pix = &ctx->queues.out.format;
-		info = ctx->queues.out.info;
-	}
+	*num_planes = qdata->info->memplanes;
 
-	*num_planes = info->memplanes;
+	wh = qdata->format.width * qdata->format.height;
 
-	wh = pix->width * pix->height;
-
-	for (i = 0; i < info->memplanes; ++i) {
-		unsigned int size = wh * info->depth[i] / 8;
+	for (i = 0; i < qdata->info->memplanes; ++i) {
+		unsigned int size = wh * qdata->info->depth[i] / 8;
 
 		alloc_devs[i] = m2m->isi->dev;
 
 		if (i > 1)
-			size /= info->hsub * info->vsub;
+			size /= qdata->info->hsub * qdata->info->vsub;
 
-		sizes[i] = max_t(u32, size, pix->plane_fmt[i].sizeimage);
+		sizes[i] = max_t(u32, size, qdata->format.plane_fmt[i].sizeimage);
 	}
 
 	return 0;
@@ -205,15 +206,11 @@ static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
 	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_buffer *buf = to_isi_m2m_buffer(to_vb2_v4l2_buffer(vb2));
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vb2->vb2_queue);
-	const struct mxc_isi_format_info *info;
+	const struct mxc_isi_m2m_ctx_queue_data *qdata =
+		mxc_isi_m2m_ctx_qdata(ctx, vq->type);
 	unsigned int i;
 
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		info = ctx->queues.cap.info;
-	else
-		info = ctx->queues.out.info;
-
-	for (i = 0; i < info->memplanes; ++i)
+	for (i = 0; i < qdata->info->memplanes; ++i)
 		buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2, i);
 
 	return 0;
@@ -224,20 +221,12 @@ static int mxc_isi_m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vq);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
-	const struct mxc_isi_format_info *info;
-	struct v4l2_pix_format_mplane *pix;
+	const struct mxc_isi_m2m_ctx_queue_data *qdata =
+		mxc_isi_m2m_ctx_qdata(ctx, vq->type);
 	unsigned int i;
 
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-		pix = &ctx->queues.cap.format;
-		info = ctx->queues.cap.info;
-	} else {
-		pix = &ctx->queues.out.format;
-		info = ctx->queues.out.info;
-	}
-
-	for (i = 0; i < info->memplanes; ++i) {
-		unsigned long size = pix->plane_fmt[i].sizeimage;
+	for (i = 0; i < qdata->info->memplanes; ++i) {
+		unsigned long size = qdata->format.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
 			dev_err(m2m->isi->dev,
@@ -264,7 +253,8 @@ static int mxc_isi_m2m_vb2_start_streaming(struct vb2_queue *q,
 					   unsigned int count)
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m *m2m = ctx->m2m;
+	struct mxc_isi_m2m_ctx_queue_data *qdata =
+		mxc_isi_m2m_ctx_qdata(ctx, q->type);
 	unsigned long flags;
 
 	if (V4L2_TYPE_IS_OUTPUT(q->type))
@@ -484,11 +474,10 @@ static int mxc_isi_m2m_g_fmt_vid(struct file *file, void *fh,
 				 struct v4l2_format *f)
 {
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
+	const struct mxc_isi_m2m_ctx_queue_data *qdata =
+		mxc_isi_m2m_ctx_qdata(ctx, f->type);
 
-	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
-		f->fmt.pix_mp = ctx->queues.out.format;
-	else
-		f->fmt.pix_mp = ctx->queues.cap.format;
+	f->fmt.pix_mp = qdata->format;
 
 	return 0;
 }
