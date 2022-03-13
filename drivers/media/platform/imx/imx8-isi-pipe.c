@@ -280,8 +280,15 @@ int mxc_isi_pipe_enable(struct mxc_isi_pipe *pipe)
 	v4l2_subdev_unlock_state(state);
 
 	/* Configure the ISI channel. */
+	mutex_lock(pipe->video.ctrls.handler.lock);
+	mxc_isi_channel_set_alpha(pipe, pipe->video.ctrls.alpha);
+	mxc_isi_channel_set_flip(pipe, pipe->video.ctrls.hflip,
+				 pipe->video.ctrls.vflip);
+	mutex_unlock(pipe->video.ctrls.handler.lock);
+
 	mxc_isi_channel_config(pipe, input, &in_size, &scale, &crop,
 			       sink_info->encoding, src_info->encoding);
+
 	mxc_isi_channel_enable(pipe);
 
 	/* Enable streams on the crossbar switch. */

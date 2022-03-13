@@ -190,6 +190,9 @@ struct mxc_isi_video {
 
 	struct {
 		struct v4l2_ctrl_handler handler;
+		unsigned int		alpha;
+		bool			hflip;
+		bool			vflip;
 	} ctrls;
 
 	struct vb2_queue		vb2_q;
@@ -217,10 +220,6 @@ struct mxc_isi_pipe {
 	struct mxc_isi_video		video;
 
 	u8				chain_buf;
-
-	u8				alpha;
-	unsigned int			hflip:1;
-	unsigned int			vflip:1;
 };
 
 struct mxc_isi_dev {

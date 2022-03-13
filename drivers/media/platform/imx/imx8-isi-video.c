@@ -894,13 +894,13 @@ static int mxc_isi_video_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	switch (ctrl->id) {
 	case V4L2_CID_ALPHA_COMPONENT:
-		video->pipe->alpha = ctrl->val;
+		video->ctrls.alpha = ctrl->val;
 		break;
 	case V4L2_CID_VFLIP:
-		video->pipe->vflip = ctrl->val;
+		video->ctrls.vflip = ctrl->val;
 		break;
 	case V4L2_CID_HFLIP:
-		video->pipe->hflip = ctrl->val;
+		video->ctrls.hflip = ctrl->val;
 		break;
 	}
 
