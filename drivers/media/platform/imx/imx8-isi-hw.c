@@ -329,10 +329,7 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
 	/* CSC */
 	mxc_isi_channel_set_csc(pipe, in_encoding, out_encoding, &csc_bypass);
 
-	/* Output buffer management, including global alpha and flipping */
-	mxc_isi_channel_set_alpha(pipe, pipe->alpha);
-	mxc_isi_channel_set_flip(pipe, pipe->hflip, pipe->vflip);
-
+	/* Output buffer management */
 	mxc_isi_channel_set_panic_threshold(pipe);
 
 	val = mxc_isi_read(pipe, CHNL_CTRL);
