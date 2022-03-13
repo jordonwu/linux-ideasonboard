@@ -32,27 +32,6 @@
 
 #include "imx8-isi-core.h"
 
-struct mxc_isi_m2m {
-	struct mxc_isi_dev *isi;
-	struct mxc_isi_pipe *pipe;
-
-	struct media_pad pads[2];
-	struct video_device vdev;
-	struct v4l2_m2m_dev *m2m_dev;
-
-	struct {
-		struct v4l2_ctrl_handler handler;
-		struct v4l2_ctrl *alpha;
-		struct v4l2_ctrl *vflip;
-		struct v4l2_ctrl *hflip;
-	} ctrls;
-
-	struct mutex lock;
-	spinlock_t slock;
-
-	unsigned int frame_count;
-};
-
 struct mxc_isi_m2m_buffer {
 	struct v4l2_m2m_buffer buf;
 	u32 dma_addrs[3];

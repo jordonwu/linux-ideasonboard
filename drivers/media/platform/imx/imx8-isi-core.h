@@ -30,6 +30,7 @@ struct clk_bulk_data;
 struct dentry;
 struct device;
 struct regmap;
+struct v4l2_m2m_dev;
 
 /* Pipeline pads */
 #define MXC_ISI_PIPE_PAD_SINK		0
@@ -227,6 +228,27 @@ struct mxc_isi_pipe {
 	u8				chain_buf;
 };
 
+struct mxc_isi_m2m {
+	struct mxc_isi_dev		*isi;
+	struct mxc_isi_pipe		*pipe;
+
+	struct media_pad		pads[2];
+	struct video_device		vdev;
+	struct v4l2_m2m_dev		*m2m_dev;
+
+	struct {
+		struct v4l2_ctrl_handler handler;
+		struct v4l2_ctrl *alpha;
+		struct v4l2_ctrl *vflip;
+		struct v4l2_ctrl *hflip;
+	} ctrls;
+
+	struct mutex			lock;
+	spinlock_t			slock;
+
+	unsigned int			frame_count;
+};
+
 struct mxc_isi_dev {
 	struct device			*dev;
 
@@ -238,6 +260,7 @@ struct mxc_isi_dev {
 
 	struct mxc_isi_crossbar		crossbar;
 	struct mxc_isi_pipe		*pipes;
+	struct mxc_isi_m2m		m2m;
 
 	struct media_device		media_dev;
 	struct v4l2_device		v4l2_dev;
