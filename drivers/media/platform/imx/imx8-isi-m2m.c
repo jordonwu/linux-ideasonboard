@@ -55,7 +55,7 @@ struct mxc_isi_m2m_ctx {
 static inline struct mxc_isi_m2m_buffer *
 to_isi_m2m_buffer(struct vb2_v4l2_buffer *buf)
 {
-	return container_of(buf, struct mxc_isi_m2m_buffer, buf);
+	return container_of(buf, struct mxc_isi_m2m_buffer, buf.vb);
 }
 
 static inline struct mxc_isi_m2m_ctx *to_isi_m2m_ctx(struct v4l2_fh *fh)
@@ -83,7 +83,7 @@ static void mxc_isi_m2m_frame_write_done(struct mxc_isi_dev *isi)
 	src_vbuf = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx);
 	dst_vbuf = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx);
 
-	v4l2_m2m_buf_copy_metadata(in_vb, out_vb, false);
+	v4l2_m2m_buf_copy_metadata(src_vbuf, dst_vbuf, false);
 
 	m2m->frame_count++;
 	dst_vbuf->sequence = m2m->frame_count;
@@ -99,7 +99,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 	struct mxc_isi_m2m_ctx *ctx = priv;
 	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct vb2_v4l2_buffer *src_vbuf, *dst_vbuf;
-	struct mxc_isi_m2m_buffer *src_buf, dst_buf;
+	struct mxc_isi_m2m_buffer *src_buf, *dst_buf;
 	unsigned long flags;
 
 	spin_lock_irqsave(&m2m->slock, flags);
@@ -114,7 +114,7 @@ static void mxc_isi_m2m_device_run(void *priv)
 	mxc_isi_channel_set_outbuf(m2m->pipe, dst_buf->dma_addrs, MXC_ISI_BUF1);
 	mxc_isi_channel_set_outbuf(m2m->pipe, dst_buf->dma_addrs, MXC_ISI_BUF2);
 
-	mxc_isi_channel_enable(m2m->isi, true);
+	mxc_isi_channel_enable(m2m->pipe);
 
 	spin_unlock_irqrestore(&m2m->slock, flags);
 }
@@ -135,12 +135,12 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
+	const struct mxc_isi_format_info *info;
 	struct v4l2_pix_format_mplane *pix;
-	struct mxc_isi_format_info *info;
 	unsigned long wh;
 	unsigned int i;
 
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+	if (q->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
 		pix = &ctx->formats.cap.format;
 		info = ctx->formats.cap.info;
 	} else {
@@ -152,13 +152,13 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 
 	wh = pix->width * pix->height;
 
-	for (i = 0; i < info->memplanes; +i) {
+	for (i = 0; i < info->memplanes; ++i) {
 		unsigned int size = wh * info->depth[i] / 8;
 
 		alloc_devs[i] = m2m->isi->dev;
 
 		if (i > 1)
-			size /= fmt->hsub * fmt->vsub;
+			size /= info->hsub * info->vsub;
 
 		sizes[i] = max_t(u32, size, pix->plane_fmt[i].sizeimage);
 	}
@@ -168,9 +168,9 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 
 static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
 {
+	struct vb2_queue *vq = vb2->vb2_queue;
 	struct mxc_isi_m2m_buffer *buf = to_isi_m2m_buffer(to_vb2_v4l2_buffer(vb2));
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(vb2->vb2_queue);
-	struct mxc_isi_m2m *m2m = ctx->m2m;
 	struct mxc_isi_m2m_ctx_format *format;
 	unsigned int i;
 
@@ -179,7 +179,7 @@ static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
 	else
 		format = &ctx->formats.out;
 
-	for (i = 0; i < format->info->memplanes; ++i) {
+	for (i = 0; i < format->info->memplanes; ++i)
 		buf->dma_addrs[i] = vb2_dma_contig_plane_dma_addr(vb2, i);
 
 	return 0;
@@ -199,7 +199,7 @@ static int mxc_isi_m2m_vb2_buffer_prepare(struct vb2_buffer *vb2)
 		format = &ctx->formats.out;
 
 	for (i = 0; i < format->info->memplanes; ++i) {
-		unsigned long size = format->format.planes[i].sizeimage;
+		unsigned long size = format->format.plane_fmt[i].sizeimage;
 
 		if (vb2_plane_size(vb2, i) < size) {
 			dev_err(m2m->isi->dev,
@@ -321,7 +321,7 @@ static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct mxc_isi_m2m *m2m = ctrl_to_mxc_isi_m2m(ctrl);
 	unsigned long flags;
 
-	spin_lock_irqsave(&m2m->isi->slock, flags);
+	spin_lock_irqsave(&m2m->slock, flags);
 
 	switch (ctrl->id) {
 	case V4L2_CID_HFLIP:
@@ -337,7 +337,7 @@ static int mxc_isi_m2m_s_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 	}
 
-	spin_unlock_irqrestore(&m2m->isi->slock, flags);
+	spin_unlock_irqrestore(&m2m->slock, flags);
 	return 0;
 }
 
@@ -380,12 +380,12 @@ static void mxc_isi_m2m_ctrls_delete(struct mxc_isi_m2m *m2m)
  * V4L2 ioctls
  */
 
-static int mxc_isi_m2m_querycap(struct file *file, void *priv,
-					struct v4l2_capability *cap)
+static int mxc_isi_m2m_querycap(struct file *file, void *fh,
+				struct v4l2_capability *cap)
 {
 	struct mxc_isi_m2m *m2m = video_drvdata(file);
 
-	strlcpy(cap->driver, MXC_ISI_M2M, sizeof(cap->driver));
+	strlcpy(cap->driver, MXC_ISI_DRIVER_NAME, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_M2M, sizeof(cap->card));
 	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s",
 		 dev_name(m2m->isi->dev));
@@ -395,13 +395,13 @@ static int mxc_isi_m2m_querycap(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_m2m_enum_fmt_vid(struct file *file, void *priv,
+static int mxc_isi_m2m_enum_fmt_vid(struct file *file, void *fh,
 				    struct v4l2_fmtdesc *f)
 {
 	const enum mxc_isi_video_type type =
 		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
 		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
-	struct mxc_isi_format_info *info;
+	const struct mxc_isi_format_info *info;
 
 	info = mxc_isi_format_enum(f->index, type);
 	if (!info)
@@ -412,32 +412,32 @@ static int mxc_isi_m2m_enum_fmt_vid(struct file *file, void *priv,
 	return 0;
 }
 
-static int mxc_isi_m2m_try_fmt_vid_out(struct file *file, void *fh,
-				       struct v4l2_format *f)
+static const struct mxc_isi_format_info *
+__mxc_isi_m2m_try_fmt_vid(struct mxc_isi_m2m_ctx *ctx,
+			  struct v4l2_pix_format_mplane *pix,
+			  const enum mxc_isi_video_type type)
 {
-	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
+	if (type == MXC_ISI_VIDEO_OUT) {
+		/* TODO: Support larger input widths */
+		pix->width = min(pix->width, 2048U);
+	} else {
+		/* Downscaling only */
+		pix->width = min(pix->width, ctx->formats.out.format.width);
+		pix->height = min(pix->height, ctx->formats.out.format.height);
+	}
 
-	/* TODO: Support larger input widths */
-	pix->width = min(pix->width, 2048U);
-
-	mxc_isi_format_try(pix, MXC_ISI_VIDEO_OUT);
-
-	return 0;
+	return mxc_isi_format_try(pix, type);
 }
 
-static int mxc_isi_m2m_try_fmt_vid_cap(struct file *file, void *fh,
+static int mxc_isi_m2m_try_fmt_vid(struct file *file, void *fh,
 				   struct v4l2_format *f)
 {
-	struct mxc_isi_m2m *m2m = video_drvdata(file);
-	struct device *dev = m2m->isi->dev;
-	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
-	struct mxc_isi_format_info *info;
+	const enum mxc_isi_video_type type =
+		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
+		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
+	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 
-	/* Downscaling only */
-	pix->width = min(pix->width, ctx->formats.out.width);
-	pix->height = min(pix->height, ctx->formats.out.height);
-
-	mxc_isi_format_try(pix, MXC_ISI_VIDEO_CAP);
+	__mxc_isi_m2m_try_fmt_vid(ctx, &f->fmt.pix_mp, type);
 
 	return 0;
 }
@@ -448,9 +448,9 @@ static int mxc_isi_m2m_g_fmt_vid(struct file *file, void *fh,
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 
 	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
-		f->fmt.pix_fmt = ctx->formats.out;
+		f->fmt.pix_mp = ctx->formats.out.format;
 	else
-		f->fmt.pix_fmt = ctx->formats.cap;
+		f->fmt.pix_mp = ctx->formats.cap.format;
 
 	return 0;
 }
@@ -458,8 +458,12 @@ static int mxc_isi_m2m_g_fmt_vid(struct file *file, void *fh,
 static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 				 struct v4l2_format *f)
 {
+	const enum mxc_isi_video_type type =
+		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
+		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
+	const struct mxc_isi_format_info *info;
 	struct vb2_queue *vq;
 
 	vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, f->type);
@@ -469,49 +473,67 @@ static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 	if (vb2_is_busy(vq))
 		return -EBUSY;
 
-	mxc_isi_m2m_try_fmt_vid_out(file, fh, f);
+	info = __mxc_isi_m2m_try_fmt_vid(ctx, pix, type);
 
-	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
-		ctx->formats.out = *pix;
+	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+		ctx->formats.out.format = *pix;
+		ctx->formats.out.info = info;
+	}
 
 	/*
 	 * Always set the format on the capture side, due to either format
 	 * propagation or direct setting.
 	 */
-	ctx->formats.cap = *pix;
+	ctx->formats.cap.format = *pix;
+	ctx->formats.cap.info = info;
 
 	return 0;
 }
 
-static int mxc_isi_m2m_streamon(struct file *file, void *priv,
-			     enum v4l2_buf_type type)
+static int mxc_isi_m2m_streamon(struct file *file, void *fh,
+				enum v4l2_buf_type type)
 {
-	const enum mxc_isi_video_type type =
-		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
-		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
+	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	int ret;
 
 	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+		const struct v4l2_area in_size = {
+			.width = ctx->formats.out.format.width,
+			.height = ctx->formats.out.format.height,
+		};
+		const struct v4l2_area scale = {
+			.width = ctx->formats.cap.format.width,
+			.height = ctx->formats.cap.format.height,
+		};
+		const struct v4l2_rect crop = {
+			.width = ctx->formats.cap.format.width,
+			.height = ctx->formats.cap.format.height,
+		};
+
 		m2m->frame_count = 0;
-		mxc_isi_channel_config(m2m->isi, src_f, dst_f);
+
+		mxc_isi_channel_config(m2m->pipe, MXC_ISI_INPUT_MEM,
+				       &in_size, &scale, &crop,
+				       ctx->formats.out.info->encoding,
+				       ctx->formats.cap.info->encoding);
 	}
 
-	ret = v4l2_m2m_ioctl_streamon(file, priv, type);
+	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
 
 	return ret;
 }
 
-static int mxc_isi_m2m_streamoff(struct file *file, void *priv,
-			    enum v4l2_buf_type type)
+static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
+				 enum v4l2_buf_type type)
 {
 	struct mxc_isi_m2m *m2m = video_drvdata(file);
 	int ret;
 
 	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		mxc_isi_channel_disable(m2m->isi);
+		mxc_isi_channel_disable(m2m->pipe);
 
-	ret = v4l2_m2m_ioctl_streamoff(file, priv, type);
+	ret = v4l2_m2m_ioctl_streamoff(file, fh, type);
 
 	return ret;
 }
@@ -525,8 +547,8 @@ static const struct v4l2_ioctl_ops mxc_isi_m2m_ioctl_ops = {
 	.vidioc_g_fmt_vid_out_mplane	= mxc_isi_m2m_g_fmt_vid,
 	.vidioc_s_fmt_vid_cap_mplane	= mxc_isi_m2m_s_fmt_vid,
 	.vidioc_s_fmt_vid_out_mplane	= mxc_isi_m2m_s_fmt_vid,
-	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_m2m_try_fmt_vid_cap,
-	.vidioc_try_fmt_vid_out_mplane	= mxc_isi_m2m_try_fmt_vid_out,
+	.vidioc_try_fmt_vid_cap_mplane	= mxc_isi_m2m_try_fmt_vid,
+	.vidioc_try_fmt_vid_out_mplane	= mxc_isi_m2m_try_fmt_vid,
 
 	.vidioc_reqbufs			= v4l2_m2m_ioctl_reqbufs,
 	.vidioc_querybuf		= v4l2_m2m_ioctl_querybuf,
@@ -558,8 +580,6 @@ static int mxc_isi_m2m_open(struct file *file)
 {
 	struct video_device *vdev = video_devdata(file);
 	struct mxc_isi_m2m *m2m = video_drvdata(file);
-	struct mxc_isi_dev *isi = m2m->isi;
-	struct device *dev = isi->dev;
 	struct mxc_isi_m2m_ctx *ctx;
 	int ret;
 
@@ -579,17 +599,17 @@ static int mxc_isi_m2m_open(struct file *file)
 		goto error;
 	}
 
-	mxc_isi_m2m_init_format(ctx->formats.out, MXC_ISI_VIDEO_OUT);
-	mxc_isi_m2m_init_format(ctx->formats.cap, MXC_ISI_VIDEO_CAP);
+	mxc_isi_m2m_init_format(&ctx->formats.out, MXC_ISI_VIDEO_OUT);
+	mxc_isi_m2m_init_format(&ctx->formats.cap, MXC_ISI_VIDEO_CAP);
 
 	v4l2_fh_add(&ctx->fh);
 
-	ret = pm_runtime_resume_and_get(isi->dev);
+	ret = pm_runtime_resume_and_get(m2m->isi->dev);
 	if (ret)
 		goto error;
 
-	if (atomic_inc_return(&isi->usage_count) == 1)
-		mxc_isi_channel_init(isi);
+	if (atomic_inc_return(&m2m->usage_count) == 1)
+		mxc_isi_channel_init(m2m->pipe);
 
 	return 0;
 
@@ -614,8 +634,9 @@ static int mxc_isi_m2m_release(struct file *file)
 	mutex_unlock(&m2m->lock);
 
 	kfree(ctx);
-	if (atomic_dec_and_test(&m2m->isi->usage_count))
-		mxc_isi_channel_deinit(m2m->isi);
+
+	if (atomic_dec_and_test(&m2m->usage_count))
+		mxc_isi_channel_deinit(m2m->pipe);
 
 	pm_runtime_put(m2m->isi->dev);
 
@@ -651,7 +672,7 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 	m2m->pads[0].flags = MEDIA_PAD_FL_SINK;
 	m2m->pads[1].flags = MEDIA_PAD_FL_SOURCE;
 	vdev->entity.function = MEDIA_ENT_F_PROC_VIDEO_SCALER;
-	ret = media_entity_pads_init(&vdev->entity, 2, &m2m->pads);
+	ret = media_entity_pads_init(&vdev->entity, 2, m2m->pads);
 	if (ret)
 		goto err_mutex;
 
@@ -683,7 +704,7 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 	/* Register the video device. */
 	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
 	if (ret < 0) {
-		dev_err(&pdev->dev, "failed to register m2m device\n");
+		dev_err(isi->dev, "failed to register m2m device\n");
 		goto err_m2m;
 	}
 
@@ -697,7 +718,7 @@ int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev)
 
 	ret = media_create_pad_link(&vdev->entity, 0,
 				    &m2m->isi->crossbar.sd.entity,
-				    &m2m->isi->crossbar.num_sinks - 1,
+				    m2m->isi->crossbar.num_sinks - 1,
 				    MEDIA_LNK_FL_IMMUTABLE |
 				    MEDIA_LNK_FL_ENABLED);
 	if (ret)
