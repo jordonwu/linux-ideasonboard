@@ -190,9 +190,6 @@ struct mxc_isi_video {
 
 	struct {
 		struct v4l2_ctrl_handler handler;
-		struct v4l2_ctrl *alpha;
-		struct v4l2_ctrl *vflip;
-		struct v4l2_ctrl *hflip;
 	} ctrls;
 
 	struct vb2_queue		vb2_q;
