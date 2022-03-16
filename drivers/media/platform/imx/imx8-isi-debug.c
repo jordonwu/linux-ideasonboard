@@ -77,7 +77,7 @@ static int mxc_isi_debug_dump_regs_show(struct seq_file *m, void *p)
 	seq_printf(m, "--- ISI pipe %u registers ---\n", pipe->id);
 
 	for (i = 0; i < ARRAY_SIZE(registers); ++i)
-		seq_printf(m, "%20s[0x%.2x]: %.2x\n",
+		seq_printf(m, "%20s[0x%02x]: 0x%08x\n",
 			   registers[i].name, registers[i].offset,
 			   mxc_isi_read(pipe, registers[i].offset));
 
