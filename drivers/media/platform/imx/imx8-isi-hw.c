@@ -69,8 +69,18 @@ static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
 		  CHNL_CTRL_SRC_INPUT_MASK);
 
 	if (input == MXC_ISI_INPUT_MEM) {
+		/*
+		 * The memory input is connected to the last port of the
+		 * crossbar switch, after all pixel link inputs. The SRC_INPUT
+		 * field controls the input selection and must be set
+		 * accordingly, despite being documented as ignored when using
+		 * the memory input in the i.MX8MP reference manual, and
+		 * reserved in the i.MX8MN reference manual.
+		 */
 		val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_MEMORY);
+		val |= CHNL_CTRL_SRC_INPUT(pipe->isi->pdata->num_ports);
 	} else {
+		val |= CHNL_CTRL_SRC_TYPE(CHNL_CTRL_SRC_TYPE_DEVICE);
 		val |= CHNL_CTRL_SRC_INPUT(input);
 		val |= CHNL_CTRL_MIPI_VC_ID(0); /* FIXME: For CSI-2 only */
 	}
