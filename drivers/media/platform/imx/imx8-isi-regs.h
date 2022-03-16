@@ -28,7 +28,6 @@
 #define CHNL_CTRL_SRC_TYPE_MEMORY				1
 #define CHNL_CTRL_SRC_INPUT(n)					((n) << 0)
 #define CHNL_CTRL_SRC_INPUT_MASK				GENMASK(2, 0)
-#define CHNL_CTRL_SRC_INPUT_MEMORY				5
 
 /* Channel Image Control Register */
 #define CHNL_IMG_CTRL						0x0004
