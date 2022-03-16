@@ -543,16 +543,22 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 		mxc_isi_channel_init(m2m->pipe);
 	}
 
+	m2m->usage_count++;
+
+	/*
+	 * Drop the lock to start the stream, as the .device_run() operation
+	 * needs to acquire it.
+	 */
+	mutex_unlock(&m2m->lock);
 	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
+	mutex_lock(&m2m->lock);
+
 	if (ret) {
-		if (m2m->usage_count == 0) {
+		if (--m2m->usage_count == 0) {
 			mxc_isi_channel_deinit(m2m->pipe);
 			mxc_isi_pipe_release(m2m->pipe);
 		}
-		goto unlock;
 	}
-
-	m2m->usage_count++;
 
 unlock:
 	mutex_unlock(&m2m->lock);
@@ -565,9 +571,9 @@ static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
 
-	mutex_lock(&m2m->lock);
-
 	v4l2_m2m_ioctl_streamoff(file, fh, type);
+
+	mutex_lock(&m2m->lock);
 
 	/*
 	 * If the last context is this one, reset it to make sure the device
