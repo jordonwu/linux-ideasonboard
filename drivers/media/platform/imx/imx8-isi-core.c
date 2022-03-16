@@ -286,29 +286,29 @@ static const struct clk_bulk_data mxc_imx8_clks[] = {
 
 /* Chip C0 */
 static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
-	.model    = MXC_ISI_IMX8,
-	.num_ports = 5,
-	.num_channels = 8,
-	.reg_offset = 0x10000,
-	.ier_reg  = &mxc_imx8_isi_ier_v0,
-	.set_thd  = &mxc_imx8_isi_thd_v0,
-	.clks     = mxc_imx8_clks,
-	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
-	.buf_active_reverse = false,
-	.has_gasket = false,
+	.model			= MXC_ISI_IMX8,
+	.num_ports		= 5,
+	.num_channels		= 8,
+	.reg_offset		= 0x10000,
+	.ier_reg		= &mxc_imx8_isi_ier_v0,
+	.set_thd		= &mxc_imx8_isi_thd_v0,
+	.clks			= mxc_imx8_clks,
+	.num_clks		= ARRAY_SIZE(mxc_imx8_clks),
+	.buf_active_reverse	= false,
+	.has_gasket		= false,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
-	.model    = MXC_ISI_IMX8,
-	.num_ports = 5,
-	.num_channels = 8,
-	.reg_offset = 0x10000,
-	.ier_reg  = &mxc_imx8_isi_ier_v1,
-	.set_thd  = &mxc_imx8_isi_thd_v1,
-	.clks     = mxc_imx8_clks,
-	.num_clks = ARRAY_SIZE(mxc_imx8_clks),
-	.buf_active_reverse = true,
-	.has_gasket = false,
+	.model			= MXC_ISI_IMX8,
+	.num_ports		= 5,
+	.num_channels		= 8,
+	.reg_offset		= 0x10000,
+	.ier_reg		= &mxc_imx8_isi_ier_v1,
+	.set_thd		= &mxc_imx8_isi_thd_v1,
+	.clks			= mxc_imx8_clks,
+	.num_clks		= ARRAY_SIZE(mxc_imx8_clks),
+	.buf_active_reverse	= true,
+	.has_gasket		= false,
 };
 
 static const struct clk_bulk_data mxc_imx8mn_clks[] = {
@@ -317,29 +317,29 @@ static const struct clk_bulk_data mxc_imx8mn_clks[] = {
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mn_data = {
-	.model    = MXC_ISI_IMX8MN,
-	.num_ports = 1,
-	.num_channels = 1,
-	.reg_offset = 0,
-	.ier_reg  = &mxc_imx8_isi_ier_v1,
-	.set_thd  = &mxc_imx8_isi_thd_v1,
-	.clks     = mxc_imx8mn_clks,
-	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
-	.buf_active_reverse = false,
-	.has_gasket = true,
+	.model			= MXC_ISI_IMX8MN,
+	.num_ports		= 1,
+	.num_channels		= 1,
+	.reg_offset		= 0,
+	.ier_reg		= &mxc_imx8_isi_ier_v1,
+	.set_thd		= &mxc_imx8_isi_thd_v1,
+	.clks			= mxc_imx8mn_clks,
+	.num_clks		= ARRAY_SIZE(mxc_imx8mn_clks),
+	.buf_active_reverse	= false,
+	.has_gasket		= true,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
-	.model    = MXC_ISI_IMX8MP,
-	.num_ports = 2,
-	.num_channels = 2,
-	.reg_offset = 0x2000,
-	.ier_reg  = &mxc_imx8_isi_ier_v2,
-	.set_thd  = &mxc_imx8_isi_thd_v1,
-	.clks     = mxc_imx8mn_clks,
-	.num_clks = ARRAY_SIZE(mxc_imx8mn_clks),
-	.buf_active_reverse = true,
-	.has_gasket = true,
+	.model			= MXC_ISI_IMX8MP,
+	.num_ports		= 2,
+	.num_channels		= 2,
+	.reg_offset		= 0x2000,
+	.ier_reg		= &mxc_imx8_isi_ier_v2,
+	.set_thd		= &mxc_imx8_isi_thd_v1,
+	.clks			= mxc_imx8mn_clks,
+	.num_clks		= ARRAY_SIZE(mxc_imx8mn_clks),
+	.buf_active_reverse	= true,
+	.has_gasket		= true,
 };
 
 static const struct soc_device_attribute imx8_soc[] = {
