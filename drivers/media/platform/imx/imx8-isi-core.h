@@ -79,8 +79,9 @@ enum mxc_isi_input {
 };
 
 enum mxc_isi_video_type {
-	MXC_ISI_VIDEO_OUT = BIT(0),
-	MXC_ISI_VIDEO_CAP = BIT(1),
+	MXC_ISI_VIDEO_CAP = BIT(0),
+	MXC_ISI_VIDEO_M2M_OUT = BIT(1),
+	MXC_ISI_VIDEO_M2M_CAP = BIT(2),
 };
 
 struct mxc_isi_format_info {

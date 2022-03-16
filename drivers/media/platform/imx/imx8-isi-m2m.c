@@ -427,7 +427,7 @@ static int mxc_isi_m2m_enum_fmt_vid(struct file *file, void *fh,
 {
 	const enum mxc_isi_video_type type =
 		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
-		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
+		MXC_ISI_VIDEO_M2M_OUT : MXC_ISI_VIDEO_M2M_CAP;
 	const struct mxc_isi_format_info *info;
 
 	info = mxc_isi_format_enum(f->index, type);
@@ -444,7 +444,7 @@ __mxc_isi_m2m_try_fmt_vid(struct mxc_isi_m2m_ctx *ctx,
 			  struct v4l2_pix_format_mplane *pix,
 			  const enum mxc_isi_video_type type)
 {
-	if (type == MXC_ISI_VIDEO_OUT) {
+	if (type == MXC_ISI_VIDEO_M2M_OUT) {
 		/* TODO: Support larger input widths */
 		pix->width = min(pix->width, 2048U);
 	} else {
@@ -461,7 +461,7 @@ static int mxc_isi_m2m_try_fmt_vid(struct file *file, void *fh,
 {
 	const enum mxc_isi_video_type type =
 		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
-		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
+		MXC_ISI_VIDEO_M2M_OUT : MXC_ISI_VIDEO_M2M_CAP;
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 
 	__mxc_isi_m2m_try_fmt_vid(ctx, &f->fmt.pix_mp, type);
@@ -486,7 +486,7 @@ static int mxc_isi_m2m_s_fmt_vid(struct file *file, void *fh,
 {
 	const enum mxc_isi_video_type type =
 		f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE ?
-		MXC_ISI_VIDEO_OUT : MXC_ISI_VIDEO_CAP;
+		MXC_ISI_VIDEO_M2M_OUT : MXC_ISI_VIDEO_M2M_CAP;
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
 	const struct mxc_isi_format_info *info;
@@ -653,8 +653,8 @@ static int mxc_isi_m2m_open(struct file *file)
 		goto err_fh;
 	}
 
-	mxc_isi_m2m_init_format(&ctx->queues.out, MXC_ISI_VIDEO_OUT);
-	mxc_isi_m2m_init_format(&ctx->queues.cap, MXC_ISI_VIDEO_CAP);
+	mxc_isi_m2m_init_format(&ctx->queues.out, MXC_ISI_VIDEO_M2M_OUT);
+	mxc_isi_m2m_init_format(&ctx->queues.cap, MXC_ISI_VIDEO_M2M_CAP);
 
 	ret = mxc_isi_m2m_ctx_ctrls_create(ctx);
 	if (ret)

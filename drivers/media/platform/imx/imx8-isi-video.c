@@ -38,7 +38,8 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_YUYV,
-		.type		= MXC_ISI_VIDEO_OUT | MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_OUT
+				| MXC_ISI_VIDEO_M2M_CAP,
 		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_YUV422_1P8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV422_1P8P,
 		.memplanes	= 1,
@@ -47,7 +48,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_YUVA32,
-		.type		= MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_CAP,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV444_1P8,
 		.memplanes	= 1,
 		.depth		= { 32 },
@@ -55,7 +56,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_NV12M,
-		.type		= MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_CAP,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV420_2P8P,
 		.memplanes	= 2,
 		.depth		= { 8, 16 },
@@ -65,7 +66,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_NV16M,
-		.type		= MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_CAP,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV422_2P8P,
 		.memplanes	= 2,
 		.depth		= { 8, 16 },
@@ -75,7 +76,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_YUV8_1X24,
 		.fourcc		= V4L2_PIX_FMT_YUV444M,
-		.type		= MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_CAP,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_YUV444_3P8P,
 		.memplanes	= 3,
 		.depth		= { 8, 8, 8 },
@@ -87,7 +88,8 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	{
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_RGB565,
-		.type		= MXC_ISI_VIDEO_OUT | MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_OUT
+				| MXC_ISI_VIDEO_M2M_CAP,
 		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB565,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_RGB565,
 		.memplanes	= 1,
@@ -96,7 +98,8 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_RGB24,
-		.type		= MXC_ISI_VIDEO_OUT | MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_OUT
+				| MXC_ISI_VIDEO_M2M_CAP,
 		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_BGR8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_BGR888P,
 		.memplanes	= 1,
@@ -105,7 +108,8 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_BGR24,
-		.type		= MXC_ISI_VIDEO_OUT | MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_OUT
+				| MXC_ISI_VIDEO_M2M_CAP,
 		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_RGB8P,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_RGB888P,
 		.memplanes	= 1,
@@ -114,7 +118,8 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_XBGR32,
-		.type		= MXC_ISI_VIDEO_OUT | MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_OUT
+				| MXC_ISI_VIDEO_M2M_CAP,
 		.isi_in_format	= CHNL_MEM_RD_CTRL_IMG_TYPE_XBGR8,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_XRGB888,
 		.memplanes	= 1,
@@ -123,7 +128,7 @@ static const struct mxc_isi_format_info mxc_isi_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
 		.fourcc		= V4L2_PIX_FMT_ABGR32,
-		.type		= MXC_ISI_VIDEO_CAP,
+		.type		= MXC_ISI_VIDEO_CAP | MXC_ISI_VIDEO_M2M_CAP,
 		.isi_out_format	= CHNL_IMG_CTRL_FORMAT_ARGB8888,
 		.memplanes	= 1,
 		.depth		= { 32 },
