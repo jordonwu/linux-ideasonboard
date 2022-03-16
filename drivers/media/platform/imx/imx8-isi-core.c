@@ -561,6 +561,8 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		goto err_xbar;
 	}
 
+	mxc_isi_debug_init(isi);
+
 	return 0;
 
 err_xbar:
@@ -574,6 +576,8 @@ static int mxc_isi_remove(struct platform_device *pdev)
 {
 	struct mxc_isi_dev *isi = platform_get_drvdata(pdev);
 	unsigned int i;
+
+	mxc_isi_debug_cleanup(isi);
 
 	for (i = 0; i < isi->pdata->num_channels; ++i) {
 		struct mxc_isi_pipe *pipe = &isi->pipes[i];
