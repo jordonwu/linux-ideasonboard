@@ -367,7 +367,6 @@ mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
 	pix->pixelformat = fmt->fourcc;
 	pix->field = V4L2_FIELD_NONE;
-	pix->colorspace = V4L2_COLORSPACE_JPEG;
 	pix->num_planes = fmt->memplanes;
 
 	for (i = 0; i < pix->num_planes; i++) {
@@ -1251,6 +1250,10 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	pix->width = MXC_ISI_DEF_WIDTH;
 	pix->height = MXC_ISI_DEF_HEIGHT;
 	pix->pixelformat = MXC_ISI_DEF_PIXEL_FORMAT;
+	pix->colorspace = MXC_ISI_DEF_COLOR_SPACE;
+	pix->ycbcr_enc = MXC_ISI_DEF_YCBCR_ENC;
+	pix->quantization = MXC_ISI_DEF_QUANTIZATION;
+	pix->xfer_func = MXC_ISI_DEF_XFER_FUNC;
 	video->fmtinfo = mxc_isi_format_try(pix, MXC_ISI_VIDEO_CAP);
 
 	memset(vdev, 0, sizeof(*vdev));
