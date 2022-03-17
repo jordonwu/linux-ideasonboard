@@ -276,6 +276,9 @@ static int mxc_isi_crossbar_set_fmt(struct v4l2_subdev *sd,
 		return v4l2_subdev_get_fmt(sd, state, fmt);
 
 	/* Validate the requested format. */
+	if (!mxc_isi_bus_format_by_code(fmt->format.code, MXC_ISI_PIPE_PAD_SINK))
+		fmt->format.code = MXC_ISI_DEF_MBUS_CODE_SINK;
+
 	fmt->format.width = clamp_t(unsigned int, fmt->format.width,
 				    MXC_ISI_MIN_WIDTH, MXC_ISI_MAX_WIDTH);
 	fmt->format.height = clamp_t(unsigned int, fmt->format.height,

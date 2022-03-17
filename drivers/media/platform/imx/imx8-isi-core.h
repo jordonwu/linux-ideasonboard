@@ -274,6 +274,8 @@ int mxc_isi_crossbar_register(struct mxc_isi_crossbar *xbar);
 void mxc_isi_crossbar_unregister(struct mxc_isi_crossbar *xbar);
 
 const struct mxc_isi_bus_format_info *
+mxc_isi_bus_format_by_code(u32 code, unsigned int pad);
+const struct mxc_isi_bus_format_info *
 mxc_isi_bus_format_by_index(unsigned int index, unsigned int pad);
 const struct mxc_isi_format_info *
 mxc_isi_format_by_fourcc(u32 fourcc, enum mxc_isi_video_type type);
