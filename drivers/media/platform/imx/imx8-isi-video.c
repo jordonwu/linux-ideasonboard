@@ -949,12 +949,8 @@ static void mxc_isi_video_ctrls_delete(struct mxc_isi_video *video)
 static int mxc_isi_video_querycap(struct file *file, void *priv,
 				  struct v4l2_capability *cap)
 {
-	struct mxc_isi_video *video = video_drvdata(file);
-
 	strlcpy(cap->driver, MXC_ISI_DRIVER_NAME, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_CAPTURE, sizeof(cap->card));
-	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s.%d",
-		 dev_name(video->pipe->isi->dev), video->pipe->id);
 
 	return 0;
 }

@@ -394,12 +394,8 @@ static void mxc_isi_m2m_ctx_ctrls_delete(struct mxc_isi_m2m_ctx *ctx)
 static int mxc_isi_m2m_querycap(struct file *file, void *fh,
 				struct v4l2_capability *cap)
 {
-	struct mxc_isi_m2m *m2m = video_drvdata(file);
-
 	strlcpy(cap->driver, MXC_ISI_DRIVER_NAME, sizeof(cap->driver));
 	strlcpy(cap->card, MXC_ISI_M2M, sizeof(cap->card));
-	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s",
-		 dev_name(m2m->isi->dev));
 	cap->device_caps = V4L2_CAP_STREAMING | V4L2_CAP_VIDEO_M2M_MPLANE;
 	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
