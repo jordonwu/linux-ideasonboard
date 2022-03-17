@@ -818,6 +818,20 @@ static void mxc_isi_vb2_buffer_queue(struct vb2_buffer *vb2)
 	spin_unlock_irq(&video->buf_lock);
 }
 
+static void mxc_isi_video_init_channel(struct mxc_isi_video *video)
+{
+	struct mxc_isi_pipe *pipe = video->pipe;
+
+	mxc_isi_channel_init(pipe);
+
+	mutex_lock(video->ctrls.handler.lock);
+	mxc_isi_channel_set_alpha(pipe, video->ctrls.alpha);
+	mxc_isi_channel_set_flip(pipe, video->ctrls.hflip, video->ctrls.vflip);
+	mutex_unlock(video->ctrls.handler.lock);
+
+	mxc_isi_channel_set_output_format(pipe, video->fmtinfo, &video->pix);
+}
+
 static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct mxc_isi_video *video = vb2_get_drv_priv(q);
@@ -825,9 +839,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	int ret;
 
 	/* Initialize the ISI channel. */
-	mxc_isi_channel_init(video->pipe);
-	mxc_isi_channel_set_output_format(video->pipe, video->fmtinfo,
-					  &video->pix);
+	mxc_isi_video_init_channel(video);
 
 	spin_lock_irq(&video->buf_lock);
 
@@ -1239,8 +1251,7 @@ int mxc_isi_video_resume(struct mxc_isi_pipe *pipe)
 	if (!video->is_streaming)
 		return 0;
 
-	mxc_isi_channel_init(pipe);
-	mxc_isi_channel_set_output_format(pipe, video->fmtinfo, &video->pix);
+	mxc_isi_video_init_channel(video);
 
 	spin_lock_irq(&video->buf_lock);
 	mxc_isi_video_queue_first_buffers(video);
