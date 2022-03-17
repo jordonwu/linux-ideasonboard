@@ -1078,27 +1078,33 @@ static int mxc_isi_video_streamoff(struct file *file, void *priv,
 static int mxc_isi_video_enum_framesizes(struct file *file, void *priv,
 					 struct v4l2_frmsizeenum *fsize)
 {
-	struct mxc_isi_video *video = video_drvdata(file);
-	const struct mxc_isi_format_info *fmt;
+	const struct mxc_isi_format_info *info;
+	unsigned int h_align;
+	unsigned int v_align;
 
 	if (fsize->index)
 		return -EINVAL;
 
-	fmt = mxc_isi_format_by_fourcc(fsize->pixel_format, MXC_ISI_VIDEO_CAP);
-	if (!fmt)
+	info = mxc_isi_format_by_fourcc(fsize->pixel_format, MXC_ISI_VIDEO_CAP);
+	if (!info)
 		return -EINVAL;
 
-	fsize->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
-	fsize->stepwise.min_width = 4;
-	fsize->stepwise.max_width = 4;
-	fsize->stepwise.min_height = 4096;
-	fsize->stepwise.max_height = 4096;
-	fsize->stepwise.step_width = 1;
-	fsize->stepwise.step_height = 1;
+	h_align = max_t(unsigned int, info->hsub, 1);
+	v_align = max_t(unsigned int, info->vsub, 1);
 
-	if (video->pipe->isi->pdata->model == MXC_ISI_IMX8MP &&
-	    video->pipe->id == 1)
-		fsize->stepwise.min_height /= 2;
+	fsize->type = V4L2_FRMSIZE_TYPE_STEPWISE;
+	fsize->stepwise.min_width = ALIGN(MXC_ISI_MIN_WIDTH, h_align);
+	fsize->stepwise.min_height = ALIGN(MXC_ISI_MIN_HEIGHT, v_align);
+	fsize->stepwise.max_width = ALIGN_DOWN(MXC_ISI_MAX_WIDTH, h_align);
+	fsize->stepwise.max_height = ALIGN_DOWN(MXC_ISI_MAX_HEIGHT, v_align);
+	fsize->stepwise.step_width = h_align;
+	fsize->stepwise.step_height = v_align;
+
+	/*
+	 * The width can be further restricted due to line buffer sharing
+	 * between pipelines when scaling, but we have no way to know here if
+	 * the scaler will be used.
+	 */
 
 	return 0;
 }
