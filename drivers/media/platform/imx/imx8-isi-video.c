@@ -733,6 +733,33 @@ static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_
 	return container_of(v4l2_buf, struct mxc_isi_buffer, v4l2_buf);
 }
 
+int mxc_isi_video_queue_setup(const struct v4l2_pix_format_mplane *format,
+			      const struct mxc_isi_format_info *info,
+			      unsigned int *num_buffers,
+			      unsigned int *num_planes, unsigned int sizes[])
+{
+	unsigned int i;
+
+	if (*num_planes) {
+		if (*num_planes != info->memplanes)
+			return -EINVAL;
+
+		for (i = 0; i < info->memplanes; ++i) {
+			if (sizes[i] < format->plane_fmt[i].sizeimage)
+				return -EINVAL;
+		}
+
+		return 0;
+	}
+
+	*num_planes = info->memplanes;
+
+	for (i = 0; i < info->memplanes; ++i)
+		sizes[i] = format->plane_fmt[i].sizeimage;
+
+	return 0;
+}
+
 static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 				   unsigned int *num_buffers,
 				   unsigned int *num_planes,
@@ -740,29 +767,9 @@ static int mxc_isi_vb2_queue_setup(struct vb2_queue *q,
 				   struct device *alloc_devs[])
 {
 	struct mxc_isi_video *video = vb2_get_drv_priv(q);
-	const struct mxc_isi_format_info *fmt = video->fmtinfo;
-	unsigned long wh;
-	int i;
 
-	for (i = 0; i < fmt->memplanes; i++)
-		alloc_devs[i] = video->pipe->isi->dev;
-
-	wh = video->pix.width * video->pix.height;
-
-	*num_planes = fmt->memplanes;
-
-	for (i = 0; i < fmt->memplanes; i++) {
-		unsigned int size = wh * fmt->depth[i] / 8;
-
-		if (i > 1)
-			size /= fmt->hsub * fmt->vsub;
-
-		sizes[i] = max_t(u32, size, video->pix.plane_fmt[i].sizeimage);
-	}
-	dev_dbg(video->pipe->isi->dev, "%s, buf_n=%d, size=%d\n",
-		__func__, *num_buffers, sizes[0]);
-
-	return 0;
+	return mxc_isi_video_queue_setup(&video->pix, video->fmtinfo,
+					 num_buffers, num_planes, sizes);
 }
 
 static int mxc_isi_vb2_buffer_init(struct vb2_buffer *vb2)
@@ -1301,6 +1308,7 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->min_buffers_needed = 2;
 	q->lock = &video->lock;
+	q->dev = pipe->isi->dev;
 
 	ret = vb2_queue_init(q);
 	if (ret)

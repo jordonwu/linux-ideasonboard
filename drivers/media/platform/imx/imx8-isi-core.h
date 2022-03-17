@@ -304,6 +304,10 @@ int mxc_isi_video_register(struct mxc_isi_pipe *pipe,
 void mxc_isi_video_unregister(struct mxc_isi_pipe *pipe);
 void mxc_isi_video_suspend(struct mxc_isi_pipe *pipe);
 int mxc_isi_video_resume(struct mxc_isi_pipe *pipe);
+int mxc_isi_video_queue_setup(const struct v4l2_pix_format_mplane *format,
+			      const struct mxc_isi_format_info *info,
+			      unsigned int *num_buffers,
+			      unsigned int *num_planes, unsigned int sizes[]);
 
 #ifdef CONFIG_VIDEO_IMX8_ISI_M2M
 int mxc_isi_m2m_register(struct mxc_isi_dev *isi, struct v4l2_device *v4l2_dev);
