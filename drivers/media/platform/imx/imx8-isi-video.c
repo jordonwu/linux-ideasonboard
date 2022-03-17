@@ -367,6 +367,26 @@ mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 	pix->height = clamp(pix->height, MXC_ISI_MIN_HEIGHT, MXC_ISI_MAX_HEIGHT);
 	pix->pixelformat = fmt->fourcc;
 	pix->field = V4L2_FIELD_NONE;
+
+	if (pix->colorspace == V4L2_COLORSPACE_DEFAULT) {
+		pix->colorspace = MXC_ISI_DEF_COLOR_SPACE;
+		pix->ycbcr_enc = MXC_ISI_DEF_YCBCR_ENC;
+		pix->quantization = MXC_ISI_DEF_QUANTIZATION;
+		pix->xfer_func = MXC_ISI_DEF_XFER_FUNC;
+	}
+
+	if (pix->ycbcr_enc == V4L2_YCBCR_ENC_DEFAULT)
+		pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);
+	if (pix->quantization == V4L2_QUANTIZATION_DEFAULT) {
+		bool is_rgb = fmt->encoding == MXC_ISI_ENC_RGB;
+
+		pix->quantization =
+			V4L2_MAP_QUANTIZATION_DEFAULT(is_rgb, pix->colorspace,
+						      pix->ycbcr_enc);
+	}
+	if (pix->xfer_func == V4L2_XFER_FUNC_DEFAULT)
+		pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
+
 	pix->num_planes = fmt->memplanes;
 
 	for (i = 0; i < pix->num_planes; i++) {
@@ -387,12 +407,6 @@ mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 		if (i >= 1)
 			plane->sizeimage /= fmt->vsub;
 	}
-
-	pix->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(pix->colorspace);
-	pix->quantization =
-		V4L2_MAP_QUANTIZATION_DEFAULT(fmt->encoding == MXC_ISI_ENC_RGB,
-					      pix->colorspace, pix->ycbcr_enc);
-	pix->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(pix->colorspace);
 
 	return fmt;
 }
@@ -972,6 +986,8 @@ static int mxc_isi_video_enum_fmt(struct file *file, void *priv,
 	}
 
 	f->pixelformat = fmt->fourcc;
+	f->flags |= V4L2_FMT_FLAG_CSC_COLORSPACE | V4L2_FMT_FLAG_CSC_YCBCR_ENC
+		 |  V4L2_FMT_FLAG_CSC_QUANTIZATION | V4L2_FMT_FLAG_CSC_XFER_FUNC;
 
 	return 0;
 }
