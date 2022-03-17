@@ -193,28 +193,11 @@ static int mxc_isi_m2m_vb2_queue_setup(struct vb2_queue *q,
 				       struct device *alloc_devs[])
 {
 	struct mxc_isi_m2m_ctx *ctx = vb2_get_drv_priv(q);
-	struct mxc_isi_m2m *m2m = ctx->m2m;
 	const struct mxc_isi_m2m_ctx_queue_data *qdata =
 		mxc_isi_m2m_ctx_qdata(ctx, q->type);
-	unsigned long wh;
-	unsigned int i;
 
-	*num_planes = qdata->info->memplanes;
-
-	wh = qdata->format.width * qdata->format.height;
-
-	for (i = 0; i < qdata->info->memplanes; ++i) {
-		unsigned int size = wh * qdata->info->depth[i] / 8;
-
-		alloc_devs[i] = m2m->isi->dev;
-
-		if (i > 1)
-			size /= qdata->info->hsub * qdata->info->vsub;
-
-		sizes[i] = max_t(u32, size, qdata->format.plane_fmt[i].sizeimage);
-	}
-
-	return 0;
+	return mxc_isi_video_queue_setup(&qdata->format, qdata->info,
+					 num_buffers, num_planes, sizes);
 }
 
 static int mxc_isi_m2m_vb2_buffer_init(struct vb2_buffer *vb2)
