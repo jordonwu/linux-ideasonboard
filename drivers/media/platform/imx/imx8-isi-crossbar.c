@@ -111,7 +111,10 @@ static const struct v4l2_mbus_framefmt mxc_isi_crossbar_default_format = {
 	.width = MXC_ISI_DEF_WIDTH,
 	.height = MXC_ISI_DEF_HEIGHT,
 	.field = V4L2_FIELD_NONE,
-	.colorspace = V4L2_COLORSPACE_SRGB,
+	.colorspace = MXC_ISI_DEF_COLOR_SPACE,
+	.ycbcr_enc = MXC_ISI_DEF_YCBCR_ENC,
+	.quantization = MXC_ISI_DEF_QUANTIZATION,
+	.xfer_func = MXC_ISI_DEF_XFER_FUNC,
 };
 
 static int __mxc_isi_crossbar_set_routing(struct v4l2_subdev *sd,
