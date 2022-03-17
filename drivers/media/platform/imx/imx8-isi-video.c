@@ -853,6 +853,7 @@ static int mxc_isi_vb2_start_streaming(struct vb2_queue *q, unsigned int count)
 	return 0;
 
 error:
+	mxc_isi_channel_deinit(video->pipe);
 	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_QUEUED);
 	return ret;
 }
