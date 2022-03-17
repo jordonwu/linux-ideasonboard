@@ -538,6 +538,12 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		}
 	}
 
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
+	if (ret) {
+		dev_err(dev, "failed to set DMA mask\n");
+		return ret;
+	}
+
 	pm_runtime_enable(dev);
 
 	ret = mxc_isi_crossbar_init(isi);
