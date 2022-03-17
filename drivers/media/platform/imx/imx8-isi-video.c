@@ -611,8 +611,8 @@ static int mxc_isi_video_alloc_discard_buffers(struct mxc_isi_video *video)
 		}
 
 		dev_dbg(video->pipe->isi->dev,
-			"%s: num_plane=%d discard_size=%zu discard_buffer=%p\n",
-			__func__, i, buf->size, buf->addr);
+			"discard buffer plane %u: %zu bytes @%pad (CPU address %p)\n",
+			i, buf->size, &buf->dma, buf->addr);
 	}
 
 	/* Fill the DMA addresses in the discard buffers. */
