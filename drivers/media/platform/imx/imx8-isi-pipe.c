@@ -189,7 +189,7 @@ static const struct mxc_isi_bus_format_info mxc_isi_bus_formats[] = {
 	}
 };
 
-static const struct mxc_isi_bus_format_info *
+const struct mxc_isi_bus_format_info *
 mxc_isi_bus_format_by_code(u32 code, unsigned int pad)
 {
 	unsigned int i;
