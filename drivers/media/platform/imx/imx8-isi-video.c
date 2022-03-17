@@ -22,6 +22,7 @@
 #include <media/media-entity.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-dev.h>
+#include <media/v4l2-event.h>
 #include <media/v4l2-fh.h>
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-subdev.h>
@@ -1122,6 +1123,9 @@ static const struct v4l2_ioctl_ops mxc_isi_video_ioctl_ops = {
 	.vidioc_streamoff		= mxc_isi_video_streamoff,
 
 	.vidioc_enum_framesizes		= mxc_isi_video_enum_framesizes,
+
+	.vidioc_subscribe_event		= v4l2_ctrl_subscribe_event,
+	.vidioc_unsubscribe_event	= v4l2_event_unsubscribe,
 };
 
 /* -----------------------------------------------------------------------------
