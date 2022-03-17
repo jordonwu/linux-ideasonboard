@@ -436,6 +436,8 @@ static int mxc_isi_m2m_enum_fmt_vid(struct file *file, void *fh,
 		return -EINVAL;
 
 	f->pixelformat = info->fourcc;
+	f->flags |= V4L2_FMT_FLAG_CSC_COLORSPACE | V4L2_FMT_FLAG_CSC_YCBCR_ENC
+		 |  V4L2_FMT_FLAG_CSC_QUANTIZATION | V4L2_FMT_FLAG_CSC_XFER_FUNC;
 
 	return 0;
 }
