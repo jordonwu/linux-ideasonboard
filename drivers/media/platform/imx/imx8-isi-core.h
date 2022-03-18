@@ -77,7 +77,7 @@ enum mxc_isi_encoding {
 	MXC_ISI_ENC_YUV,
 };
 
-enum mxc_isi_input {
+enum mxc_isi_input_id {
 	/* Inputs from the crossbar switch range from 0 to 15 */
 	MXC_ISI_INPUT_MEM = 16,
 };
@@ -330,7 +330,8 @@ void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe);
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
+			    enum mxc_isi_input_id input,
 			    const struct v4l2_area *in_size,
 			    const struct v4l2_area *scale,
 			    const struct v4l2_rect *crop,
