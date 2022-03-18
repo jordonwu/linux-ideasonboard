@@ -175,11 +175,16 @@ struct mxc_isi_dma_buffer {
 	dma_addr_t			dma;
 };
 
+struct mxc_isi_input {
+	unsigned int			enable_count;
+};
+
 struct mxc_isi_crossbar {
 	struct mxc_isi_dev		*isi;
 
 	unsigned int			num_sinks;
 	unsigned int			num_sources;
+	struct mxc_isi_input		*inputs;
 
 	struct v4l2_subdev		sd;
 	struct media_pad		*pads;
