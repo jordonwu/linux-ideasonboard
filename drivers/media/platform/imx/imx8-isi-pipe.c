@@ -761,6 +761,10 @@ int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id)
 
 	spin_lock_init(&pipe->lock);
 
+	pipe->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
+				MXC_ISI_PIPE_OUTPUT_BUFFER;
+	pipe->chained = false;
+
 	sd = &pipe->sd;
 	v4l2_subdev_init(sd, &mxc_isi_pipe_subdev_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;

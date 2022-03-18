@@ -236,10 +236,14 @@ struct mxc_isi_pipe {
 
 	struct mxc_isi_video		video;
 
-	/* Protects irq_handler */
+	/* Protects irq_handler and buffer resources */
 	spinlock_t			lock;
 	mxc_isi_pipe_irq_t		irq_handler;
-	u8				chain_buf;
+
+	bool				chained;
+#define MXC_ISI_PIPE_LINE_BUFFER	BIT(0)
+#define MXC_ISI_PIPE_OUTPUT_BUFFER	BIT(1)
+	u8				buffs_available;
 };
 
 struct mxc_isi_m2m {

@@ -123,12 +123,12 @@ static void mxc_isi_chain_buf(struct mxc_isi_pipe *pipe,
 		val |= CHNL_CTRL_CHAIN_BUF(CHNL_CTRL_CHAIN_BUF_2_CHAIN);
 		mxc_isi_write(pipe, CHNL_CTRL, val);
 		mxc_isi_write(pipe + 1, CHNL_CTRL, CHNL_CTRL_CLK_EN);
-		pipe->chain_buf = 1;
+		pipe->chained = 1;
 	} else {
 		val = mxc_isi_read(pipe, CHNL_CTRL);
 		val &= ~CHNL_CTRL_CHAIN_BUF_MASK;
 		mxc_isi_write(pipe, CHNL_CTRL, val);
-		pipe->chain_buf = 0;
+		pipe->chained = 0;
 	}
 }
 
@@ -485,7 +485,7 @@ void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 {
 	mxc_isi_channel_sw_reset(pipe, false);
 
-	if (pipe->chain_buf)
+	if (pipe->chained)
 		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
 }
 
