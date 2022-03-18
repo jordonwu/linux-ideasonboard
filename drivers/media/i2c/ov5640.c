@@ -3627,6 +3627,12 @@ static int ov5640_s_stream(struct v4l2_subdev *sd, int enable)
 		ret = pm_runtime_resume_and_get(&sensor->i2c_client->dev);
 		if (ret < 0)
 			return ret;
+
+		ret = v4l2_ctrl_handler_setup(&sensor->ctrls.handler);
+		if (ret) {
+			pm_runtime_put(&sensor->i2c_client->dev);
+			return ret;
+		}
 	}
 
 	mutex_lock(&sensor->lock);
@@ -3894,13 +3900,8 @@ static int __maybe_unused ov5640_sensor_resume(struct device *dev)
 {
 	struct v4l2_subdev *sd = dev_get_drvdata(dev);
 	struct ov5640_dev *ov5640 = to_ov5640_dev(sd);
-	int ret;
 
-	ret = ov5640_set_power(ov5640, true);
-	if (ret)
-		return ret;
-
-	return v4l2_ctrl_handler_setup(&ov5640->ctrls.handler);
+	return ov5640_set_power(ov5640, true);
 }
 
 static const struct dev_pm_ops ov5640_pm_ops = {
