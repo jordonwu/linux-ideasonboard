@@ -167,6 +167,7 @@ struct mxc_isi_plat_data {
 	unsigned int num_clks;
 	bool buf_active_reverse;
 	bool has_gasket;
+	bool has_36bit_dma;
 };
 
 struct mxc_isi_dma_buffer {

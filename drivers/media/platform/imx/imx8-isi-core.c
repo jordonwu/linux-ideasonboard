@@ -296,6 +296,7 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v0 = {
 	.num_clks		= ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse	= false,
 	.has_gasket		= false,
+	.has_36bit_dma		= false,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
@@ -309,6 +310,7 @@ static const struct mxc_isi_plat_data mxc_imx8_data_v1 = {
 	.num_clks		= ARRAY_SIZE(mxc_imx8_clks),
 	.buf_active_reverse	= true,
 	.has_gasket		= false,
+	.has_36bit_dma		= false,
 };
 
 static const struct clk_bulk_data mxc_imx8mn_clks[] = {
@@ -327,6 +329,7 @@ static const struct mxc_isi_plat_data mxc_imx8mn_data = {
 	.num_clks		= ARRAY_SIZE(mxc_imx8mn_clks),
 	.buf_active_reverse	= false,
 	.has_gasket		= true,
+	.has_36bit_dma		= false,
 };
 
 static const struct mxc_isi_plat_data mxc_imx8mp_data = {
@@ -340,6 +343,7 @@ static const struct mxc_isi_plat_data mxc_imx8mp_data = {
 	.num_clks		= ARRAY_SIZE(mxc_imx8mn_clks),
 	.buf_active_reverse	= true,
 	.has_gasket		= true,
+	.has_36bit_dma		= true,
 };
 
 static const struct soc_device_attribute imx8_soc[] = {
@@ -495,6 +499,7 @@ static int mxc_isi_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct mxc_isi_dev *isi;
+	unsigned int dma_size;
 	unsigned int i;
 	int ret = 0;
 
@@ -538,7 +543,8 @@ static int mxc_isi_probe(struct platform_device *pdev)
 		}
 	}
 
-	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
+	dma_size = isi->pdata->has_36bit_dma ? 36 : 32;
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(dma_size));
 	if (ret) {
 		dev_err(dev, "failed to set DMA mask\n");
 		return ret;
