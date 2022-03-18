@@ -27,13 +27,13 @@ static inline void mxc_isi_write(struct mxc_isi_pipe *pipe, u32 reg, u32 val)
  * Buffers
  */
 
-void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr)
+void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, dma_addr_t dma_addr)
 {
 	mxc_isi_write(pipe, CHNL_IN_BUF_ADDR, dma_addr);
 }
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				const u32 dma_addrs[3],
+				const dma_addr_t dma_addrs[3],
 				enum mxc_isi_buf_id buf_id)
 {
 	int val;

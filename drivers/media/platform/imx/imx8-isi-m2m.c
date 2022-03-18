@@ -36,7 +36,7 @@
 
 struct mxc_isi_m2m_buffer {
 	struct v4l2_m2m_buffer buf;
-	u32 dma_addrs[3];
+	dma_addr_t dma_addrs[3];
 };
 
 struct mxc_isi_m2m_ctx_queue_data {

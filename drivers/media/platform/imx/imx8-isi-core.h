@@ -111,7 +111,7 @@ struct mxc_isi_bus_format_info {
 struct mxc_isi_buffer {
 	struct vb2_v4l2_buffer  v4l2_buf;
 	struct list_head	list;
-	u32			dma_addrs[3];
+	dma_addr_t		dma_addrs[3];
 	enum mxc_isi_buf_id	id;
 	bool discard;
 };
@@ -353,9 +353,9 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe, u8 alpha);
 void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe, bool hflip, bool vflip);
 
-void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, u32 dma_addr);
+void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, dma_addr_t dma_addr);
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
-				const u32 dma_addrs[3],
+				const dma_addr_t dma_addrs[3],
 				enum mxc_isi_buf_id buf_id);
 
 u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
