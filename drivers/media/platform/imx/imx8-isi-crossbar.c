@@ -124,8 +124,7 @@ static int __mxc_isi_crossbar_set_routing(struct v4l2_subdev *sd,
 	int ret;
 
 	ret = v4l2_subdev_routing_validate(sd, routing,
-					   V4L2_SUBDEV_ROUTING_NO_N_TO_1 |
-					   V4L2_SUBDEV_ROUTING_NO_STREAM_MIX);
+					   V4L2_SUBDEV_ROUTING_NO_N_TO_1);
 	if (ret)
 		return ret;
 
