@@ -60,7 +60,7 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
  */
 
 static void mxc_isi_channel_source_config(struct mxc_isi_pipe *pipe,
-					  enum mxc_isi_input input)
+					  enum mxc_isi_input_id input)
 {
 	u32 val;
 
@@ -311,7 +311,8 @@ static void mxc_isi_channel_set_panic_threshold(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_OUT_BUF_CTRL, val);
 }
 
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe, enum mxc_isi_input input,
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
+			    enum mxc_isi_input_id input,
 			    const struct v4l2_area *in_size,
 			    const struct v4l2_area *scale,
 			    const struct v4l2_rect *crop,
