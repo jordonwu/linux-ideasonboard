@@ -121,12 +121,26 @@ static int __mxc_isi_crossbar_set_routing(struct v4l2_subdev *sd,
 					  struct v4l2_subdev_state *state,
 					  struct v4l2_subdev_krouting *routing)
 {
+	struct mxc_isi_crossbar *xbar = to_isi_crossbar(sd);
+	struct v4l2_subdev_route *route;
 	int ret;
 
 	ret = v4l2_subdev_routing_validate(sd, routing,
 					   V4L2_SUBDEV_ROUTING_NO_N_TO_1);
 	if (ret)
 		return ret;
+
+	/* The memory input can be routed to the first pipeline only. */
+	for_each_active_route(&state->routing, route) {
+		if (route->sink_pad == xbar->num_sinks - 1 &&
+		    route->source_pad != xbar->num_sinks) {
+			dev_dbg(xbar->isi->dev,
+				"invalid route from memory input (%u) to pipe %u\n",
+				route->sink_pad,
+				route->source_pad - xbar->num_sinks);
+			return -EINVAL;
+		}
+	}
 
 	return v4l2_subdev_set_routing_with_fmt(sd, state, routing,
 						&mxc_isi_crossbar_default_format);
