@@ -30,6 +30,10 @@ static inline void mxc_isi_write(struct mxc_isi_pipe *pipe, u32 reg, u32 val)
 void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, dma_addr_t dma_addr)
 {
 	mxc_isi_write(pipe, CHNL_IN_BUF_ADDR, dma_addr);
+#if CONFIG_ARCH_DMA_ADDR_T_64BIT
+	if (pipe->isi->pdata->has_36bit_dma)
+		mxc_isi_write(pipe, CHNL_IN_BUF_XTND_ADDR, dma_addr >> 32);
+#endif
 }
 
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
@@ -44,11 +48,31 @@ void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_Y, dma_addrs[0]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_U, dma_addrs[1]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF1_ADDR_V, dma_addrs[2]);
+#if CONFIG_ARCH_DMA_ADDR_T_64BIT
+		if (pipe->isi->pdata->has_36bit_dma) {
+			mxc_isi_write(pipe, CHNL_Y_BUF1_XTND_ADDR,
+				      dma_addrs[0] >> 32);
+			mxc_isi_write(pipe, CHNL_U_BUF1_XTND_ADDR,
+				      dma_addrs[1] >> 32);
+			mxc_isi_write(pipe, CHNL_V_BUF1_XTND_ADDR,
+				      dma_addrs[2] >> 32);
+		}
+#endif
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF1_ADDR;
 	} else  {
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_Y, dma_addrs[0]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_U, dma_addrs[1]);
 		mxc_isi_write(pipe, CHNL_OUT_BUF2_ADDR_V, dma_addrs[2]);
+#if CONFIG_ARCH_DMA_ADDR_T_64BIT
+		if (pipe->isi->pdata->has_36bit_dma) {
+			mxc_isi_write(pipe, CHNL_Y_BUF2_XTND_ADDR,
+				      dma_addrs[0] >> 32);
+			mxc_isi_write(pipe, CHNL_U_BUF2_XTND_ADDR,
+				      dma_addrs[1] >> 32);
+			mxc_isi_write(pipe, CHNL_V_BUF2_XTND_ADDR,
+				      dma_addrs[2] >> 32);
+		}
+#endif
 		val ^= CHNL_OUT_BUF_CTRL_LOAD_BUF2_ADDR;
 	}
 
