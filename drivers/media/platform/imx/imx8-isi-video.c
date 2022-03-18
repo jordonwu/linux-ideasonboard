@@ -1046,6 +1046,9 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 	struct mxc_isi_video *video = video_drvdata(file);
 	int ret;
 
+	if (vb2_queue_is_busy(&video->vb2_q, file))
+		return -EBUSY;
+
 	ret = mxc_isi_pipe_acquire(video->pipe, &mxc_isi_video_frame_write_done);
 	if (ret)
 		return ret;
@@ -1070,7 +1073,7 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 	if (ret)
 		goto err_stop;
 
-	ret = vb2_ioctl_streamon(file, priv, type);
+	ret = vb2_streamon(&video->vb2_q, type);
 	if (ret)
 		goto err_free;
 
