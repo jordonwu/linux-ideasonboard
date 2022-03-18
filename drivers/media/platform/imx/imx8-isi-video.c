@@ -1044,6 +1044,8 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 				  enum v4l2_buf_type type)
 {
 	struct mxc_isi_video *video = video_drvdata(file);
+	struct media_device *mdev = &video->pipe->isi->media_dev;
+	struct media_pipeline *pipe;
 	int ret;
 
 	if (vb2_queue_is_busy(&video->vb2_q, file))
@@ -1054,16 +1056,24 @@ static int mxc_isi_video_streamon(struct file *file, void *priv,
 		return ret;
 
 	/*
-	 * Start pipeline and veify that the configured format matches the
-	 * output of the subdev. This must be done here and not in the queue
-	 * .start_streaming() handler, so that validation errors can be
-	 * reported from VIDIOC_STREAMON and not delayed until subsequent
-	 * VIDIOC_QBUF calls.
+	 * Get a pipeline for the video node and start it. This must be done
+	 * here and not in the queue .start_streaming() handler, so that
+	 * pipeline start errors can be reported from VIDIOC_STREAMON and not
+	 * delayed until subsequent VIDIOC_QBUF calls.
 	 */
-	ret = media_pipeline_start(video->vdev.entity.pads, &video->pipe->pipe);
-	if (ret)
-		goto err_release;
+	mutex_lock(&mdev->graph_mutex);
 
+	pipe = media_entity_pipeline(&video->vdev.entity) ? : &video->pipe->pipe;
+
+	ret = __media_pipeline_start(video->vdev.entity.pads, pipe);
+	if (ret) {
+		mutex_unlock(&mdev->graph_mutex);
+		goto err_release;
+	}
+
+	mutex_unlock(&mdev->graph_mutex);
+
+	/* Verify that the video format matches the output of the subdev. */
 	ret = mxc_isi_video_validate_format(video);
 	if (ret)
 		goto err_stop;
