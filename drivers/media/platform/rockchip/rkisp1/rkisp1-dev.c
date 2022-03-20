@@ -17,6 +17,7 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/pm_runtime.h>
 #include <media/v4l2-fwnode.h>
+#include <media/v4l2-mc.h>
 
 #include "rkisp1-common.h"
 #include "rkisp1-csi.h"
@@ -119,17 +120,8 @@ static int rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 		container_of(asd, struct rkisp1_sensor_async, asd);
 	int source_pad;
 
-	s_asd->pixel_rate_ctrl = v4l2_ctrl_find(sd->ctrl_handler,
-						V4L2_CID_PIXEL_RATE);
-	if (!s_asd->pixel_rate_ctrl) {
-		dev_err(rkisp1->dev, "No pixel rate control in subdev %s\n",
-			sd->name);
-		return -EINVAL;
-	}
-
 	s_asd->sd = sd;
 
-	/* Create the link to the sensor. */
 	source_pad = media_entity_get_fwnode_pad(&sd->entity, s_asd->source_ep,
 						 MEDIA_PAD_FL_SOURCE);
 	if (source_pad < 0) {
@@ -138,10 +130,7 @@ static int rkisp1_subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 		return source_pad;
 	}
 
-	return media_create_pad_link(&sd->entity, source_pad,
-				     &rkisp1->isp.sd.entity,
-				     RKISP1_ISP_PAD_SINK_VIDEO,
-				     !s_asd->index ? MEDIA_LNK_FL_ENABLED : 0);
+	return rkisp1_csi_link_sensor(rkisp1, sd, s_asd, source_pad);
 }
 
 static int rkisp1_subdev_notifier_complete(struct v4l2_async_notifier *notifier)
@@ -283,6 +272,14 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	unsigned int i;
 	int ret;
 
+	/* Link the CSI receiver to the ISP. */
+	ret = media_create_pad_link(&rkisp1->csi.sd.entity, RKISP1_CSI_PAD_SRC,
+				    &rkisp1->isp.sd.entity,
+				    RKISP1_ISP_PAD_SINK_VIDEO,
+				    MEDIA_LNK_FL_ENABLED);
+	if (ret)
+		return ret;
+
 	/* create ISP->RSZ->CAP links */
 	for (i = 0; i < 2; i++) {
 		struct media_entity *resizer =
@@ -363,13 +360,6 @@ static int rkisp1_entities_register(struct rkisp1_device *rkisp1)
 	ret = rkisp1_create_links(rkisp1);
 	if (ret)
 		goto error;
-
-	ret = rkisp1_subdev_notifier_register(rkisp1);
-	if (ret) {
-		dev_err(rkisp1->dev,
-			"Failed to register subdev notifier(%d)\n", ret);
-		goto error;
-	}
 
 	return 0;
 
@@ -534,10 +524,16 @@ static int rkisp1_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_cleanup_csi;
 
+	ret = rkisp1_subdev_notifier_register(rkisp1);
+	if (ret)
+		goto err_unreg_entities;
+
 	rkisp1_debug_init(rkisp1);
 
 	return 0;
 
+err_unreg_entities:
+	rkisp1_entities_unregister(rkisp1);
 err_cleanup_csi:
 	rkisp1_csi_cleanup(rkisp1);
 err_unreg_media_dev:
