@@ -976,6 +976,24 @@ media_entity_remote_source_pad(const struct media_entity *entity)
 }
 
 /**
+ * media_pad_remote_pad - Find a remote pad connected to a pad
+ * @pad: The pad
+ *
+ * Search for and return a remote pad connected to @pad through an enabled
+ * link. If multiple (or no) remote pads are found, an error is returned.
+ *
+ * The uniqueness constraint makes this helper function suitable for entities
+ * that support a single active source at a time on a given pad.
+ *
+ * Return: A pointer to the remote pad, or one of the following error pointers
+ * if an error occurs:
+ *
+ * * -ENOTUNIQ - Multiple links are enabled
+ * * -ENOLINK - No connected pad found
+ */
+struct media_pad *media_pad_remote_pad(const struct media_pad *pad);
+
+/**
  * media_pad_is_streaming - Test if a pad is part of a streaming pipeline
  * @pad: The pad
  *
