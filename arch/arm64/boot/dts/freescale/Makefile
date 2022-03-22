@@ -71,8 +71,27 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mn-ddr4-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mn-tqma8mqnl-mba8mx.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mn-var-som-symphony.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mn-venice-gw7902.dtb
-dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb \
+			  imx8mp-evk-isp1.dtb \
+			  imx8mp-evk-isp2.dtb \
+			  imx8mp-evk-ov5640-csi1.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-phyboard-pollux-rdk.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin.dtb \
+			  imx8mp-maivin-csi1-imx296.dtb \
+			  imx8mp-maivin-csi1-imx327.dtb \
+			  imx8mp-maivin-csi1-ov5640.dtb \
+			  imx8mp-maivin-csi2-imx296.dtb \
+			  imx8mp-maivin-csi2-imx327.dtb \
+			  imx8mp-maivin-isp1.dtb \
+			  imx8mp-maivin-isp2.dtb \
+			  imx8mp-verdin-dahlia-imx296.dtb \
+			  imx8mp-verdin-dahlia-imx327.dtb \
+			  imx8mp-verdin-dahlia-isp1.dtb \
+			  imx8mp-verdin-dahlia-ov5640.dtb \
+			  imx8mp-verdin-nonwifi-dahlia.dtb \
+			  imx8mp-verdin-nonwifi-dev.dtb \
+			  imx8mp-verdin-wifi-dahlia.dtb \
+			  imx8mp-verdin-wifi-dev.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mq-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mq-hummingboard-pulse.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mq-kontron-pitx-imx8m.dtb
