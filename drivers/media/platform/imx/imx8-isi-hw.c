@@ -223,7 +223,7 @@ static void mxc_isi_channel_set_crop(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
 }
 
-/* 
+/*
  * A2,A1,      B1, A3,     B3, B2,
  * C2, C1,     D1, C3,     D3, D2
  */
