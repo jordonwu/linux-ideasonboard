@@ -245,6 +245,14 @@ enum v4l2_colorspace {
 
 	/* DCI-P3 colorspace, used by cinema projectors */
 	V4L2_COLORSPACE_DCI_P3        = 12,
+
+#ifdef __KERNEL__
+	/*
+	 * Largest supported colorspace value, used by the framework to check
+	 * for invalid values.
+	 */
+	V4L2_COLORSPACE_LAST          = 12,
+#endif
 };
 
 /*
@@ -283,6 +291,13 @@ enum v4l2_xfer_func {
 	V4L2_XFER_FUNC_NONE        = 5,
 	V4L2_XFER_FUNC_DCI_P3      = 6,
 	V4L2_XFER_FUNC_SMPTE2084   = 7,
+#ifdef __KERNEL__
+	/*
+	 * Largest supported transfer function value, used by the framework to
+	 * check for invalid values.
+	 */
+	V4L2_XFER_FUNC_LAST        = 7,
+#endif
 };
 
 /*
@@ -343,6 +358,13 @@ enum v4l2_ycbcr_encoding {
 
 	/* SMPTE 240M -- Obsolete HDTV */
 	V4L2_YCBCR_ENC_SMPTE240M      = 8,
+#ifdef __KERNEL__
+	/*
+	 * Largest supported encoding value, used by the framework to check for
+	 * invalid values.
+	 */
+	V4L2_YCBCR_ENC_LAST           = 8,
+#endif
 };
 
 /*
@@ -378,6 +400,13 @@ enum v4l2_quantization {
 	V4L2_QUANTIZATION_DEFAULT     = 0,
 	V4L2_QUANTIZATION_FULL_RANGE  = 1,
 	V4L2_QUANTIZATION_LIM_RANGE   = 2,
+#ifdef __KERNEL__
+	/*
+	 * Largest supported quantization value, used by the framework to check
+	 * for invalid values.
+	 */
+	V4L2_QUANTIZATION_LAST        = 2,
+#endif
 };
 
 /*
@@ -592,6 +621,8 @@ struct v4l2_pix_format {
 #define V4L2_PIX_FMT_XYUV32  v4l2_fourcc('X', 'Y', 'U', 'V') /* 32  XYUV-8-8-8-8  */
 #define V4L2_PIX_FMT_VUYA32  v4l2_fourcc('V', 'U', 'Y', 'A') /* 32  VUYA-8-8-8-8  */
 #define V4L2_PIX_FMT_VUYX32  v4l2_fourcc('V', 'U', 'Y', 'X') /* 32  VUYX-8-8-8-8  */
+#define V4L2_PIX_FMT_YUVA32  v4l2_fourcc('Y', 'U', 'V', 'A') /* 32  YUVA-8-8-8-8  */
+#define V4L2_PIX_FMT_YUVX32  v4l2_fourcc('Y', 'U', 'V', 'X') /* 32  YUVX-8-8-8-8  */
 #define V4L2_PIX_FMT_M420    v4l2_fourcc('M', '4', '2', '0') /* 12  YUV 4:2:0 2 lines y, 1 line uv interleaved */
 
 /* two planes -- one Y, one Cr + Cb interleaved  */
