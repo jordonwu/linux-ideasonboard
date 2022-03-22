@@ -517,8 +517,8 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 	 * the M2M device.
 	 */
 	if (m2m->usage_count == 0) {
-		ret = mxc_isi_pipe_acquire(m2m->pipe,
-					   &mxc_isi_m2m_frame_write_done);
+		ret = mxc_isi_channel_acquire(m2m->pipe,
+					      &mxc_isi_m2m_frame_write_done);
 		if (ret)
 			goto unlock;
 
@@ -538,7 +538,7 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 	if (ret) {
 		if (--m2m->usage_count == 0) {
 			mxc_isi_channel_deinit(m2m->pipe);
-			mxc_isi_pipe_release(m2m->pipe);
+			mxc_isi_channel_release(m2m->pipe);
 		}
 	}
 
@@ -568,7 +568,7 @@ static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
 	if (--m2m->usage_count == 0) {
 		mxc_isi_channel_disable(m2m->pipe);
 		mxc_isi_channel_deinit(m2m->pipe);
-		mxc_isi_pipe_release(m2m->pipe);
+		mxc_isi_channel_release(m2m->pipe);
 	}
 
 	WARN_ON(m2m->usage_count < 0);

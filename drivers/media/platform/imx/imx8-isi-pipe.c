@@ -832,21 +832,10 @@ void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
 int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 			 mxc_isi_pipe_irq_t irq_handler)
 {
-	int ret = 0;
-
-	spin_lock_irq(&pipe->lock);
-	if (!pipe->irq_handler)
-		pipe->irq_handler = irq_handler;
-	else
-		ret = -EBUSY;
-	spin_unlock_irq(&pipe->lock);
-
-	return ret;
+	return mxc_isi_channel_acquire(pipe, irq_handler);
 }
 
 void mxc_isi_pipe_release(struct mxc_isi_pipe *pipe)
 {
-	spin_lock_irq(&pipe->lock);
-	pipe->irq_handler = NULL;
-	spin_unlock_irq(&pipe->lock);
+	mxc_isi_channel_release(pipe);
 }

@@ -514,6 +514,28 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
+int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
+			    mxc_isi_pipe_irq_t irq_handler)
+{
+	int ret = 0;
+
+	spin_lock_irq(&pipe->lock);
+	if (!pipe->irq_handler)
+		pipe->irq_handler = irq_handler;
+	else
+		ret = -EBUSY;
+	spin_unlock_irq(&pipe->lock);
+
+	return ret;
+}
+
+void mxc_isi_channel_release(struct mxc_isi_pipe *pipe)
+{
+	spin_lock_irq(&pipe->lock);
+	pipe->irq_handler = NULL;
+	spin_unlock_irq(&pipe->lock);
+}
+
 void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe)
 {
 	u32 val;

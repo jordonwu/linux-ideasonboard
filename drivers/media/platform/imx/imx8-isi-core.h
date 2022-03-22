@@ -330,6 +330,9 @@ static inline int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 }
 #endif
 
+int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
+			    mxc_isi_pipe_irq_t irq_handler);
+void mxc_isi_channel_release(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
