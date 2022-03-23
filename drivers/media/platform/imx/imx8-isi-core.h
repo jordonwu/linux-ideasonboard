@@ -255,11 +255,12 @@ struct mxc_isi_m2m {
 	struct media_intf_devnode	*intf;
 	struct v4l2_m2m_dev		*m2m_dev;
 
-	/* Protects last_ctx and usage_count */
+	/* Protects last_ctx, usage and chained count */
 	struct mutex			lock;
 
 	struct mxc_isi_m2m_ctx		*last_ctx;
 	int				usage_count;
+	int				chained_count;
 };
 
 struct mxc_isi_dev {

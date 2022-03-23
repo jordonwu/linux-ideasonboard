@@ -63,6 +63,8 @@ struct mxc_isi_m2m_ctx {
 		bool hflip;
 		bool vflip;
 	} ctrls;
+
+	bool chained;
 };
 
 static inline struct mxc_isi_m2m_buffer *
@@ -505,6 +507,7 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 	struct mxc_isi_m2m *m2m = ctx->m2m;
 	bool scaler_bypass;
 	bool csc_bypass;
+	bool high_res;
 	int ret;
 
 	mutex_lock(&m2m->lock);
@@ -520,6 +523,7 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 			 ctx->queues.out.format.height);
 	csc_bypass = ctx->queues.cap.info->encoding ==
 		     ctx->queues.out.info->encoding;
+	high_res = ctx->queues.cap.format.width > 2048;
 
 	/*
 	 * Acquire the pipe and initialize the channel with the first user of
@@ -538,18 +542,39 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 	m2m->usage_count++;
 
 	/*
+	 * Allocate resources for the channel, counting how many users require
+	 * buffer chaining.
+	 */
+	ret = mxc_isi_channel_alloc(m2m->pipe, csc_bypass, scaler_bypass,
+				    high_res, &ctx->chained);
+	if (ret)
+		goto deinit;
+
+	m2m->chained_count += ctx->chained ? 1 : 0;
+
+	/*
 	 * Drop the lock to start the stream, as the .device_run() operation
 	 * needs to acquire it.
 	 */
 	mutex_unlock(&m2m->lock);
 	ret = v4l2_m2m_ioctl_streamon(file, fh, type);
-	mutex_lock(&m2m->lock);
-
 	if (ret) {
-		if (--m2m->usage_count == 0) {
-			mxc_isi_channel_deinit(m2m->pipe);
-			mxc_isi_channel_release(m2m->pipe);
-		}
+		/* Reacquire the lock for the cleanup path. */
+		mutex_lock(&m2m->lock);
+		goto unchain;
+	}
+
+	return 0;
+
+unchain:
+	if (ctx->chained && --m2m->chained_count == 0)
+		mxc_isi_channel_free(m2m->pipe);
+	ctx->chained = false;
+
+deinit:
+	if (--m2m->usage_count == 0) {
+		mxc_isi_channel_deinit(m2m->pipe);
+		mxc_isi_channel_release(m2m->pipe);
 	}
 
 unlock:
@@ -573,6 +598,11 @@ static int mxc_isi_m2m_streamoff(struct file *file, void *fh,
 	 */
 	if (m2m->last_ctx == ctx)
 		m2m->last_ctx = NULL;
+
+	/* Free the channel resources if this is the last chained context. */
+	if (ctx->chained && --m2m->chained_count == 0)
+		mxc_isi_channel_free(m2m->pipe);
+	ctx->chained = false;
 
 	/* Turn off the light with the last user. */
 	if (--m2m->usage_count == 0) {
