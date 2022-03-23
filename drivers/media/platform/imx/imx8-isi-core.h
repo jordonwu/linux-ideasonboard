@@ -342,6 +342,9 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
+int mxc_isi_channel_alloc(struct mxc_isi_pipe *pipe, bool scaler_bypass,
+			  bool csc_bypass, bool high_res, bool *chained);
+void mxc_isi_channel_free(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe);
 
 void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,

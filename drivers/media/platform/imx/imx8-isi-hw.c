@@ -570,6 +570,89 @@ void mxc_isi_channel_release(struct mxc_isi_pipe *pipe)
 	spin_unlock_irq(&pipe->lock);
 }
 
+int mxc_isi_channel_alloc(struct mxc_isi_pipe *pipe, bool scaler_bypass,
+			  bool csc_bypass, bool high_res, bool *chained)
+{
+	struct mxc_isi_dev *isi = pipe->isi;
+	unsigned int num_pipes = isi->pdata->num_channels;
+	struct mxc_isi_pipe *chained_pipe;
+
+	/*
+	 * We currently support line buffer chaining only, for downscaling
+	 * images with a width larger than 2048 pixels.
+	 *
+	 * TODO: Support secondary line buffer for downscaling YUV420 images.
+	 */
+
+	if (chained)
+		*chained = false;
+
+	/*
+	 * No chaining required, we're done here.
+	 *
+	 * TODO: Make the chaining selection criteria SoC-specific.
+	 * In example, the manual says that to capture high resolution
+	 * images buffer chaining is required, while on i.MX8MP it is only
+	 * required when downscaling.
+	 */
+	if (scaler_bypass || !high_res)
+		return 0;
+
+	/*
+	 * If buffer chaining is required, make sure this channel is not the
+	 * last available one, otherwise line buffer chaining is not possible
+	 * as there's no 'next' channel to chain with.
+	 */
+	if (pipe->id == num_pipes - 1)
+		return -EINVAL;
+
+	spin_lock_irq(&pipe->lock);
+	pipe->chained = true;
+	spin_unlock_irq(&pipe->lock);
+
+	/* Acquire resources from the next pipe. */
+	chained_pipe = &isi->pipes[pipe->id + 1];
+
+	spin_lock_irq(&chained_pipe->lock);
+
+	if (!chained_pipe->buffs_available) {
+		spin_unlock_irq(&chained_pipe->lock);
+		return -EBUSY;
+	}
+
+	chained_pipe->buffs_available = 0;
+
+	spin_unlock_irq(&chained_pipe->lock);
+
+	if (chained)
+		*chained = true;
+
+	return 0;
+}
+
+void mxc_isi_channel_free(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_pipe *chained;
+
+	spin_lock_irq(&pipe->lock);
+
+	if (!pipe->chained) {
+		spin_unlock_irq(&pipe->lock);
+		return;
+	}
+
+	pipe->chained = false;
+
+	spin_unlock_irq(&pipe->lock);
+
+	chained = pipe + 1;
+
+	spin_lock_irq(&chained->lock);
+	chained->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
+				   MXC_ISI_PIPE_OUTPUT_BUFFER;
+	spin_unlock_irq(&chained->lock);
+}
+
 void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe)
 {
 	u32 val;
