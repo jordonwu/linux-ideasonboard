@@ -828,6 +828,8 @@ int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 	struct v4l2_subdev_state *state;
 	bool scaler_bypass;
 	bool csc_bypass;
+	bool high_res;
+	int ret;
 
 	state = v4l2_subdev_lock_active_state(sd);
 	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SINK);
@@ -842,12 +844,23 @@ int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 	scaler_bypass = sink_fmt->width == src_fmt->width &&
 			sink_fmt->height == src_fmt->height;
 	csc_bypass = sink_info->encoding == src_info->encoding;
+	high_res = sink_fmt->width > 2048;
 
-	return mxc_isi_channel_acquire(pipe, irq_handler, scaler_bypass,
-				       csc_bypass);
+	ret = mxc_isi_channel_acquire(pipe, irq_handler, scaler_bypass,
+				      csc_bypass);
+	if (ret)
+		return ret;
+
+	ret = mxc_isi_channel_alloc(pipe, scaler_bypass, csc_bypass, high_res,
+				    NULL);
+	if (ret)
+		mxc_isi_channel_release(pipe);
+
+	return ret;
 }
 
 void mxc_isi_pipe_release(struct mxc_isi_pipe *pipe)
 {
+	mxc_isi_channel_free(pipe);
 	mxc_isi_channel_release(pipe);
 }
