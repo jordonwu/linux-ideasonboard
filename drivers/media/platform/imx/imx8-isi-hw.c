@@ -24,6 +24,279 @@ static inline void mxc_isi_write(struct mxc_isi_pipe *pipe, u32 reg, u32 val)
 }
 
 /* -----------------------------------------------------------------------------
+ * IRQ
+ */
+
+static void mxc_isi_channel_irq_enable(struct mxc_isi_pipe *pipe)
+{
+	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
+	u32 val;
+
+	val = CHNL_IER_FRM_RCVD_EN |
+		CHNL_IER_AXI_WR_ERR_U_EN |
+		CHNL_IER_AXI_WR_ERR_V_EN |
+		CHNL_IER_AXI_WR_ERR_Y_EN;
+
+	/* Y/U/V overflow enable */
+	val |= ier_reg->oflw_y_buf_en.mask |
+	       ier_reg->oflw_u_buf_en.mask |
+	       ier_reg->oflw_v_buf_en.mask;
+
+	/* Y/U/V excess overflow enable */
+	val |= ier_reg->excs_oflw_y_buf_en.mask |
+	       ier_reg->excs_oflw_u_buf_en.mask |
+	       ier_reg->excs_oflw_v_buf_en.mask;
+
+	/* Y/U/V panic enable */
+	val |= ier_reg->panic_y_buf_en.mask |
+	       ier_reg->panic_u_buf_en.mask |
+	       ier_reg->panic_v_buf_en.mask;
+
+	mxc_isi_channel_irq_clear(pipe);
+	mxc_isi_write(pipe, CHNL_IER, val);
+}
+
+static void mxc_isi_channel_irq_disable(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_write(pipe, CHNL_IER, 0);
+}
+
+u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear)
+{
+	u32 status;
+
+	status = mxc_isi_read(pipe, CHNL_STS);
+	if (clear)
+		mxc_isi_write(pipe, CHNL_STS, status);
+
+	return status;
+}
+
+void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_write(pipe, CHNL_STS, 0xffffffff);
+}
+
+/* -----------------------------------------------------------------------------
+ * Init, deinit, enable, disable
+ */
+
+static void mxc_isi_channel_sw_reset(struct mxc_isi_pipe *pipe, bool enable_clk)
+{
+	mxc_isi_write(pipe, CHNL_CTRL, CHNL_CTRL_SW_RST);
+	mdelay(5);
+	mxc_isi_write(pipe, CHNL_CTRL, enable_clk ? CHNL_CTRL_CLK_EN : 0);
+}
+
+void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_channel_sw_reset(pipe, true);
+}
+
+void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_channel_sw_reset(pipe, false);
+
+	if (pipe->chained)
+		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
+}
+
+void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
+{
+	u32 val;
+
+	mxc_isi_channel_irq_enable(pipe);
+
+	val = mxc_isi_read(pipe, CHNL_CTRL);
+	val |= CHNL_CTRL_BLANK_PXL(0xff);
+	val |= CHNL_CTRL_CHNL_EN;
+	mxc_isi_write(pipe, CHNL_CTRL, val);
+
+	msleep(300);
+}
+
+void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
+{
+	u32 val;
+
+	mxc_isi_channel_irq_disable(pipe);
+
+	val = mxc_isi_read(pipe, CHNL_CTRL);
+	val &= ~CHNL_CTRL_CHNL_EN;
+	mxc_isi_write(pipe, CHNL_CTRL, val);
+}
+
+int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
+			    mxc_isi_pipe_irq_t irq_handler,
+			    bool scaler_bypass, bool csc_bypass)
+{
+	int ret = 0;
+
+	spin_lock_irq(&pipe->lock);
+
+	if (!pipe->irq_handler) {
+		pipe->irq_handler = irq_handler;
+	} else {
+		spin_unlock_irq(&pipe->lock);
+		return -EBUSY;
+	}
+
+	/* Make sure the resources we need are available. */
+	if (!(pipe->buffs_available & MXC_ISI_PIPE_LINE_BUFFER)) {
+		if (!(pipe->buffs_available & MXC_ISI_PIPE_OUTPUT_BUFFER)) {
+			/*
+			 * Line buffer and output buffer are not available: this
+			 * pipe is chained and cannot be operated.
+			 */
+			spin_unlock_irq(&pipe->lock);
+			return -EBUSY;
+		}
+
+		if (!scaler_bypass || !csc_bypass) {
+			/*
+			 * If the output buffer is avaialble this pipe has
+			 * been used as secondary line buffer for YUV420
+			 * downscaling. Only un-processed output is available.
+			 */
+			spin_unlock_irq(&pipe->lock);
+			return -EBUSY;
+		}
+	}
+
+	/* Mark this pipe resources as busy. */
+	pipe->buffs_available = 0;
+
+	spin_unlock_irq(&pipe->lock);
+
+	return ret;
+}
+
+void mxc_isi_channel_release(struct mxc_isi_pipe *pipe)
+{
+	spin_lock_irq(&pipe->lock);
+	pipe->irq_handler = NULL;
+
+	pipe->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
+				MXC_ISI_PIPE_OUTPUT_BUFFER;
+
+	spin_unlock_irq(&pipe->lock);
+}
+
+int mxc_isi_channel_alloc(struct mxc_isi_pipe *pipe, bool scaler_bypass,
+			  bool csc_bypass, bool high_res, bool *chained)
+{
+	struct mxc_isi_dev *isi = pipe->isi;
+	unsigned int num_pipes = isi->pdata->num_channels;
+	struct mxc_isi_pipe *chained_pipe;
+
+	/*
+	 * We currently support line buffer chaining only, for downscaling
+	 * images with a width larger than 2048 pixels.
+	 *
+	 * TODO: Support secondary line buffer for downscaling YUV420 images.
+	 */
+
+	if (chained)
+		*chained = false;
+
+	/*
+	 * No chaining required, we're done here.
+	 *
+	 * TODO: Make the chaining selection criteria SoC-specific.
+	 * In example, the manual says that to capture high resolution
+	 * images buffer chaining is required, while on i.MX8MP it is only
+	 * required when downscaling.
+	 */
+	if (scaler_bypass || !high_res)
+		return 0;
+
+	/*
+	 * If buffer chaining is required, make sure this channel is not the
+	 * last available one, otherwise line buffer chaining is not possible
+	 * as there's no 'next' channel to chain with.
+	 */
+	if (pipe->id == num_pipes - 1)
+		return -EINVAL;
+
+	spin_lock_irq(&pipe->lock);
+	pipe->chained = true;
+	spin_unlock_irq(&pipe->lock);
+
+	/* Acquire resources from the next pipe. */
+	chained_pipe = &isi->pipes[pipe->id + 1];
+
+	spin_lock_irq(&chained_pipe->lock);
+
+	if (!chained_pipe->buffs_available) {
+		spin_unlock_irq(&chained_pipe->lock);
+		return -EBUSY;
+	}
+
+	chained_pipe->buffs_available = 0;
+
+	spin_unlock_irq(&chained_pipe->lock);
+
+	if (chained)
+		*chained = true;
+
+	return 0;
+}
+
+void mxc_isi_channel_free(struct mxc_isi_pipe *pipe)
+{
+	struct mxc_isi_pipe *chained;
+
+	spin_lock_irq(&pipe->lock);
+
+	if (!pipe->chained) {
+		spin_unlock_irq(&pipe->lock);
+		return;
+	}
+
+	pipe->chained = false;
+
+	spin_unlock_irq(&pipe->lock);
+
+	chained = pipe + 1;
+
+	spin_lock_irq(&chained->lock);
+	chained->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
+				   MXC_ISI_PIPE_OUTPUT_BUFFER;
+	spin_unlock_irq(&chained->lock);
+}
+
+void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
+				      const struct mxc_isi_format_info *info,
+				      const struct v4l2_pix_format_mplane *format)
+{
+	unsigned int bpl = format->plane_fmt[0].bytesperline;
+
+	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL,
+		      CHNL_MEM_RD_CTRL_IMG_TYPE(info->isi_in_format));
+	mxc_isi_write(pipe, CHNL_IN_BUF_PITCH,
+		      CHNL_IN_BUF_PITCH_LINE_PITCH(bpl));
+}
+
+void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
+				       const struct mxc_isi_format_info *info,
+				       struct v4l2_pix_format_mplane *format)
+{
+	u32 val;
+
+	/* set outbuf format */
+	dev_dbg(pipe->isi->dev, "output format %p4cc", &format->pixelformat);
+
+	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
+	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
+	val |= CHNL_IMG_CTRL_FORMAT(info->isi_out_format);
+	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
+
+	/* line pitch */
+	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH,
+		      format->plane_fmt[0].bytesperline);
+}
+
+/* -----------------------------------------------------------------------------
  * Buffers
  */
 
@@ -380,278 +653,9 @@ void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
 	mxc_isi_write(pipe, CHNL_CTRL, val);
 }
 
-void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
-				      const struct mxc_isi_format_info *info,
-				      const struct v4l2_pix_format_mplane *format)
-{
-	unsigned int bpl = format->plane_fmt[0].bytesperline;
-
-	mxc_isi_write(pipe, CHNL_MEM_RD_CTRL,
-		      CHNL_MEM_RD_CTRL_IMG_TYPE(info->isi_in_format));
-	mxc_isi_write(pipe, CHNL_IN_BUF_PITCH,
-		      CHNL_IN_BUF_PITCH_LINE_PITCH(bpl));
-}
-
-void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
-				       const struct mxc_isi_format_info *info,
-				       struct v4l2_pix_format_mplane *format)
-{
-	u32 val;
-
-	/* set outbuf format */
-	dev_dbg(pipe->isi->dev, "output format %p4cc", &format->pixelformat);
-
-	val = mxc_isi_read(pipe, CHNL_IMG_CTRL);
-	val &= ~CHNL_IMG_CTRL_FORMAT_MASK;
-	val |= CHNL_IMG_CTRL_FORMAT(info->isi_out_format);
-	mxc_isi_write(pipe, CHNL_IMG_CTRL, val);
-
-	/* line pitch */
-	mxc_isi_write(pipe, CHNL_OUT_BUF_PITCH,
-		      format->plane_fmt[0].bytesperline);
-}
-
 /* -----------------------------------------------------------------------------
- * IRQ
+ * M2M
  */
-
-u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear)
-{
-	u32 status;
-
-	status = mxc_isi_read(pipe, CHNL_STS);
-	if (clear)
-		mxc_isi_write(pipe, CHNL_STS, status);
-
-	return status;
-}
-
-void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe)
-{
-	mxc_isi_write(pipe, CHNL_STS, 0xffffffff);
-}
-
-static void mxc_isi_channel_irq_enable(struct mxc_isi_pipe *pipe)
-{
-	const struct mxc_isi_ier_reg *ier_reg = pipe->isi->pdata->ier_reg;
-	u32 val;
-
-	val = CHNL_IER_FRM_RCVD_EN |
-		CHNL_IER_AXI_WR_ERR_U_EN |
-		CHNL_IER_AXI_WR_ERR_V_EN |
-		CHNL_IER_AXI_WR_ERR_Y_EN;
-
-	/* Y/U/V overflow enable */
-	val |= ier_reg->oflw_y_buf_en.mask |
-	       ier_reg->oflw_u_buf_en.mask |
-	       ier_reg->oflw_v_buf_en.mask;
-
-	/* Y/U/V excess overflow enable */
-	val |= ier_reg->excs_oflw_y_buf_en.mask |
-	       ier_reg->excs_oflw_u_buf_en.mask |
-	       ier_reg->excs_oflw_v_buf_en.mask;
-
-	/* Y/U/V panic enable */
-	val |= ier_reg->panic_y_buf_en.mask |
-	       ier_reg->panic_u_buf_en.mask |
-	       ier_reg->panic_v_buf_en.mask;
-
-	mxc_isi_channel_irq_clear(pipe);
-	mxc_isi_write(pipe, CHNL_IER, val);
-}
-
-static void mxc_isi_channel_irq_disable(struct mxc_isi_pipe *pipe)
-{
-	mxc_isi_write(pipe, CHNL_IER, 0);
-}
-
-/* -----------------------------------------------------------------------------
- * Init, deinit, enable, disable
- */
-
-static void mxc_isi_channel_sw_reset(struct mxc_isi_pipe *pipe, bool enable_clk)
-{
-	mxc_isi_write(pipe, CHNL_CTRL, CHNL_CTRL_SW_RST);
-	mdelay(5);
-	mxc_isi_write(pipe, CHNL_CTRL, enable_clk ? CHNL_CTRL_CLK_EN : 0);
-}
-
-void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
-{
-	mxc_isi_channel_sw_reset(pipe, true);
-}
-
-void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
-{
-	mxc_isi_channel_sw_reset(pipe, false);
-
-	if (pipe->chained)
-		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
-}
-
-void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	mxc_isi_channel_irq_enable(pipe);
-
-	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val |= CHNL_CTRL_BLANK_PXL(0xff);
-	val |= CHNL_CTRL_CHNL_EN;
-	mxc_isi_write(pipe, CHNL_CTRL, val);
-
-	msleep(300);
-}
-
-void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
-{
-	u32 val;
-
-	mxc_isi_channel_irq_disable(pipe);
-
-	val = mxc_isi_read(pipe, CHNL_CTRL);
-	val &= ~CHNL_CTRL_CHNL_EN;
-	mxc_isi_write(pipe, CHNL_CTRL, val);
-}
-
-int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
-			    mxc_isi_pipe_irq_t irq_handler,
-			    bool scaler_bypass, bool csc_bypass)
-{
-	int ret = 0;
-
-	spin_lock_irq(&pipe->lock);
-
-	if (!pipe->irq_handler) {
-		pipe->irq_handler = irq_handler;
-	} else {
-		spin_unlock_irq(&pipe->lock);
-		return -EBUSY;
-	}
-
-	/* Make sure the resources we need are available. */
-	if (!(pipe->buffs_available & MXC_ISI_PIPE_LINE_BUFFER)) {
-		if (!(pipe->buffs_available & MXC_ISI_PIPE_OUTPUT_BUFFER)) {
-			/*
-			 * Line buffer and output buffer are not available: this
-			 * pipe is chained and cannot be operated.
-			 */
-			spin_unlock_irq(&pipe->lock);
-			return -EBUSY;
-		}
-
-		if (!scaler_bypass || !csc_bypass) {
-			/*
-			 * If the output buffer is avaialble this pipe has
-			 * been used as secondary line buffer for YUV420
-			 * downscaling. Only un-processed output is available.
-			 */
-			spin_unlock_irq(&pipe->lock);
-			return -EBUSY;
-		}
-	}
-
-	/* Mark this pipe resources as busy. */
-	pipe->buffs_available = 0;
-
-	spin_unlock_irq(&pipe->lock);
-
-	return ret;
-}
-
-void mxc_isi_channel_release(struct mxc_isi_pipe *pipe)
-{
-	spin_lock_irq(&pipe->lock);
-	pipe->irq_handler = NULL;
-
-	pipe->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
-				MXC_ISI_PIPE_OUTPUT_BUFFER;
-
-	spin_unlock_irq(&pipe->lock);
-}
-
-int mxc_isi_channel_alloc(struct mxc_isi_pipe *pipe, bool scaler_bypass,
-			  bool csc_bypass, bool high_res, bool *chained)
-{
-	struct mxc_isi_dev *isi = pipe->isi;
-	unsigned int num_pipes = isi->pdata->num_channels;
-	struct mxc_isi_pipe *chained_pipe;
-
-	/*
-	 * We currently support line buffer chaining only, for downscaling
-	 * images with a width larger than 2048 pixels.
-	 *
-	 * TODO: Support secondary line buffer for downscaling YUV420 images.
-	 */
-
-	if (chained)
-		*chained = false;
-
-	/*
-	 * No chaining required, we're done here.
-	 *
-	 * TODO: Make the chaining selection criteria SoC-specific.
-	 * In example, the manual says that to capture high resolution
-	 * images buffer chaining is required, while on i.MX8MP it is only
-	 * required when downscaling.
-	 */
-	if (scaler_bypass || !high_res)
-		return 0;
-
-	/*
-	 * If buffer chaining is required, make sure this channel is not the
-	 * last available one, otherwise line buffer chaining is not possible
-	 * as there's no 'next' channel to chain with.
-	 */
-	if (pipe->id == num_pipes - 1)
-		return -EINVAL;
-
-	spin_lock_irq(&pipe->lock);
-	pipe->chained = true;
-	spin_unlock_irq(&pipe->lock);
-
-	/* Acquire resources from the next pipe. */
-	chained_pipe = &isi->pipes[pipe->id + 1];
-
-	spin_lock_irq(&chained_pipe->lock);
-
-	if (!chained_pipe->buffs_available) {
-		spin_unlock_irq(&chained_pipe->lock);
-		return -EBUSY;
-	}
-
-	chained_pipe->buffs_available = 0;
-
-	spin_unlock_irq(&chained_pipe->lock);
-
-	if (chained)
-		*chained = true;
-
-	return 0;
-}
-
-void mxc_isi_channel_free(struct mxc_isi_pipe *pipe)
-{
-	struct mxc_isi_pipe *chained;
-
-	spin_lock_irq(&pipe->lock);
-
-	if (!pipe->chained) {
-		spin_unlock_irq(&pipe->lock);
-		return;
-	}
-
-	pipe->chained = false;
-
-	spin_unlock_irq(&pipe->lock);
-
-	chained = pipe + 1;
-
-	spin_lock_irq(&chained->lock);
-	chained->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
-				   MXC_ISI_PIPE_OUTPUT_BUFFER;
-	spin_unlock_irq(&chained->lock);
-}
 
 void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe)
 {

@@ -334,26 +334,20 @@ static inline int mxc_isi_m2m_unregister(struct mxc_isi_dev *isi)
 }
 #endif
 
-int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
-			    mxc_isi_pipe_irq_t irq_handler,
-			    bool scaler_bypass, bool csc_bypass);
-void mxc_isi_channel_release(struct mxc_isi_pipe *pipe);
+u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
+void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe);
+
 void mxc_isi_channel_init(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe);
 void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe);
+int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
+			    mxc_isi_pipe_irq_t irq_handler,
+			    bool scaler_bypass, bool csc_bypass);
+void mxc_isi_channel_release(struct mxc_isi_pipe *pipe);
 int mxc_isi_channel_alloc(struct mxc_isi_pipe *pipe, bool scaler_bypass,
 			  bool csc_bypass, bool high_res, bool *chained);
 void mxc_isi_channel_free(struct mxc_isi_pipe *pipe);
-void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe);
-
-void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
-			    enum mxc_isi_input_id input,
-			    const struct v4l2_area *in_size,
-			    const struct v4l2_area *scale,
-			    const struct v4l2_rect *crop,
-			    enum mxc_isi_encoding in_encoding,
-			    enum mxc_isi_encoding out_encoding);
 
 void mxc_isi_channel_set_input_format(struct mxc_isi_pipe *pipe,
 				      const struct mxc_isi_format_info *info,
@@ -362,16 +356,22 @@ void mxc_isi_channel_set_output_format(struct mxc_isi_pipe *pipe,
 				       const struct mxc_isi_format_info *info,
 				       struct v4l2_pix_format_mplane *format);
 
-void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe, u8 alpha);
-void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe, bool hflip, bool vflip);
-
 void mxc_isi_channel_set_inbuf(struct mxc_isi_pipe *pipe, dma_addr_t dma_addr);
 void mxc_isi_channel_set_outbuf(struct mxc_isi_pipe *pipe,
 				const dma_addr_t dma_addrs[3],
 				enum mxc_isi_buf_id buf_id);
 
-u32 mxc_isi_channel_irq_status(struct mxc_isi_pipe *pipe, bool clear);
-void mxc_isi_channel_irq_clear(struct mxc_isi_pipe *pipe);
+void mxc_isi_channel_set_alpha(struct mxc_isi_pipe *pipe, u8 alpha);
+void mxc_isi_channel_set_flip(struct mxc_isi_pipe *pipe, bool hflip, bool vflip);
+void mxc_isi_channel_config(struct mxc_isi_pipe *pipe,
+			    enum mxc_isi_input_id input,
+			    const struct v4l2_area *in_size,
+			    const struct v4l2_area *scale,
+			    const struct v4l2_rect *crop,
+			    enum mxc_isi_encoding in_encoding,
+			    enum mxc_isi_encoding out_encoding);
+
+void mxc_isi_channel_m2m_start(struct mxc_isi_pipe *pipe);
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 void mxc_isi_debug_init(struct mxc_isi_dev *isi);
