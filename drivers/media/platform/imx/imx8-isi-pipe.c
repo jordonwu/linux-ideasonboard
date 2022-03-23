@@ -836,7 +836,31 @@ void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
 int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 			 mxc_isi_pipe_irq_t irq_handler)
 {
-	return mxc_isi_channel_acquire(pipe, irq_handler);
+	const struct mxc_isi_bus_format_info *sink_info;
+	const struct mxc_isi_bus_format_info *src_info;
+	const struct v4l2_mbus_framefmt *sink_fmt;
+	const struct v4l2_mbus_framefmt *src_fmt;
+	struct v4l2_subdev *sd = &pipe->sd;
+	struct v4l2_subdev_state *state;
+	bool scaler_bypass;
+	bool csc_bypass;
+
+	state = v4l2_subdev_lock_active_state(sd);
+	sink_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SINK);
+	src_fmt = v4l2_subdev_get_try_format(sd, state, MXC_ISI_PIPE_PAD_SOURCE);
+	v4l2_subdev_unlock_state(state);
+
+	sink_info = mxc_isi_bus_format_by_code(sink_fmt->code,
+					       MXC_ISI_PIPE_PAD_SINK);
+	src_info = mxc_isi_bus_format_by_code(src_fmt->code,
+					      MXC_ISI_PIPE_PAD_SOURCE);
+
+	scaler_bypass = sink_fmt->width == src_fmt->width &&
+			sink_fmt->height == src_fmt->height;
+	csc_bypass = sink_info->encoding == src_info->encoding;
+
+	return mxc_isi_channel_acquire(pipe, irq_handler, scaler_bypass,
+				       csc_bypass);
 }
 
 void mxc_isi_pipe_release(struct mxc_isi_pipe *pipe)

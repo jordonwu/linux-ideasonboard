@@ -515,15 +515,45 @@ void mxc_isi_channel_disable(struct mxc_isi_pipe *pipe)
 }
 
 int mxc_isi_channel_acquire(struct mxc_isi_pipe *pipe,
-			    mxc_isi_pipe_irq_t irq_handler)
+			    mxc_isi_pipe_irq_t irq_handler,
+			    bool scaler_bypass, bool csc_bypass)
 {
 	int ret = 0;
 
 	spin_lock_irq(&pipe->lock);
-	if (!pipe->irq_handler)
+
+	if (!pipe->irq_handler) {
 		pipe->irq_handler = irq_handler;
-	else
-		ret = -EBUSY;
+	} else {
+		spin_unlock_irq(&pipe->lock);
+		return -EBUSY;
+	}
+
+	/* Make sure the resources we need are available. */
+	if (!(pipe->buffs_available & MXC_ISI_PIPE_LINE_BUFFER)) {
+		if (!(pipe->buffs_available & MXC_ISI_PIPE_OUTPUT_BUFFER)) {
+			/*
+			 * Line buffer and output buffer are not available: this
+			 * pipe is chained and cannot be operated.
+			 */
+			spin_unlock_irq(&pipe->lock);
+			return -EBUSY;
+		}
+
+		if (!scaler_bypass || !csc_bypass) {
+			/*
+			 * If the output buffer is avaialble this pipe has
+			 * been used as secondary line buffer for YUV420
+			 * downscaling. Only un-processed output is available.
+			 */
+			spin_unlock_irq(&pipe->lock);
+			return -EBUSY;
+		}
+	}
+
+	/* Mark this pipe resources as busy. */
+	pipe->buffs_available = 0;
+
 	spin_unlock_irq(&pipe->lock);
 
 	return ret;
@@ -533,6 +563,10 @@ void mxc_isi_channel_release(struct mxc_isi_pipe *pipe)
 {
 	spin_lock_irq(&pipe->lock);
 	pipe->irq_handler = NULL;
+
+	pipe->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
+				MXC_ISI_PIPE_OUTPUT_BUFFER;
+
 	spin_unlock_irq(&pipe->lock);
 }
 

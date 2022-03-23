@@ -503,6 +503,8 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 {
 	struct mxc_isi_m2m_ctx *ctx = to_isi_m2m_ctx(fh);
 	struct mxc_isi_m2m *m2m = ctx->m2m;
+	bool scaler_bypass;
+	bool csc_bypass;
 	int ret;
 
 	mutex_lock(&m2m->lock);
@@ -512,13 +514,21 @@ static int mxc_isi_m2m_streamon(struct file *file, void *fh,
 		goto unlock;
 	}
 
+	scaler_bypass = (ctx->queues.cap.format.width ==
+			 ctx->queues.out.format.width) &&
+			(ctx->queues.cap.format.height ==
+			 ctx->queues.out.format.height);
+	csc_bypass = ctx->queues.cap.info->encoding ==
+		     ctx->queues.out.info->encoding;
+
 	/*
 	 * Acquire the pipe and initialize the channel with the first user of
 	 * the M2M device.
 	 */
 	if (m2m->usage_count == 0) {
 		ret = mxc_isi_channel_acquire(m2m->pipe,
-					      &mxc_isi_m2m_frame_write_done);
+					      &mxc_isi_m2m_frame_write_done,
+					      scaler_bypass, csc_bypass);
 		if (ret)
 			goto unlock;
 
