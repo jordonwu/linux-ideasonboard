@@ -428,10 +428,7 @@ __mxc_isi_m2m_try_fmt_vid(struct mxc_isi_m2m_ctx *ctx,
 			  struct v4l2_pix_format_mplane *pix,
 			  const enum mxc_isi_video_type type)
 {
-	if (type == MXC_ISI_VIDEO_M2M_OUT) {
-		/* TODO: Support larger input widths */
-		pix->width = min(pix->width, 2048U);
-	} else {
+	if (type != MXC_ISI_VIDEO_M2M_OUT) {
 		/* Downscaling only */
 		pix->width = min(pix->width, ctx->queues.out.format.width);
 		pix->height = min(pix->height, ctx->queues.out.format.height);
