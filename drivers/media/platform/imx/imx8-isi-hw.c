@@ -96,9 +96,6 @@ void mxc_isi_channel_init(struct mxc_isi_pipe *pipe)
 void mxc_isi_channel_deinit(struct mxc_isi_pipe *pipe)
 {
 	mxc_isi_channel_sw_reset(pipe, false);
-
-	if (pipe->chained)
-		mxc_isi_write(pipe + 1, CHNL_CTRL, 0);
 }
 
 void mxc_isi_channel_enable(struct mxc_isi_pipe *pipe)
@@ -262,6 +259,7 @@ void mxc_isi_channel_free(struct mxc_isi_pipe *pipe)
 	spin_lock_irq(&chained->lock);
 	chained->buffs_available = MXC_ISI_PIPE_LINE_BUFFER |
 				   MXC_ISI_PIPE_OUTPUT_BUFFER;
+	mxc_isi_write(chained, CHNL_CTRL, 0);
 	spin_unlock_irq(&chained->lock);
 }
 
