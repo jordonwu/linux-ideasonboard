@@ -301,8 +301,6 @@ mxc_isi_format_try(struct v4l2_pix_format_mplane *pix,
 
 int mxc_isi_pipe_init(struct mxc_isi_dev *isi, unsigned int id);
 void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe);
-int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe);
-void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe);
 int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 			 mxc_isi_pipe_irq_t irq_handler);
 void mxc_isi_pipe_release(struct mxc_isi_pipe *pipe);

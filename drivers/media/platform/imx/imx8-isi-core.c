@@ -98,6 +98,22 @@ static const struct v4l2_async_notifier_operations mxc_isi_async_notifier_ops = 
 	.complete = mxc_isi_async_notifier_complete,
 };
 
+static int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe)
+{
+	int ret;
+
+	ret = v4l2_device_register_subdev(&pipe->isi->v4l2_dev, &pipe->sd);
+	if (ret < 0)
+		return ret;
+
+	return mxc_isi_video_register(pipe, &pipe->isi->v4l2_dev);
+}
+
+static void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
+{
+	mxc_isi_video_unregister(pipe);
+}
+
 static int mxc_isi_v4l2_init(struct mxc_isi_dev *isi)
 {
 	struct fwnode_handle *node = dev_fwnode(isi->dev);

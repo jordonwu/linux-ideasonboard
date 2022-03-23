@@ -817,22 +817,6 @@ void mxc_isi_pipe_cleanup(struct mxc_isi_pipe *pipe)
 	media_entity_cleanup(&sd->entity);
 }
 
-int mxc_isi_pipe_register(struct mxc_isi_pipe *pipe)
-{
-	int ret;
-
-	ret = v4l2_device_register_subdev(&pipe->isi->v4l2_dev, &pipe->sd);
-	if (ret < 0)
-		return ret;
-
-	return mxc_isi_video_register(pipe, &pipe->isi->v4l2_dev);
-}
-
-void mxc_isi_pipe_unregister(struct mxc_isi_pipe *pipe)
-{
-	mxc_isi_video_unregister(pipe);
-}
-
 int mxc_isi_pipe_acquire(struct mxc_isi_pipe *pipe,
 			 mxc_isi_pipe_irq_t irq_handler)
 {
