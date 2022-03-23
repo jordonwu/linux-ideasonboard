@@ -310,6 +310,7 @@ void mxc_isi_pipe_disable(struct mxc_isi_pipe *pipe)
 			pipe->id);
 
 	mxc_isi_channel_disable(pipe);
+	mxc_isi_channel_deinit(pipe);
 }
 
 /* -----------------------------------------------------------------------------

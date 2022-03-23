@@ -875,7 +875,6 @@ static void mxc_isi_vb2_stop_streaming(struct vb2_queue *q)
 	struct mxc_isi_video *video = vb2_get_drv_priv(q);
 
 	mxc_isi_pipe_disable(video->pipe);
-	mxc_isi_channel_deinit(video->pipe);
 
 	mxc_isi_video_return_buffers(video, VB2_BUF_STATE_ERROR);
 }
@@ -1234,7 +1233,6 @@ void mxc_isi_video_suspend(struct mxc_isi_pipe *pipe)
 		return;
 
 	mxc_isi_pipe_disable(pipe);
-	mxc_isi_channel_deinit(pipe);
 
 	spin_lock_irq(&video->buf_lock);
 
