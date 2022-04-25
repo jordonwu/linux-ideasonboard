@@ -149,8 +149,8 @@ config VIDEO_IMX290
 
 config VIDEO_IMX296
 	tristate "Sony IMX296 sensor support"
-	depends on I2C && VIDEO_V4L2
-	depends on MEDIA_CAMERA_SUPPORT
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
 	select V4L2_FWNODE
 	select VIDEO_V4L2_SUBDEV_API
 	help
