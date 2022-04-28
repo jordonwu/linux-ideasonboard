@@ -845,14 +845,18 @@ struct net_device *gether_setup_name_default(const char *netname)
 	dev->qmult = QMULT_DEFAULT;
 	snprintf(net->name, sizeof(net->name), "%s%%d", netname);
 
-	eth_random_addr(dev->dev_mac);
-	pr_warn("using random %s ethernet address\n", "self");
+	dev->dev_mac[0] = dev->host_mac[0] = 0xde;
+	dev->dev_mac[1] = dev->host_mac[1] = 0xad;
+	dev->dev_mac[2] = dev->host_mac[2] = 0xbe;
+	dev->dev_mac[3] = dev->host_mac[3] = 0xef;
+	dev->dev_mac[4] = dev->host_mac[4] = 0x00;
+	dev->dev_mac[5] = 0x01;
+	dev->host_mac[5] = 0x02;
 
-	/* by default we always have a random MAC address */
-	net->addr_assign_type = NET_ADDR_RANDOM;
+	net->addr_assign_type = NET_ADDR_SET;
 
-	eth_random_addr(dev->host_mac);
-	pr_warn("using random %s ethernet address\n", "host");
+	pr_warn("using hardcoded %s ethernet address\n", "self");
+	pr_warn("using hardcoded %s ethernet address\n", "host");
 
 	net->netdev_ops = &eth_netdev_ops;
 
