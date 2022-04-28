@@ -1298,11 +1298,74 @@ static int imx7_csi_video_buf_prepare(struct vb2_buffer *vb)
 	return 0;
 }
 
+static bool imx7_csi_fast_track_buffer(struct imx7_csi *csi,
+				       struct imx7_csi_vb2_buffer *buf)
+{
+	unsigned long flags;
+	dma_addr_t phys;
+	int buf_num;
+	u32 isr;
+
+	if (!csi->is_streaming)
+		return false;
+
+	phys = vb2_dma_contig_plane_dma_addr(&buf->vbuf.vb2_buf, 0);
+
+	/*
+	 * buf_num holds the fb id of the most recently (*not* the next
+	 * anticipated) triggered interrupt. Without loss of generality, if
+	 * buf_num is 0 and we get to this section before the irq for fb2, the
+	 * buffer that we are fast-tracking into fb1 should be programmed in
+	 * time to be captured into. If the irq for fb2 already happened, then
+	 * buf_num would be 1, and we would fast-track the buffer into fb2
+	 * instead. This guarantees that we won't try to fast-track into fb1
+	 * and race against the start-of-capture into fb1.
+	 *
+	 * We only fast-track the buffer if the currently programmed buffer is
+	 * a dummy buffer. We can check the active_vb2_buf instead as it is
+	 * always modified along with programming the fb[1,2] registers via the
+	 * lock (besides setup and cleanup).
+	 */
+
+	spin_lock_irqsave(&csi->irqlock, flags);
+
+	buf_num = csi->buf_num;
+	if (csi->active_vb2_buf[buf_num]) {
+		spin_unlock_irqrestore(&csi->irqlock, flags);
+		return false;
+	}
+
+	imx7_csi_update_buf(csi, phys, buf_num);
+
+	isr = imx7_csi_reg_read(csi, CSI_CSISR);
+	/*
+	 * The interrupt for the /other/ fb just came (the isr hasn't run yet
+	 * though, because we have the lock here); we can't be sure we've
+	 * programmed buf_num fb in time, so queue the buffer to the buffer
+	 * queue normally. No need to undo writing the fb register, since we
+	 * won't return it as active_vb2_buf is NULL, so it's okay to
+	 * potentially write it to both fb1 and fb2; only the one where it was
+	 * queued normally will be returned.
+	 */
+	if (isr & (buf_num ? BIT_DMA_TSF_DONE_FB1 : BIT_DMA_TSF_DONE_FB2)) {
+		spin_unlock_irqrestore(&csi->irqlock, flags);
+		return false;
+	}
+
+	csi->active_vb2_buf[buf_num] = buf;
+
+	spin_unlock_irqrestore(&csi->irqlock, flags);
+	return true;
+}
+
 static void imx7_csi_video_buf_queue(struct vb2_buffer *vb)
 {
 	struct imx7_csi *csi = vb2_get_drv_priv(vb->vb2_queue);
 	struct imx7_csi_vb2_buffer *buf = to_imx7_csi_vb2_buffer(vb);
 	unsigned long flags;
+
+	if (imx7_csi_fast_track_buffer(csi, buf))
+		return;
 
 	spin_lock_irqsave(&csi->q_lock, flags);
 
