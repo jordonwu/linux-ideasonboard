@@ -80,10 +80,6 @@
 	status = "disabled";
 };
 
-&isi_1 {
-	status = "okay";
-};
-
 &isp_0 {
 	status = "okay";
 };
