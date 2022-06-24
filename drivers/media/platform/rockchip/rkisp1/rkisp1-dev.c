@@ -328,6 +328,8 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 {
 	unsigned int i;
 	int ret;
+	bool self_path = rkisp1->info->features & RKISP1_FEATURE_SELF_PATH;
+	unsigned int dev_count = self_path ? 2 : 1;
 
 	if (rkisp1->info->features & RKISP1_FEATURE_MIPI_CSI2) {
 		/* Link the CSI receiver to the ISP. */
@@ -341,7 +343,7 @@ static int rkisp1_create_links(struct rkisp1_device *rkisp1)
 	}
 
 	/* create ISP->RSZ->CAP links */
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < dev_count; i++) {
 		struct media_entity *resizer =
 			&rkisp1->resizer_devs[i].sd.entity;
 		struct media_entity *capture =
@@ -466,7 +468,8 @@ static const struct rkisp1_info px30_isp_info = {
 	.isr_size = ARRAY_SIZE(px30_isp_isrs),
 	.isp_ver = RKISP1_V12,
 	.features = RKISP1_FEATURE_MIPI_CSI2
-		  | RKISP1_FEATURE_DUAL_CROP,
+		  | RKISP1_FEATURE_DUAL_CROP
+		  | RKISP1_FEATURE_SELF_PATH,
 };
 
 static const char * const rk3399_isp_clks[] = {
@@ -486,7 +489,8 @@ static const struct rkisp1_info rk3399_isp_info = {
 	.isr_size = ARRAY_SIZE(rk3399_isp_isrs),
 	.isp_ver = RKISP1_V10,
 	.features = RKISP1_FEATURE_MIPI_CSI2
-		  | RKISP1_FEATURE_DUAL_CROP,
+		  | RKISP1_FEATURE_DUAL_CROP
+		  | RKISP1_FEATURE_SELF_PATH,
 };
 
 static const char * const imx8mp_isp_clks[] = {

@@ -875,6 +875,7 @@ static void rkisp1_cap_stream_enable(struct rkisp1_capture *cap)
 {
 	struct rkisp1_device *rkisp1 = cap->rkisp1;
 	struct rkisp1_capture *other = &rkisp1->capture_devs[cap->id ^ 1];
+	bool has_self_path = rkisp1->info->features & RKISP1_FEATURE_SELF_PATH;
 
 	cap->ops->set_data_path(cap);
 	cap->ops->config(cap);
@@ -892,7 +893,7 @@ static void rkisp1_cap_stream_enable(struct rkisp1_capture *cap)
 	 * This's also required because the second FE maybe corrupt
 	 * especially when run at 120fps.
 	 */
-	if (!other->is_streaming) {
+	if (has_self_path && !other->is_streaming) {
 		/* force cfg update */
 		rkisp1_write(rkisp1, RKISP1_CIF_MI_INIT,
 			     RKISP1_CIF_MI_INIT_SOFT_UPD);
@@ -1447,8 +1448,10 @@ int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1)
 {
 	unsigned int i;
 	int ret;
+	bool self_path = rkisp1->info->features & RKISP1_FEATURE_SELF_PATH;
+	unsigned int dev_count = ARRAY_SIZE(rkisp1->capture_devs) - (self_path ? 0 : 1);
 
-	for (i = 0; i < ARRAY_SIZE(rkisp1->capture_devs); i++) {
+	for (i = 0; i < dev_count; i++) {
 		struct rkisp1_capture *cap = &rkisp1->capture_devs[i];
 
 		rkisp1_capture_init(rkisp1, i);

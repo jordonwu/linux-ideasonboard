@@ -673,6 +673,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 	struct rkisp1_device *rkisp1 = rsz->rkisp1;
 	struct rkisp1_capture *other = &rkisp1->capture_devs[rsz->id ^ 1];
 	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
+	bool has_self_path = rkisp1->info->features & RKISP1_FEATURE_SELF_PATH;
 
 	if (!enable) {
 		if (rkisp1->info->features & RKISP1_FEATURE_DUAL_CROP)
@@ -681,7 +682,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 		return 0;
 	}
 
-	if (other->is_streaming)
+	if (has_self_path && other->is_streaming)
 		when = RKISP1_SHADOW_REGS_ASYNC;
 
 	mutex_lock(&rsz->ops_lock);
@@ -771,8 +772,10 @@ int rkisp1_resizer_devs_register(struct rkisp1_device *rkisp1)
 {
 	unsigned int i;
 	int ret;
+	bool self_path = rkisp1->info->features & RKISP1_FEATURE_SELF_PATH;
+	unsigned int dev_count = ARRAY_SIZE(rkisp1->resizer_devs) - (self_path ? 0 : 1);
 
-	for (i = 0; i < ARRAY_SIZE(rkisp1->resizer_devs); i++) {
+	for (i = 0; i < dev_count; i++) {
 		struct rkisp1_resizer *rsz = &rkisp1->resizer_devs[i];
 
 		rsz->rkisp1 = rkisp1;
