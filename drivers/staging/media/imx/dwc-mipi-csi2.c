@@ -940,7 +940,7 @@ static struct media_pad *dwc_csi2_get_remote_sensor_pad(struct dwc_mipi_csi2_hos
 			sink_pad = &subdev->entity.pads[i];
 
 			if (sink_pad->flags & MEDIA_PAD_FL_SINK) {
-				source_pad = media_entity_remote_pad(sink_pad);
+				source_pad = media_pad_remote_pad_first(sink_pad);
 				if (source_pad)
 					break;
 			}
