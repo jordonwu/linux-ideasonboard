@@ -342,6 +342,7 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 		src_frm = rkisp1_isp_get_pad_fmt(isp, NULL,
 						 RKISP1_ISP_PAD_SINK_VIDEO,
 						 V4L2_SUBDEV_FORMAT_ACTIVE);
+printk(KERN_ERR "FSY rkisp1_config_isp=%d\n", src_frm->ycbcr_enc);
 		rkisp1_params_configure(&rkisp1->params, sink_fmt->bayer_pat,
 					src_frm->quantization);
 	}
@@ -627,6 +628,9 @@ static void rkisp1_isp_set_src_fmt(struct rkisp1_isp *isp,
 	else
 		src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
+printk(KERN_ERR "FSY isp_set_src_fmt=%d\n", format->ycbcr_enc);
+//src_fmt->ycbcr_enc = 2; //format->ycbcr_enc;
+
 	*format = *src_fmt;
 }
 
@@ -744,6 +748,10 @@ static int rkisp1_isp_set_fmt(struct v4l2_subdev *sd,
 	struct rkisp1_isp *isp = to_rkisp1_isp(sd);
 
 	mutex_lock(&isp->ops_lock);
+
+printk(KERN_ERR "FSY rkisp1_isp_set_fmt=%d\n", fmt->format.ycbcr_enc);
+//fmt->format.ycbcr_enc = 2;
+
 	if (fmt->pad == RKISP1_ISP_PAD_SINK_VIDEO)
 		rkisp1_isp_set_sink_fmt(isp, sd_state, &fmt->format,
 					fmt->which);
