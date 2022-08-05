@@ -1078,37 +1078,101 @@ static void rkisp1_ie_enable(struct rkisp1_params *params, bool en)
 
 static void rkisp1_csm_config(struct rkisp1_params *params, bool full_range)
 {
-	static const u16 full_range_coeff[] = {
+	static const u16 *coeff;
+	unsigned int i;
+
+	static const u16 full_range_enc_601_coeff[] = {
 		0x0026, 0x004b, 0x000f,
 		0x01ea, 0x01d6, 0x0040,
-		0x0040, 0x01ca, 0x01f6
+		0x0040, 0x01ca, 0x01f6,
 	};
-	static const u16 limited_range_coeff[] = {
-		0x0021, 0x0040, 0x000d,
+	static const u16 full_range_enc_709_coeff[] = {
+		0x001b, 0x005c, 0x0009,
+		0x01f1, 0x01cf, 0x0040,
+		0x0040, 0x01c6, 0x01fa,
+	};
+	static const u16 full_range_enc_bt2020_coeff[] = {
+		0x0022, 0x0057, 0x0008,
+		0x01ee, 0x01d2, 0x0040,
+		0x0040, 0x01c5, 0x01fb,
+	};
+	static const u16 full_range_enc_smpte240m_coeff[] = {
+		0x001b, 0x005a, 0x000b,
+		0x01f1, 0x01cf, 0x0040,
+		0x0040, 0x01c7, 0x01f9,
+	};
+	static const u16 limited_range_enc_601_coeff[] = {
+		0x0021, 0x0042, 0x000d,
 		0x01ed, 0x01db, 0x0038,
 		0x0038, 0x01d1, 0x01f7,
 	};
-	unsigned int i;
+	static const u16 limited_range_enc_709_coeff[] = {
+		0x0018, 0x0050, 0x0008,
+		0x01f3, 0x01d5, 0x0038,
+		0x0038, 0x01cd, 0x01fb,
+	};
+	static const u16 limited_range_enc_bt2020_coeff[] = {
+		0x001d, 0x004c, 0x0007,
+		0x01f0, 0x01d8, 0x0038,
+		0x0038, 0x01cd, 0x01fb,
+	};
+	static const u16 limited_range_enc_smpte240m_coeff[] = {
+		0x0018, 0x004f, 0x000a,
+		0x01f3, 0x01d5, 0x0038,
+		0x0038, 0x01ce, 0x01fa,
+	};
+
+			coeff = full_range_enc_601_coeff;
 
 	if (full_range) {
-		for (i = 0; i < ARRAY_SIZE(full_range_coeff); i++)
-			rkisp1_write(params->rkisp1,
-				     RKISP1_CIF_ISP_CC_COEFF_0 + i * 4,
-				     full_range_coeff[i]);
+		switch (params->ycbcr_encoding) {
+		case V4L2_YCBCR_ENC_709:
+			coeff = full_range_enc_709_coeff;
+			break;
+		case V4L2_YCBCR_ENC_BT2020:
+			coeff = full_range_enc_bt2020_coeff;
+			break;
+		case V4L2_YCBCR_ENC_SMPTE240M:
+			coeff = full_range_enc_smpte240m_coeff;
+			break;
+		case V4L2_YCBCR_ENC_DEFAULT:
+		case V4L2_YCBCR_ENC_601:
+		default:
+			coeff = full_range_enc_601_coeff;
+			break;
+
+		}
 
 		rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
 				      RKISP1_CIF_ISP_CTRL_ISP_CSM_Y_FULL_ENA |
 				      RKISP1_CIF_ISP_CTRL_ISP_CSM_C_FULL_ENA);
 	} else {
-		for (i = 0; i < ARRAY_SIZE(limited_range_coeff); i++)
-			rkisp1_write(params->rkisp1,
-				     RKISP1_CIF_ISP_CC_COEFF_0 + i * 4,
-				     limited_range_coeff[i]);
+		switch (params->ycbcr_encoding) {
+		case V4L2_YCBCR_ENC_709:
+			coeff = limited_range_enc_709_coeff;
+			break;
+		case V4L2_YCBCR_ENC_BT2020:
+			coeff = limited_range_enc_bt2020_coeff;
+			break;
+		case V4L2_YCBCR_ENC_SMPTE240M:
+			coeff = limited_range_enc_smpte240m_coeff;
+			break;
+		case V4L2_YCBCR_ENC_DEFAULT:
+		case V4L2_YCBCR_ENC_601:
+		default:
+			coeff = limited_range_enc_601_coeff;
+			break;
+		}
 
 		rkisp1_param_clear_bits(params, RKISP1_CIF_ISP_CTRL,
 					RKISP1_CIF_ISP_CTRL_ISP_CSM_Y_FULL_ENA |
 					RKISP1_CIF_ISP_CTRL_ISP_CSM_C_FULL_ENA);
 	}
+
+	for (i = 0; i < 9; i++) //FSY: must use a define somewhere...
+		rkisp1_write(params->rkisp1,
+			     RKISP1_CIF_ISP_CC_COEFF_0 + i * 4,
+			     coeff[i]);
 }
 
 /* ISP De-noise Pre-Filter(DPF) function */
@@ -1578,9 +1642,11 @@ static void rkisp1_params_config_parameter(struct rkisp1_params *params)
 
 void rkisp1_params_configure(struct rkisp1_params *params,
 			     enum rkisp1_fmt_raw_pat_type bayer_pat,
-			     enum v4l2_quantization quantization)
+			     enum v4l2_quantization quantization,
+			     enum v4l2_ycbcr_encoding ycbcr_encoding)
 {
 	params->quantization = quantization;
+	params->ycbcr_encoding = ycbcr_encoding;
 	params->raw_type = bayer_pat;
 	rkisp1_params_config_parameter(params);
 }

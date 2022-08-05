@@ -340,10 +340,11 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 		struct v4l2_mbus_framefmt *src_frm;
 
 		src_frm = rkisp1_isp_get_pad_fmt(isp, NULL,
-						 RKISP1_ISP_PAD_SINK_VIDEO,
+						 RKISP1_ISP_PAD_SOURCE_VIDEO,
 						 V4L2_SUBDEV_FORMAT_ACTIVE);
+
 		rkisp1_params_configure(&rkisp1->params, sink_fmt->bayer_pat,
-					src_frm->quantization);
+					src_frm->quantization, src_frm->ycbcr_enc);
 	}
 
 	return 0;
@@ -618,14 +619,23 @@ static void rkisp1_isp_set_src_fmt(struct rkisp1_isp *isp,
 	 * The CSC API is used to allow userspace to force full
 	 * quantization on YUV formats.
 	 */
-	if (format->flags & V4L2_MBUS_FRAMEFMT_SET_CSC &&
-	    format->quantization == V4L2_QUANTIZATION_FULL_RANGE &&
-	    mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
-		src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
-	else if (mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
-		src_fmt->quantization = V4L2_QUANTIZATION_LIM_RANGE;
-	else
-		src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+	if (format->flags & V4L2_MBUS_FRAMEFMT_SET_CSC) {
+		src_fmt->quantization = V4L2_MAP_QUANTIZATION_DEFAULT(
+						mbus_info->pixel_enc != V4L2_PIXEL_ENC_YUV,
+						src_fmt->colorspace, src_fmt->ycbcr_enc);
+
+		if(format->ycbcr_enc == V4L2_YCBCR_ENC_DEFAULT)
+			src_fmt->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(format->colorspace);
+		else
+			src_fmt->ycbcr_enc = format->ycbcr_enc;
+	} else {
+		if (mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
+			src_fmt->quantization = V4L2_QUANTIZATION_LIM_RANGE;
+		else
+			src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+
+		src_fmt->ycbcr_enc = V4L2_YCBCR_ENC_601;
+	}
 
 	*format = *src_fmt;
 }
