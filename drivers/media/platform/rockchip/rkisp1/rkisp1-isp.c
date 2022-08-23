@@ -10,6 +10,7 @@
 
 #include <linux/iopoll.h>
 #include <linux/pm_runtime.h>
+#include <linux/regmap.h>
 #include <linux/videodev2.h>
 #include <linux/vmalloc.h>
 
@@ -85,6 +86,115 @@ rkisp1_isp_get_pad_crop(struct rkisp1_isp *isp,
 		return v4l2_subdev_get_try_crop(&isp->sd, sd_state, pad);
 	else
 		return v4l2_subdev_get_try_crop(&isp->sd, &state, pad);
+}
+
+/* -----------------------------------------------------------------------------
+ * Media block control (i.MX8MP only)
+ */
+
+#define ISP_DEWARP_CONTROL				0x0138
+
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_HS_POLARITY	BIT(22)
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_RISING	(0 << 20)
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_NEGATIVE	(1 << 20)
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_POSITIVE	(2 << 20)
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_FALLING	(3 << 20)
+#define ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_MASK	GENMASK(21, 20)
+#define ISP_DEWARP_CONTROL_MIPI_ISP2_LEFT_JUST_MODE	BIT(19)
+#define ISP_DEWARP_CONTROL_MIPI_ISP2_DATA_TYPE(dt)	((dt) << 13)
+#define ISP_DEWARP_CONTROL_MIPI_ISP2_DATA_TYPE_MASK	GENMASK(18, 13)
+
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_HS_POLARITY	BIT(12)
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_RISING	(0 << 10)
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_NEGATIVE	(1 << 10)
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_POSITIVE	(2 << 10)
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_FALLING	(3 << 10)
+#define ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_MASK	GENMASK(11, 10)
+#define ISP_DEWARP_CONTROL_MIPI_ISP1_LEFT_JUST_MODE	BIT(9)
+#define ISP_DEWARP_CONTROL_MIPI_ISP1_DATA_TYPE(dt)	((dt) << 3)
+#define ISP_DEWARP_CONTROL_MIPI_ISP1_DATA_TYPE_MASK	GENMASK(8, 3)
+
+#define ISP_DEWARP_CONTROL_GPR_ISP_1_DISABLE		BIT(1)
+#define ISP_DEWARP_CONTROL_GPR_ISP_0_DISABLE		BIT(0)
+
+static int rkisp1_gasket_enable(struct rkisp1_device *rkisp1,
+				struct media_pad *source)
+{
+	struct v4l2_subdev *source_sd;
+	struct v4l2_mbus_frame_desc fd;
+	unsigned int dt;
+	u32 mask;
+	u32 val;
+	int ret;
+
+	/*
+	 * Configure and enable the gasket with the CSI-2 data type. Set the
+	 * vsync polarity as active high, as that is what the ISP is configured
+	 * to expect in ISP_ACQ_PROP. Enable left justification, as the i.MX8MP
+	 * ISP has a 16-bit wide input and expects data to be left-aligned.
+	 */
+
+	source_sd = media_entity_to_v4l2_subdev(source->entity);
+	ret = v4l2_subdev_call(source_sd, pad, get_frame_desc,
+			       source->index, &fd);
+	if (ret) {
+		dev_err(rkisp1->dev,
+			"failed to get frame descriptor from '%s':%u: %d\n",
+			source_sd->name, 0, ret);
+		return ret;
+	}
+
+	if (fd.num_entries != 1) {
+		dev_err(rkisp1->dev, "invalid frame descriptor for '%s':%u\n",
+			source_sd->name, 0);
+		return -EINVAL;
+	}
+
+	dt = fd.entry[0].bus.csi2.dt;
+
+	if (rkisp1->gasket_id == 0) {
+		mask = ISP_DEWARP_CONTROL_MIPI_CSI1_HS_POLARITY
+		     | ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_MASK
+		     | ISP_DEWARP_CONTROL_MIPI_ISP1_LEFT_JUST_MODE
+		     | ISP_DEWARP_CONTROL_MIPI_ISP1_DATA_TYPE_MASK
+		     | ISP_DEWARP_CONTROL_GPR_ISP_0_DISABLE;
+		val = ISP_DEWARP_CONTROL_MIPI_CSI1_VS_SEL_POSITIVE
+		    | ISP_DEWARP_CONTROL_MIPI_ISP1_LEFT_JUST_MODE
+		    | ISP_DEWARP_CONTROL_MIPI_ISP1_DATA_TYPE(dt);
+	} else {
+		mask = ISP_DEWARP_CONTROL_MIPI_CSI2_HS_POLARITY
+		     | ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_MASK
+		     | ISP_DEWARP_CONTROL_MIPI_ISP2_LEFT_JUST_MODE
+		     | ISP_DEWARP_CONTROL_MIPI_ISP2_DATA_TYPE_MASK
+		     | ISP_DEWARP_CONTROL_GPR_ISP_1_DISABLE;
+		val = ISP_DEWARP_CONTROL_MIPI_CSI2_VS_SEL_POSITIVE
+		    | ISP_DEWARP_CONTROL_MIPI_ISP2_LEFT_JUST_MODE
+		    | ISP_DEWARP_CONTROL_MIPI_ISP2_DATA_TYPE(dt);
+	}
+
+	regmap_update_bits(rkisp1->gasket, ISP_DEWARP_CONTROL, mask, val);
+
+	return 0;
+}
+
+static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
+{
+	u32 mask;
+	u32 val;
+
+	if (rkisp1->gasket_id == 1) {
+		mask = ISP_DEWARP_CONTROL_MIPI_ISP2_LEFT_JUST_MODE
+		     | ISP_DEWARP_CONTROL_MIPI_ISP2_DATA_TYPE_MASK
+		     | ISP_DEWARP_CONTROL_GPR_ISP_1_DISABLE;
+		val = ISP_DEWARP_CONTROL_GPR_ISP_1_DISABLE;
+	} else {
+		mask = ISP_DEWARP_CONTROL_MIPI_ISP1_LEFT_JUST_MODE
+		     | ISP_DEWARP_CONTROL_MIPI_ISP1_DATA_TYPE_MASK
+		     | ISP_DEWARP_CONTROL_GPR_ISP_0_DISABLE;
+		val = ISP_DEWARP_CONTROL_GPR_ISP_0_DISABLE;
+	}
+
+	regmap_update_bits(rkisp1->gasket, ISP_DEWARP_CONTROL, mask, val);
 }
 
 /* ----------------------------------------------------------------------------
@@ -231,10 +341,11 @@ static int rkisp1_config_isp(struct rkisp1_isp *isp,
 		struct v4l2_mbus_framefmt *src_frm;
 
 		src_frm = rkisp1_isp_get_pad_fmt(isp, NULL,
-						 RKISP1_ISP_PAD_SINK_VIDEO,
+						 RKISP1_ISP_PAD_SOURCE_VIDEO,
 						 V4L2_SUBDEV_FORMAT_ACTIVE);
-		rkisp1_params_configure(&rkisp1->params, sink_fmt->bayer_pat,
-					src_frm->quantization);
+		rkisp1_params_pre_configure(&rkisp1->params, sink_fmt->bayer_pat,
+					    src_frm->quantization,
+					    src_frm->ycbcr_enc);
 	}
 
 	return 0;
@@ -303,6 +414,9 @@ static void rkisp1_isp_stop(struct rkisp1_isp *isp)
 		     RKISP1_CIF_VI_IRCL_MIPI_SW_RST |
 		     RKISP1_CIF_VI_IRCL_ISP_SW_RST);
 	rkisp1_write(rkisp1, RKISP1_CIF_VI_IRCL, 0x0);
+
+	if (rkisp1->info->isp_ver == IMX8MP_V10)
+		rkisp1_gasket_disable(rkisp1);
 }
 
 static void rkisp1_config_clk(struct rkisp1_isp *isp)
@@ -327,12 +441,19 @@ static void rkisp1_config_clk(struct rkisp1_isp *isp)
 	}
 }
 
-static void rkisp1_isp_start(struct rkisp1_isp *isp)
+static int rkisp1_isp_start(struct rkisp1_isp *isp, struct media_pad *source)
 {
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
 	u32 val;
+	int ret;
 
 	rkisp1_config_clk(isp);
+
+	if (rkisp1->info->isp_ver == IMX8MP_V10) {
+		ret = rkisp1_gasket_enable(rkisp1, source);
+		if (ret)
+			return ret;
+	}
 
 	/* Activate ISP */
 	val = rkisp1_read(rkisp1, RKISP1_CIF_ISP_CTRL);
@@ -340,6 +461,11 @@ static void rkisp1_isp_start(struct rkisp1_isp *isp)
 	       RKISP1_CIF_ISP_CTRL_ISP_ENABLE |
 	       RKISP1_CIF_ISP_CTRL_ISP_INFORM_ENABLE;
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_CTRL, val);
+
+	if (isp->src_fmt->pixel_enc == V4L2_PIXEL_ENC_BAYER)
+		rkisp1_params_post_configure(&rkisp1->params);
+
+	return 0;
 }
 
 /* ----------------------------------------------------------------------------
@@ -431,12 +557,17 @@ static int rkisp1_isp_init_config(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *sink_fmt, *src_fmt;
 	struct v4l2_rect *sink_crop, *src_crop;
 
+	/* Video. */
 	sink_fmt = v4l2_subdev_get_try_format(sd, sd_state,
 					      RKISP1_ISP_PAD_SINK_VIDEO);
 	sink_fmt->width = RKISP1_DEFAULT_WIDTH;
 	sink_fmt->height = RKISP1_DEFAULT_HEIGHT;
 	sink_fmt->field = V4L2_FIELD_NONE;
 	sink_fmt->code = RKISP1_DEF_SINK_PAD_FMT;
+	sink_fmt->colorspace = V4L2_COLORSPACE_RAW;
+	sink_fmt->xfer_func = V4L2_XFER_FUNC_NONE;
+	sink_fmt->ycbcr_enc = V4L2_YCBCR_ENC_601;
+	sink_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 
 	sink_crop = v4l2_subdev_get_try_crop(sd, sd_state,
 					     RKISP1_ISP_PAD_SINK_VIDEO);
@@ -449,11 +580,16 @@ static int rkisp1_isp_init_config(struct v4l2_subdev *sd,
 					     RKISP1_ISP_PAD_SOURCE_VIDEO);
 	*src_fmt = *sink_fmt;
 	src_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
+	src_fmt->colorspace = V4L2_COLORSPACE_SRGB;
+	src_fmt->xfer_func = V4L2_XFER_FUNC_SRGB;
+	src_fmt->ycbcr_enc = V4L2_YCBCR_ENC_601;
+	src_fmt->quantization = V4L2_QUANTIZATION_LIM_RANGE;
 
 	src_crop = v4l2_subdev_get_try_crop(sd, sd_state,
 					    RKISP1_ISP_PAD_SOURCE_VIDEO);
 	*src_crop = *sink_crop;
 
+	/* Parameters and statistics. */
 	sink_fmt = v4l2_subdev_get_try_format(sd, sd_state,
 					      RKISP1_ISP_PAD_SINK_PARAMS);
 	src_fmt = v4l2_subdev_get_try_format(sd, sd_state,
@@ -472,40 +608,105 @@ static void rkisp1_isp_set_src_fmt(struct rkisp1_isp *isp,
 				   struct v4l2_mbus_framefmt *format,
 				   unsigned int which)
 {
-	const struct rkisp1_mbus_info *mbus_info;
+	const struct rkisp1_mbus_info *sink_info;
+	const struct rkisp1_mbus_info *src_info;
+	struct v4l2_mbus_framefmt *sink_fmt;
 	struct v4l2_mbus_framefmt *src_fmt;
 	const struct v4l2_rect *src_crop;
+	bool set_csc;
 
+	sink_fmt = rkisp1_isp_get_pad_fmt(isp, sd_state,
+					  RKISP1_ISP_PAD_SINK_VIDEO, which);
 	src_fmt = rkisp1_isp_get_pad_fmt(isp, sd_state,
 					 RKISP1_ISP_PAD_SOURCE_VIDEO, which);
 	src_crop = rkisp1_isp_get_pad_crop(isp, sd_state,
 					   RKISP1_ISP_PAD_SOURCE_VIDEO, which);
 
+	/*
+	 * Media bus code. The ISP can operate in pass-through mode (Bayer in,
+	 * Bayer out or YUV in, YUV out) or process Bayer data to YUV, but
+	 * can't convert from YUV to Bayer.
+	 */
+	sink_info = rkisp1_mbus_info_get_by_code(sink_fmt->code);
+
 	src_fmt->code = format->code;
-	mbus_info = rkisp1_mbus_info_get_by_code(src_fmt->code);
-	if (!mbus_info || !(mbus_info->direction & RKISP1_ISP_SD_SRC)) {
+	src_info = rkisp1_mbus_info_get_by_code(src_fmt->code);
+	if (!src_info || !(src_info->direction & RKISP1_ISP_SD_SRC)) {
 		src_fmt->code = RKISP1_DEF_SRC_PAD_FMT;
-		mbus_info = rkisp1_mbus_info_get_by_code(src_fmt->code);
+		src_info = rkisp1_mbus_info_get_by_code(src_fmt->code);
 	}
-	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
-		isp->src_fmt = mbus_info;
+
+	if (sink_info->pixel_enc == V4L2_PIXEL_ENC_YUV &&
+	    src_info->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
+		src_fmt->code = sink_fmt->code;
+		src_info = sink_info;
+	}
+
+	/*
+	 * The source width and height must be identical to the source crop
+	 * size.
+	 */
 	src_fmt->width  = src_crop->width;
 	src_fmt->height = src_crop->height;
 
 	/*
-	 * The CSC API is used to allow userspace to force full
-	 * quantization on YUV formats.
+	 * Copy the color space for the sink pad. When converting from Bayer to
+	 * YUV, default to a limited quantization range.
 	 */
-	if (format->flags & V4L2_MBUS_FRAMEFMT_SET_CSC &&
-	    format->quantization == V4L2_QUANTIZATION_FULL_RANGE &&
-	    mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
-		src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
-	else if (mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
+	src_fmt->colorspace = sink_fmt->colorspace;
+	src_fmt->xfer_func = sink_fmt->xfer_func;
+	src_fmt->ycbcr_enc = sink_fmt->ycbcr_enc;
+
+	if (sink_info->pixel_enc == V4L2_PIXEL_ENC_BAYER &&
+	    src_info->pixel_enc == V4L2_PIXEL_ENC_YUV)
 		src_fmt->quantization = V4L2_QUANTIZATION_LIM_RANGE;
 	else
-		src_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+		src_fmt->quantization = sink_fmt->quantization;
+
+	/*
+	 * Allow setting the source color space fields when the SET_CSC flag is
+	 * set and the source format is YUV. If the sink format is YUV, don't
+	 * set the color primaries, transfer function or YCbCr encoding as the
+	 * ISP is bypassed in that case and passes YUV data through without
+	 * modifications.
+	 *
+	 * The color primaries and transfer function are configured through the
+	 * cross-talk matrix and tone curve respectively. Settings for those
+	 * hardware blocks are conveyed through the ISP parameters buffer, as
+	 * they need to combine color space information with other image tuning
+	 * characteristics and can't thus be computed by the kernel based on the
+	 * color space. The source pad colorspace and xfer_func fields are thus
+	 * ignored by the driver, but can be set by userspace to propagate
+	 * accurate color space information down the pipeline.
+	 */
+	set_csc = !!(format->flags & V4L2_MBUS_FRAMEFMT_SET_CSC);
+
+	if (set_csc && src_info->pixel_enc == V4L2_PIXEL_ENC_YUV) {
+		if (sink_info->pixel_enc == V4L2_PIXEL_ENC_BAYER) {
+			if (format->colorspace != V4L2_COLORSPACE_DEFAULT)
+				src_fmt->colorspace = format->colorspace;
+			if (format->xfer_func != V4L2_XFER_FUNC_DEFAULT)
+				src_fmt->xfer_func = format->xfer_func;
+			if (format->ycbcr_enc != V4L2_YCBCR_ENC_DEFAULT)
+				src_fmt->ycbcr_enc = format->ycbcr_enc;
+		}
+
+		if (format->quantization != V4L2_QUANTIZATION_DEFAULT)
+			src_fmt->quantization = format->quantization;
+	}
 
 	*format = *src_fmt;
+
+	/*
+	 * Restore the SET_CSC flag if it was set to indicate support for the
+	 * CSC setting API.
+	 */
+	if (set_csc)
+		format->flags |= V4L2_MBUS_FRAMEFMT_SET_CSC;
+
+	/* Store the source format info when setting the active format. */
+	if (which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		isp->src_fmt = src_info;
 }
 
 static void rkisp1_isp_set_src_crop(struct rkisp1_isp *isp,
@@ -573,6 +774,7 @@ static void rkisp1_isp_set_sink_fmt(struct rkisp1_isp *isp,
 	const struct rkisp1_mbus_info *mbus_info;
 	struct v4l2_mbus_framefmt *sink_fmt;
 	struct v4l2_rect *sink_crop;
+	bool is_yuv;
 
 	sink_fmt = rkisp1_isp_get_pad_fmt(isp, sd_state,
 					  RKISP1_ISP_PAD_SINK_VIDEO,
@@ -592,6 +794,36 @@ static void rkisp1_isp_set_sink_fmt(struct rkisp1_isp *isp,
 	sink_fmt->height = clamp_t(u32, format->height,
 				   RKISP1_ISP_MIN_HEIGHT,
 				   RKISP1_ISP_MAX_HEIGHT);
+
+	/*
+	 * Adjust the color space fields. Accept any color primaries and
+	 * transfer function for both YUV and Bayer. For YUV any YCbCr encoding
+	 * and quantization range is also accepted. For Bayer formats, the YCbCr
+	 * encoding isn't applicable, and the quantization range can only be
+	 * full.
+	 */
+	is_yuv = mbus_info->pixel_enc == V4L2_PIXEL_ENC_YUV;
+
+	sink_fmt->colorspace = format->colorspace ? :
+			       (is_yuv ? V4L2_COLORSPACE_SRGB :
+				V4L2_COLORSPACE_RAW);
+	sink_fmt->xfer_func = format->xfer_func ? :
+			      V4L2_MAP_XFER_FUNC_DEFAULT(sink_fmt->colorspace);
+	if (is_yuv) {
+		sink_fmt->ycbcr_enc = format->ycbcr_enc ? :
+			V4L2_MAP_YCBCR_ENC_DEFAULT(sink_fmt->colorspace);
+		sink_fmt->quantization = format->quantization ? :
+			V4L2_MAP_QUANTIZATION_DEFAULT(false, sink_fmt->colorspace,
+						      sink_fmt->ycbcr_enc);
+	} else {
+		/*
+		 * The YCbCr encoding isn't applicable for non-YUV formats, but
+		 * V4L2 has no "no encoding" value. Hardcode it to Rec. 601, it
+		 * should be ignored by userspace.
+		 */
+		sink_fmt->ycbcr_enc = V4L2_YCBCR_ENC_601;
+		sink_fmt->quantization = V4L2_QUANTIZATION_FULL_RANGE;
+	}
 
 	*format = *sink_fmt;
 
@@ -772,7 +1004,9 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	if (ret)
 		goto mutex_unlock;
 
-	rkisp1_isp_start(isp);
+	ret = rkisp1_isp_start(isp, source_pad);
+	if (ret)
+		goto mutex_unlock;
 
 	ret = v4l2_subdev_call(rkisp1->source, video, s_stream, true);
 	if (ret) {
