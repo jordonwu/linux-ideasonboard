@@ -85,6 +85,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk-isp1.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk-isp2.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk-ov5640-csi1.dtb
+dtb-$(CONFIG_ARCH_MXC) += imx8mp-debix-model-a.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-icore-mx8mp-edimm2.2.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin.dtb
 dtb-$(CONFIG_ARCH_MXC) += imx8mp-maivin-csi1-imx296.dtb
