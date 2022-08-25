@@ -64,6 +64,38 @@
 	};
 };
 
+&i2c2 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+
+	camera: ov5640@3c {
+		compatible = "ovti,ov5640";
+		reg = <0x3c>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+		clock-names = "xclk";
+		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+		assigned-clock-rates = <24000000>;
+		powerdown-gpios = <&gpio2 20 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio2 7 GPIO_ACTIVE_LOW>;
+		rotation = <0>;
+		orientation = <2>; /* External camera */
+		status = "okay";
+
+		port {
+			ov5640_out: endpoint {
+				remote-endpoint = <&mipi_csi0_ep>;
+				data-lanes = <1 2>;
+				clock-lanes = <0>;
+			};
+		};
+	};
+};
+
 /* console */
 &uart2 {
 	pinctrl-names = "default";
@@ -107,7 +139,36 @@
 	status = "okay";
 };
 
+&isi_0 {
+	status = "okay";
+};
+
+&mipi_csi_0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			mipi_csi0_ep: endpoint {
+				remote-endpoint = <&ov5640_out>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
 &iomuxc {
+	pinctrl_csi0_pwn: csi0_pwn_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD2_WP__GPIO2_IO20		0x19
+		>;
+	};
+
+	pinctrl_csi0_rst: csi0_rst_grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07	0x19
+		>;
+	};
+
 	pinctrl_eqos: eqosgrp {
 		fsl,pins = <
 			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC				0x2
@@ -125,6 +186,13 @@
 			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL			0x16
 			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x16
 			MX8MP_IOMUXC_NAND_DATA01__GPIO3_IO07				0x10
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL		0x400001c3
+			MX8MP_IOMUXC_I2C2_SDA__I2C2_SDA		0x400001c3
 		>;
 	};
 
