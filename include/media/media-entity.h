@@ -17,6 +17,7 @@
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/media.h>
+#include <linux/minmax.h>
 
 /* Enums used internally at the media controller to represent graphs */
 
