@@ -1131,6 +1131,7 @@ static int v4l2_link_validate_get_streams(struct media_pad *pad,
 		int j;
 		u32 route_pad;
 		u32 route_stream;
+		bool skip = false;
 
 		if (pad->flags & MEDIA_PAD_FL_SOURCE) {
 			route_pad = route->source_pad;
@@ -1146,12 +1147,13 @@ static int v4l2_link_validate_get_streams(struct media_pad *pad,
 		/* look for duplicates */
 		for (j = 0; j < num_streams; ++j) {
 			if (streams[j] == route_stream) {
-				ret = -EINVAL;
-				goto free_streams;
+				skip = true;
+				break;
 			}
 		}
 
-		streams[num_streams++] = route_stream;
+		if (!skip)
+			streams[num_streams++] = route_stream;
 	}
 
 	sort(streams, num_streams, sizeof(u32), &cmp_u32, NULL);
