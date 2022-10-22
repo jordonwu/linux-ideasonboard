@@ -105,6 +105,32 @@ static void rkisp1_dpcc_config(struct rkisp1_params *params,
 static void rkisp1_bls_config(struct rkisp1_params *params,
 			      const struct rkisp1_cif_isp_bls_config *arg)
 {
+	const struct rkisp1_cif_isp_bls_fixed_val *pval = &arg->fixed_val;
+
+	/* Use GRBG ordering for AR0521. */
+	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_B_FIXED,
+		     pval->r);
+	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_A_FIXED,
+		     pval->gr);
+	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_D_FIXED,
+		     pval->gb);
+	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_C_FIXED,
+		     pval->b);
+
+	u32 b_fixed = rkisp1_read(params->rkisp1, RKISP1_CIF_COMPAND_BLS_B_FIXED);
+	pr_err("%s:%dB_FIXED = %x\n", __func__, __LINE__, b_fixed);
+
+	u32 a_fixed = rkisp1_read(params->rkisp1, RKISP1_CIF_COMPAND_BLS_A_FIXED);
+	pr_err("%s:%dA_FIXED = %x\n", __func__, __LINE__, a_fixed);
+
+	u32 d_fixed = rkisp1_read(params->rkisp1, RKISP1_CIF_COMPAND_BLS_D_FIXED);
+	pr_err("%s:%dD_FIXED = %x\n", __func__, __LINE__, d_fixed);
+
+	u32 c_fixed = rkisp1_read(params->rkisp1, RKISP1_CIF_COMPAND_BLS_C_FIXED);
+	pr_err("%s:%dC_FIXED = %x\n", __func__, __LINE__, c_fixed);
+
+
+#if 0
 	/* avoid to override the old enable value */
 	u32 new_control;
 
@@ -191,6 +217,7 @@ static void rkisp1_bls_config(struct rkisp1_params *params,
 		new_control |= RKISP1_CIF_ISP_BLS_MODE_MEASURED;
 	}
 	rkisp1_write(params->rkisp1, RKISP1_CIF_ISP_BLS_CTRL, new_control);
+#endif
 }
 
 /* ISP LS correction interface function */
@@ -1273,12 +1300,12 @@ rkisp1_isp_isr_other_config(struct rkisp1_params *params,
 	if (module_en_update & RKISP1_CIF_ISP_MODULE_BLS) {
 		if (module_ens & RKISP1_CIF_ISP_MODULE_BLS)
 			rkisp1_param_set_bits(params,
-					      RKISP1_CIF_ISP_BLS_CTRL,
-					      RKISP1_CIF_ISP_BLS_ENA);
+					      RKISP1_CIF_COMPAND_CTRL,
+					      RKISP1_CIF_COMPAND_BLS_ENABLE);
 		else
 			rkisp1_param_clear_bits(params,
-						RKISP1_CIF_ISP_BLS_CTRL,
-						RKISP1_CIF_ISP_BLS_ENA);
+					        RKISP1_CIF_COMPAND_CTRL,
+					        RKISP1_CIF_COMPAND_BLS_ENABLE);
 	}
 
 	/* update sdg config */
