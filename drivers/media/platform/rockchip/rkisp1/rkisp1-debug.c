@@ -199,6 +199,28 @@ static int rkisp1_debug_input_status_show(struct seq_file *m, void *p)
 }
 DEFINE_SHOW_ATTRIBUTE(rkisp1_debug_input_status);
 
+static int rkisp1_debug_compand_bls_fixed_get(void *data, u64 *val)
+{
+	struct rkisp1_device *rkisp1 = data;
+	struct rkisp1_params *params = &rkisp1->params;
+
+	*val = params->bls_fixed;
+	return 0;
+}
+
+static int rkisp1_debug_compand_bls_fixed_set(void *data, u64 val)
+{
+	struct rkisp1_device *rkisp1 = data;
+	struct rkisp1_params *params = &rkisp1->params;
+
+	params->bls_fixed = val;
+	return 0;
+}
+
+DEFINE_DEBUGFS_ATTRIBUTE(rkisp1_debug_compand_bls_fixed_fops,
+			 rkisp1_debug_compand_bls_fixed_get,
+			 rkisp1_debug_compand_bls_fixed_set, "%llu\n");
+
 void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 {
 	struct rkisp1_debug *debug = &rkisp1->debug;
@@ -231,6 +253,9 @@ void rkisp1_debug_init(struct rkisp1_device *rkisp1)
 			     &debug->frame_drop[RKISP1_SELFPATH]);
 	debugfs_create_file("input_status", 0444, debug->debugfs_dir, rkisp1,
 			    &rkisp1_debug_input_status_fops);
+
+	debugfs_create_file("bls_fixed", 0644, debug->debugfs_dir, rkisp1,
+			    &rkisp1_debug_compand_bls_fixed_fops);
 
 	regs_dir = debugfs_create_dir("regs", debug->debugfs_dir);
 

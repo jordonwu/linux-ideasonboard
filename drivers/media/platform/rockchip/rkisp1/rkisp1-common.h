@@ -383,6 +383,8 @@ struct rkisp1_params {
 	enum v4l2_quantization quantization;
 	enum v4l2_ycbcr_encoding ycbcr_encoding;
 	enum rkisp1_fmt_raw_pat_type raw_type;
+
+	u32 bls_fixed;
 };
 
 /*

@@ -108,14 +108,15 @@ static void rkisp1_bls_config(struct rkisp1_params *params,
 	const struct rkisp1_cif_isp_bls_fixed_val *pval = &arg->fixed_val;
 
 	/* Use GRBG ordering for AR0521. */
+pr_err("%s:%d BLS FIXED: %u\n", __func__, __LINE__, params->bls_fixed);
 	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_B_FIXED,
-		     pval->r);
+		     params->bls_fixed);
 	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_A_FIXED,
-		     pval->gr);
+		     params->bls_fixed);
 	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_D_FIXED,
-		     pval->gb);
+		     params->bls_fixed);
 	rkisp1_write(params->rkisp1, RKISP1_CIF_COMPAND_BLS_C_FIXED,
-		     pval->b);
+		     params->bls_fixed);
 
 	u32 b_fixed = rkisp1_read(params->rkisp1, RKISP1_CIF_COMPAND_BLS_B_FIXED);
 	pr_err("%s:%dB_FIXED = %x\n", __func__, __LINE__, b_fixed);
