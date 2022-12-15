@@ -34,6 +34,13 @@ static bool v4l2_subdev_enable_streams_api;
 #endif
 
 /*
+ * Streams API is an experimental feature. To use Streams API, set
+ * 'v4l2_subdev_enable_streams_api' to 1 below.
+ */
+
+static bool v4l2_subdev_enable_streams_api = 0;
+
+/*
  * Maximum stream ID is 63 for now, as we use u64 bitmask to represent a set
  * of streams.
  *
