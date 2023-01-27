@@ -1836,6 +1836,7 @@ static int imx7_csi_try_fmt(struct imx7_csi *csi,
 		sdformat->format.quantization = in_fmt->quantization;
 		sdformat->format.ycbcr_enc = in_fmt->ycbcr_enc;
 		break;
+
 	case IMX7_CSI_PAD_SINK:
 		*cc = imx7_csi_find_mbus_format(sdformat->format.code);
 		if (!*cc) {
@@ -1847,8 +1848,6 @@ static int imx7_csi_try_fmt(struct imx7_csi *csi,
 		if (sdformat->format.field != V4L2_FIELD_INTERLACED)
 			sdformat->format.field = V4L2_FIELD_NONE;
 		break;
-	default:
-		return -EINVAL;
 	}
 
 	imx7_csi_try_colorimetry(&sdformat->format);
@@ -1867,9 +1866,6 @@ static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
 	struct v4l2_mbus_framefmt *fmt;
 	struct v4l2_subdev_format format;
 	int ret = 0;
-
-	if (sdformat->pad >= IMX7_CSI_PADS_NUM)
-		return -EINVAL;
 
 	mutex_lock(&csi->lock);
 
