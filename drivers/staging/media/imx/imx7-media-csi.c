@@ -2077,7 +2077,7 @@ static int imx7_csi_async_register(struct imx7_csi *csi)
 			ret = PTR_ERR(asd);
 			/* OK if asd already exists */
 			if (ret != -EEXIST)
-				return ret;
+				goto error;
 		}
 	}
 
@@ -2085,9 +2085,13 @@ static int imx7_csi_async_register(struct imx7_csi *csi)
 
 	ret = v4l2_async_nf_register(&csi->v4l2_dev, &csi->notifier);
 	if (ret)
-		return ret;
+		goto error;
 
 	return 0;
+
+error:
+	v4l2_async_nf_cleanup(&csi->notifier);
+	return ret;
 }
 
 static void imx7_csi_media_cleanup(struct imx7_csi *csi)
@@ -2229,13 +2233,10 @@ static int imx7_csi_probe(struct platform_device *pdev)
 
 	ret = imx7_csi_async_register(csi);
 	if (ret)
-		goto subdev_notifier_cleanup;
+		goto media_cleanup;
 
 	return 0;
 
-subdev_notifier_cleanup:
-	v4l2_async_nf_unregister(&csi->notifier);
-	v4l2_async_nf_cleanup(&csi->notifier);
 media_cleanup:
 	imx7_csi_media_cleanup(csi);
 
