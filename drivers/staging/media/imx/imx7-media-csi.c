@@ -1631,11 +1631,6 @@ static int imx7_csi_s_stream(struct v4l2_subdev *sd, int enable)
 
 	mutex_lock(&csi->lock);
 
-	if (!csi->src_sd) {
-		ret = -EPIPE;
-		goto out_unlock;
-	}
-
 	if (enable) {
 		ret = imx7_csi_init(csi);
 		if (ret < 0)
@@ -1925,9 +1920,6 @@ static int imx7_csi_pad_link_validate(struct v4l2_subdev *sd,
 	struct media_pad *pad = NULL;
 	unsigned int i;
 	int ret;
-
-	if (!csi->src_sd)
-		return -EPIPE;
 
 	/*
 	 * Validate the source link, and record whether the source uses the
