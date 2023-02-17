@@ -4,6 +4,8 @@
 
 comment "NXP media platform drivers"
 
+source "drivers/media/platform/nxp/imx8-isi/Kconfig"
+
 # mem2mem drivers
 
 source "drivers/media/platform/nxp/imx-jpeg/Kconfig"
