@@ -43,11 +43,13 @@
 &mipi_csi_0 {
 	status = "okay";
 
-	port@0 {
-		mipi_csi0_ep: endpoint {
-			remote-endpoint = <&basler_ep_0>;
-			data-lanes = <4>;
-			csis-hs-settle = <16>;
+	ports {
+		port@0 {
+			mipi_csi0_ep: endpoint {
+				remote-endpoint = <&basler_ep_0>;
+				data-lanes = <4>;
+				csis-hs-settle = <16>;
+			};
 		};
 	};
 };
@@ -66,10 +68,6 @@
 
 &isi_0 {
 	status = "disabled";
-};
-
-&isi_1 {
-	status = "okay";
 };
 
 &isp_0 {
