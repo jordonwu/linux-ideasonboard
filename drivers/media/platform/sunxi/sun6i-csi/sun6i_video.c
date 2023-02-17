@@ -77,7 +77,7 @@ sun6i_video_remote_subdev(struct sun6i_video *video, u32 *pad)
 {
 	struct media_pad *remote;
 
-	remote = media_entity_remote_pad(&video->pad);
+	remote = media_pad_remote_pad_first(&video->pad);
 
 	if (!remote || !is_media_entity_v4l2_subdev(remote->entity))
 		return NULL;
@@ -141,7 +141,7 @@ static int sun6i_video_start_streaming(struct vb2_queue *vq, unsigned int count)
 
 	video->sequence = 0;
 
-	ret = media_pipeline_start(&video->vdev.entity, &video->vdev.pipe);
+	ret = video_device_pipeline_alloc_start(&video->vdev);
 	if (ret < 0)
 		goto clear_dma_queue;
 
@@ -207,7 +207,7 @@ static int sun6i_video_start_streaming(struct vb2_queue *vq, unsigned int count)
 stop_csi_stream:
 	sun6i_csi_set_stream(video->csi, false);
 stop_media_pipeline:
-	media_pipeline_stop(&video->vdev.entity);
+	video_device_pipeline_stop(&video->vdev);
 clear_dma_queue:
 	spin_lock_irqsave(&video->dma_queue_lock, flags);
 	list_for_each_entry(buf, &video->dma_queue, list)
@@ -231,7 +231,7 @@ static void sun6i_video_stop_streaming(struct vb2_queue *vq)
 
 	sun6i_csi_set_stream(video->csi, false);
 
-	media_pipeline_stop(&video->vdev.entity);
+	video_device_pipeline_stop(&video->vdev);
 
 	/* Release all active buffers */
 	spin_lock_irqsave(&video->dma_queue_lock, flags);
@@ -556,7 +556,7 @@ static int sun6i_video_link_validate(struct media_link *link)
 
 	video->mbus_code = 0;
 
-	if (!media_entity_remote_pad(link->sink->entity->pads)) {
+	if (!media_pad_remote_pad_first(link->sink->entity->pads)) {
 		dev_info(video->csi->dev,
 			 "video node %s pad not connected\n", vdev->name);
 		return -ENOLINK;

@@ -150,7 +150,7 @@ struct stm32_dcmi {
 	struct mutex			lock;
 	struct vb2_queue		queue;
 
-	struct v4l2_fwnode_bus_parallel	bus;
+	struct v4l2_mbus_config_parallel	bus;
 	enum v4l2_mbus_type		bus_type;
 	struct completion		complete;
 	struct clk			*mclk;
@@ -590,7 +590,7 @@ static struct media_entity *dcmi_find_source(struct stm32_dcmi *dcmi)
 		if (!(pad->flags & MEDIA_PAD_FL_SINK))
 			break;
 
-		pad = media_entity_remote_pad(pad);
+		pad = media_pad_remote_pad_first(pad);
 		if (!pad || !is_media_entity_v4l2_subdev(pad->entity))
 			break;
 
@@ -661,7 +661,7 @@ static int dcmi_pipeline_s_fmt(struct stm32_dcmi *dcmi,
 		}
 
 		/* Walk to next entity */
-		sink_pad = media_entity_remote_pad(src_pad);
+		sink_pad = media_pad_remote_pad_first(src_pad);
 		if (!sink_pad || !is_media_entity_v4l2_subdev(sink_pad->entity))
 			break;
 
@@ -685,7 +685,7 @@ static int dcmi_pipeline_s_stream(struct stm32_dcmi *dcmi, int state)
 		if (!(pad->flags & MEDIA_PAD_FL_SINK))
 			break;
 
-		pad = media_entity_remote_pad(pad);
+		pad = media_pad_remote_pad_first(pad);
 		if (!pad || !is_media_entity_v4l2_subdev(pad->entity))
 			break;
 
@@ -731,7 +731,7 @@ static int dcmi_start_streaming(struct vb2_queue *vq, unsigned int count)
 		goto err_unlocked;
 	}
 
-	ret = media_pipeline_start(&dcmi->vdev->entity, &dcmi->pipeline);
+	ret = video_device_pipeline_start(dcmi->vdev, &dcmi->pipeline);
 	if (ret < 0) {
 		dev_err(dcmi->dev, "%s: Failed to start streaming, media pipeline start error (%d)\n",
 			__func__, ret);
@@ -845,7 +845,7 @@ err_pipeline_stop:
 	dcmi_pipeline_stop(dcmi);
 
 err_media_pipeline_stop:
-	media_pipeline_stop(&dcmi->vdev->entity);
+	video_device_pipeline_stop(dcmi->vdev);
 
 err_pm_put:
 	pm_runtime_put(dcmi->dev);
@@ -872,7 +872,7 @@ static void dcmi_stop_streaming(struct vb2_queue *vq)
 
 	dcmi_pipeline_stop(dcmi);
 
-	media_pipeline_stop(&dcmi->vdev->entity);
+	video_device_pipeline_stop(dcmi->vdev);
 
 	spin_lock_irq(&dcmi->irqlock);
 
@@ -1833,11 +1833,11 @@ static int dcmi_graph_init(struct stm32_dcmi *dcmi)
 		return -EINVAL;
 	}
 
-	v4l2_async_notifier_init(&dcmi->notifier);
+	v4l2_async_nf_init(&dcmi->notifier);
 
-	asd = v4l2_async_notifier_add_fwnode_remote_subdev(
-		&dcmi->notifier, of_fwnode_handle(ep),
-		struct v4l2_async_subdev);
+	asd = v4l2_async_nf_add_fwnode_remote(&dcmi->notifier,
+					      of_fwnode_handle(ep),
+					      struct v4l2_async_subdev);
 
 	of_node_put(ep);
 
@@ -1848,10 +1848,10 @@ static int dcmi_graph_init(struct stm32_dcmi *dcmi)
 
 	dcmi->notifier.ops = &dcmi_graph_notify_ops;
 
-	ret = v4l2_async_notifier_register(&dcmi->v4l2_dev, &dcmi->notifier);
+	ret = v4l2_async_nf_register(&dcmi->v4l2_dev, &dcmi->notifier);
 	if (ret < 0) {
 		dev_err(dcmi->dev, "Failed to register notifier\n");
-		v4l2_async_notifier_cleanup(&dcmi->notifier);
+		v4l2_async_nf_cleanup(&dcmi->notifier);
 		return ret;
 	}
 
@@ -1970,8 +1970,6 @@ static int dcmi_probe(struct platform_device *pdev)
 
 	/* Initialize media device */
 	strscpy(dcmi->mdev.model, DRV_NAME, sizeof(dcmi->mdev.model));
-	snprintf(dcmi->mdev.bus_info, sizeof(dcmi->mdev.bus_info),
-		 "platform:%s", DRV_NAME);
 	dcmi->mdev.dev = &pdev->dev;
 	media_device_init(&dcmi->mdev);
 
@@ -2063,7 +2061,7 @@ static int dcmi_probe(struct platform_device *pdev)
 	return 0;
 
 err_cleanup:
-	v4l2_async_notifier_cleanup(&dcmi->notifier);
+	v4l2_async_nf_cleanup(&dcmi->notifier);
 err_media_entity_cleanup:
 	media_entity_cleanup(&dcmi->vdev->entity);
 err_device_release:
@@ -2083,8 +2081,8 @@ static int dcmi_remove(struct platform_device *pdev)
 
 	pm_runtime_disable(&pdev->dev);
 
-	v4l2_async_notifier_unregister(&dcmi->notifier);
-	v4l2_async_notifier_cleanup(&dcmi->notifier);
+	v4l2_async_nf_unregister(&dcmi->notifier);
+	v4l2_async_nf_cleanup(&dcmi->notifier);
 	media_entity_cleanup(&dcmi->vdev->entity);
 	v4l2_device_unregister(&dcmi->v4l2_dev);
 	media_device_cleanup(&dcmi->mdev);
