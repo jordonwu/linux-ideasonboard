@@ -490,12 +490,12 @@ static int rkisp1_tpg_s_frame_interval(struct v4l2_subdev *sd,
 	 * Data points:
 	 * - 1080p max 210 min 2 fps
 	 */
-	if (sync < 96) {
-		sync = 96;
+	//if (sync < 96) {
+		//sync = 96;
 		interval->interval.numerator =
 			(tpg->src_width + sync) * (tpg->src_height + sync);
 		interval->interval.denominator = RKISP1_TPG_CLOCK_RATE;
-	}
+	//}
 
 	tpg->interval = interval->interval;
 
