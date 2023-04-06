@@ -7,6 +7,7 @@
  * HDMI RX and OV5640 on MIPI CSI 1
  */
 
+#include <dt-bindings/media/video-interfaces.h>
 #include "imx8qm-mek-hdmi.dts"
 
 / {
@@ -120,7 +121,7 @@
 		mipi_csi1_ep: endpoint {
 			remote-endpoint = <&ov5640_mipi_1_ep>;
 			data-lanes = <1 2>;
-			bus-type = <4>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
 		};
 	};
 };
