@@ -57,10 +57,6 @@
 	status = "disabled";
 };
 
-&isi_1 {
-	status = "disabled";
-};
-
 &isp_0 {
 	status = "okay";
 };
@@ -72,15 +68,19 @@
 &mipi_csi_0 {
 	status = "okay";
 
-	port@0 {
-		endpoint {
-			remote-endpoint = <&os08a20_mipi_0_ep>;
-			data-lanes = <4>;
-			csis-hs-settle = <16>;
+	ports {
+		port@0 {
+			endpoint {
+				remote-endpoint = <&os08a20_mipi_0_ep>;
+				data-lanes = <4>;
+				csis-hs-settle = <16>;
+			};
 		};
 	};
 };
 
 &mipi_csi_1 {
-	/delete-node/port@1;
+	ports {
+		/delete-node/port@0;
+	};
 };
