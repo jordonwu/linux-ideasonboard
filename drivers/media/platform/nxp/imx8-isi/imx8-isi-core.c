@@ -24,6 +24,8 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-mc.h>
 
+#include <linux/busfreq-imx.h>
+
 #include "imx8-isi-core.h"
 
 /* -----------------------------------------------------------------------------
@@ -461,6 +463,8 @@ static int mxc_isi_runtime_suspend(struct device *dev)
 
 	clk_bulk_disable_unprepare(isi->pdata->num_clks, isi->clks);
 
+	release_bus_freq(BUS_FREQ_HIGH);
+
 	return 0;
 }
 
@@ -469,8 +473,11 @@ static int mxc_isi_runtime_resume(struct device *dev)
 	struct mxc_isi_dev *isi = dev_get_drvdata(dev);
 	int ret;
 
+	request_bus_freq(BUS_FREQ_HIGH);
+
 	ret = clk_bulk_prepare_enable(isi->pdata->num_clks, isi->clks);
 	if (ret) {
+		release_bus_freq(BUS_FREQ_HIGH);
 		dev_err(dev, "Failed to enable clocks (%d)\n", ret);
 		return ret;
 	}
