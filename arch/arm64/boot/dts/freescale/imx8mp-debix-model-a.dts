@@ -465,6 +465,14 @@
 	};
 };
 
+&hdmiphy {
+	status = "okay";
+};
+
+&irqsteer_hdmi {
+	status = "okay";
+};
+
 &lcdif3 {
 	status = "okay";
 };
