@@ -533,3 +533,7 @@
 	fsl,ext-reset-output;
 	status = "okay";
 };
+
+&isi_0 {
+	status = "okay";
+};
