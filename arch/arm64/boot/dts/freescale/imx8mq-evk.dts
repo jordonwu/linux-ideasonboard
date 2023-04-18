@@ -6,6 +6,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/media/video-interfaces.h>
 #include <dt-bindings/usb/pd.h>
 #include "imx8mq.dtsi"
 
@@ -323,7 +324,7 @@
 		mipi1_sensor_ep: endpoint@0 {
 			remote-endpoint = <&ov5640_mipi1_ep>;
 			data-lanes = <1 2>;
-			bus-type = <4>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
 		};
 
 		csi1_mipi_ep: endpoint@1 {
@@ -340,7 +341,7 @@
 		mipi2_sensor_ep: endpoint@0 {
 			remote-endpoint = <&ov5640_mipi2_ep>;
 			data-lanes = <1 2>;
-			bus-type = <4>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
 		};
 
 		csi2_mipi_ep: endpoint@1 {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 // Copyright NXP 2019
 
+#include <dt-bindings/media/video-interfaces.h>
 #include "imx8qm-mek.dts"
 
 &isi_0 {
@@ -80,7 +81,7 @@
 		mipi_csi0_ep: endpoint {
 			remote-endpoint = <&ov5640_mipi_0_ep>;
 			data-lanes = <1 2>;
-			bus-type = <4>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
 		};
 	};
 };
@@ -94,7 +95,7 @@
 		mipi_csi1_ep: endpoint {
 			remote-endpoint = <&ov5640_mipi_1_ep>;
 			data-lanes = <1 2>;
-			bus-type = <4>;
+			bus-type = <MEDIA_BUS_TYPE_CSI2_DPHY>;
 		};
 	};
 };

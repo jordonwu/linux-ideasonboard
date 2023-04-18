@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 // Copyright NXP 2019
 
+#include <dt-bindings/media/video-interfaces.h>
 
 /delete-node/ &cm40_i2c;
 /delete-node/ &i2c1;
@@ -116,7 +117,7 @@
 		port {
 			ov5640_ep: endpoint {
 				remote-endpoint = <&parallel_csi_ep>;
-				bus-type = <5>; /* V4L2_FWNODE_BUS_TYPE_PARALLEL */
+				bus-type = <MEDIA_BUS_TYPE_PARALLEL>;
 				bus-width = <8>;
 				vsync-active = <0>;
 				hsync-active = <1>;
