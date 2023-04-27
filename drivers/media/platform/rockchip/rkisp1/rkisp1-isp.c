@@ -169,18 +169,30 @@ static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
 
 /*
  * Image Stabilization.
- * This should only be called when configuring CIF
- * or at the frame end interrupt
  */
-static void rkisp1_config_ism(struct rkisp1_isp *isp,
-			      struct v4l2_subdev_state *sd_state)
+void rkisp1_config_ism(struct rkisp1_isp *isp)
 {
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
+	struct v4l2_rect crop;
 
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_RECENTER, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DX, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DY, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_DISPLACE, 0);
+
+	if (rkisp1_has_feature(rkisp1, DUAL_CROP)) {
+		crop = isp->isp_crop;
+	} else {
+		crop.left = isp->isp_crop.left + isp->mrsz_crop.left;
+		crop.top = isp->isp_crop.top + isp->mrsz_crop.top;
+		crop.width = isp->mrsz_crop.width;
+		crop.height = isp->mrsz_crop.height;
+	}
+
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, crop->left);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, crop->top);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, crop->width);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, crop->height);
 
 	/*
 	 * The crop on the IS (Image Stabilization) is applied even if the IS
@@ -345,7 +357,10 @@ static int rkisp1_config_cif(struct rkisp1_isp *isp,
 		return ret;
 
 	rkisp1_config_path(isp, mbus_type);
-	rkisp1_config_ism(isp, sd_state);
+
+	spin_lock_irq(&rkisp1->isp.config_lock);
+	rkisp1_config_ism(isp);
+	spin_unlock_irq(&rkisp1->isp.config_lock);
 
 	return 0;
 }
@@ -1016,6 +1031,11 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1)
 	pads[RKISP1_ISP_PAD_SINK_PARAMS].flags = MEDIA_PAD_FL_SINK;
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
+
+	spin_lock_irq(&rkisp1->isp.config_lock);
+	isp->isp_crop = {};
+	isp->mrsz_crop = {};
+	spin_unlock_irq(&rkisp1->isp.config_lock);
 
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);
 	if (ret)

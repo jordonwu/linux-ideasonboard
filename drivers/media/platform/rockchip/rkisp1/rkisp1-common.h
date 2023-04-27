@@ -15,6 +15,7 @@
 #include <linux/interrupt.h>
 #include <linux/mutex.h>
 #include <linux/rkisp1-config.h>
+#include <linux/spinlock.h>
 #include <media/media-device.h>
 #include <media/media-entity.h>
 #include <media/v4l2-ctrls.h>
@@ -202,6 +203,9 @@ struct rkisp1_csi {
  * @pads:			media pads
  * @sink_fmt:			input format
  * @frame_sequence:		used to synchronize frame_id between video devices.
+ * @config_lock:		lock crop and resize, and updating the shadow registers
+ * @isp_crop:			source crop on the ISP subdev
+ * @mrsz_crop:			sink crop on the main resizer subdev
  */
 struct rkisp1_isp {
 	struct v4l2_subdev sd;
@@ -209,6 +213,9 @@ struct rkisp1_isp {
 	struct media_pad pads[RKISP1_ISP_PAD_MAX];
 	const struct rkisp1_mbus_info *sink_fmt;
 	__u32 frame_sequence;
+	spinlock_t config_lock;
+	struct v4l2_rect isp_crop;
+	struct v4l2_rect mrsz_crop;
 };
 
 /*
@@ -618,12 +625,6 @@ irqreturn_t rkisp1_csi_isr(int irq, void *ctx);
 irqreturn_t rkisp1_capture_isr(int irq, void *ctx);
 void rkisp1_stats_isr(struct rkisp1_stats *stats, u32 isp_ris);
 void rkisp1_params_isr(struct rkisp1_device *rkisp1);
-
-/*
- * Reconfigure the resizer (and image stabilizer) for scaler crop. Uses the
- * resizer sink crop and source format.
- */
-void rkisp1_rsz_config(struct rkisp1_resizer *rsz);
 
 /* register/unregisters functions of the entities */
 int rkisp1_capture_devs_register(struct rkisp1_device *rkisp1);
