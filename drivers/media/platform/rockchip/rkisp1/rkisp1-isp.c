@@ -169,8 +169,10 @@ static void rkisp1_gasket_disable(struct rkisp1_device *rkisp1)
 
 /*
  * Image Stabilization.
+ *
+ * This must be called with the isp.config_lock spinlock held.
  */
-void rkisp1_config_ism(struct rkisp1_isp *isp)
+static void rkisp1_config_ism(struct rkisp1_isp *isp)
 {
 	struct rkisp1_device *rkisp1 = isp->rkisp1;
 	struct v4l2_rect crop;
@@ -180,19 +182,33 @@ void rkisp1_config_ism(struct rkisp1_isp *isp)
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_MAX_DY, 0);
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_DISPLACE, 0);
 
-	if (rkisp1_has_feature(rkisp1, DUAL_CROP)) {
-		crop = isp->isp_crop;
-	} else {
+	/*
+	 * The lack of a self path means there is neither dual crop (crop at
+	 * the output of the ISP) nor resizer crop (crop at the input of the
+	 * resizer). In that case we merge the crop rectangle on the input of the
+	 * resizer subdev with the crop on the output of the ISP subdev into
+	 * the image stabilizer.
+	 *
+	 * If there is a self path, then the image stabilizer only implements
+	 * the crop on the output of the ISP subdev. The dual crop (on Rockchip
+	 * platforms) or the resizer crop (on NXP platforms) will implement the
+	 * crop on the input of the resizer subdevices.
+	 *
+	 * TODO Implement resizer crop on NXP platforms. Depends on hardware.
+	 */
+	if (!rkisp1_has_feature(rkisp1, SELF_PATH)) {
 		crop.left = isp->isp_crop.left + isp->mrsz_crop.left;
 		crop.top = isp->isp_crop.top + isp->mrsz_crop.top;
 		crop.width = isp->mrsz_crop.width;
 		crop.height = isp->mrsz_crop.height;
+	} else {
+		crop = isp->isp_crop;
 	}
 
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, crop->left);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, crop->top);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, crop->width);
-	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, crop->height);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_OFFS, crop.left);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_OFFS, crop.top);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_H_SIZE, crop.width);
+	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_V_SIZE, crop.height);
 
 	/*
 	 * The crop on the IS (Image Stabilization) is applied even if the IS
@@ -200,6 +216,40 @@ void rkisp1_config_ism(struct rkisp1_isp *isp)
 	 * above is for good pratice.
 	 */
 	rkisp1_write(rkisp1, RKISP1_CIF_ISP_IS_CTRL, 0);
+}
+
+void rkisp1_config_scaler_crop_single(struct rkisp1_resizer *rsz)
+{
+	struct rkisp1_isp *isp = &rsz->rkisp1->isp;
+	struct rkisp1_rsz_regs regs;
+
+	rkisp1_rsz_compute(rsz, &regs, &isp->isp_crop);
+
+	spin_lock_irq(&isp->config_lock);
+	rkisp1_config_ism(isp);
+	rkisp1_rsz_write_regs(rsz, &regs);
+	spin_unlock_irq(&isp->config_lock);
+}
+
+static void rkisp1_config_scaler_crop_both(struct rkisp1_device *rkisp1)
+{
+	struct rkisp1_isp *isp = &rkisp1->isp;
+	struct rkisp1_rsz_regs regs_mp, regs_sp;
+	bool has_self_path = rkisp1_has_feature(rkisp1, SELF_PATH);
+
+	if (!has_self_path) {
+		rkisp1_config_scaler_crop_single(&rkisp1->resizer_devs[0]);
+		return;
+	}
+
+	rkisp1_rsz_compute(&rkisp1->resizer_devs[0], &regs_mp, &isp->isp_crop);
+	rkisp1_rsz_compute(&rkisp1->resizer_devs[1], &regs_sp, &isp->isp_crop);
+
+	spin_lock_irq(&isp->config_lock);
+	rkisp1_config_ism(isp);
+	rkisp1_rsz_write_regs(&rkisp1->resizer_devs[0], &regs_mp);
+	rkisp1_rsz_write_regs(&rkisp1->resizer_devs[1], &regs_sp);
+	spin_unlock_irq(&isp->config_lock);
 }
 
 /*
@@ -346,10 +396,12 @@ static void rkisp1_config_path(struct rkisp1_isp *isp,
 }
 
 /* Hardware configure Entry */
+/* Only called at s_stream time */
 static int rkisp1_config_cif(struct rkisp1_isp *isp,
 			     struct v4l2_subdev_state *sd_state,
 			     enum v4l2_mbus_type mbus_type, u32 mbus_flags)
 {
+	struct rkisp1_device *rkisp1 = isp->rkisp1;
 	int ret;
 
 	ret = rkisp1_config_isp(isp, sd_state, mbus_type, mbus_flags);
@@ -358,9 +410,10 @@ static int rkisp1_config_cif(struct rkisp1_isp *isp,
 
 	rkisp1_config_path(isp, mbus_type);
 
-	spin_lock_irq(&rkisp1->isp.config_lock);
-	rkisp1_config_ism(isp);
-	spin_unlock_irq(&rkisp1->isp.config_lock);
+	rkisp1_config_scaler_crop_both(rkisp1);
+	rkisp1_rsz_update_shadow(&rkisp1->resizer_devs[0]);
+	if (rkisp1_has_feature(rkisp1, SELF_PATH))
+		rkisp1_rsz_update_shadow(&rkisp1->resizer_devs[1]);
 
 	return 0;
 }
@@ -699,6 +752,7 @@ static void rkisp1_isp_set_src_crop(struct rkisp1_isp *isp,
 				    struct v4l2_subdev_state *sd_state,
 				    struct v4l2_rect *r)
 {
+	struct rkisp1_device *rkisp1 = isp->rkisp1;
 	struct v4l2_mbus_framefmt *src_fmt;
 	const struct v4l2_rect *sink_crop;
 	struct v4l2_rect *src_crop;
@@ -713,6 +767,12 @@ static void rkisp1_isp_set_src_crop(struct rkisp1_isp *isp,
 	src_crop->top = r->top;
 	src_crop->height = r->height;
 	rkisp1_sd_adjust_crop_rect(src_crop, sink_crop);
+
+	mutex_lock(&rkisp1->isp.crop_lock);
+	rkisp1->isp.isp_crop = *src_crop;
+	mutex_unlock(&rkisp1->isp.crop_lock);
+
+	rkisp1_config_scaler_crop_both(isp->rkisp1);
 
 	*r = *src_crop;
 
@@ -959,6 +1019,12 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
 
+	mutex_lock(&rkisp1->isp.crop_lock);
+	rkisp1->isp.isp_crop =
+		*v4l2_subdev_get_pad_crop(sd, sd_state,
+					  RKISP1_ISP_PAD_SOURCE_VIDEO);
+	mutex_unlock(&rkisp1->isp.crop_lock);
+
 	ret = rkisp1_config_cif(isp, sd_state, mbus_type, mbus_flags);
 	if (ret)
 		goto out_unlock;
@@ -1032,9 +1098,11 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1)
 	pads[RKISP1_ISP_PAD_SOURCE_VIDEO].flags = MEDIA_PAD_FL_SOURCE;
 	pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
 
+	spin_lock_init(&rkisp1->isp.config_lock);
+
 	spin_lock_irq(&rkisp1->isp.config_lock);
-	isp->isp_crop = {};
-	isp->mrsz_crop = {};
+	isp->isp_crop = (struct v4l2_rect ){ 0, 0, 0, 0 };
+	isp->mrsz_crop = (struct v4l2_rect){ 0, 0, 0, 0 };
 	spin_unlock_irq(&rkisp1->isp.config_lock);
 
 	ret = media_entity_pads_init(&sd->entity, RKISP1_ISP_PAD_MAX, pads);

@@ -203,7 +203,8 @@ struct rkisp1_csi {
  * @pads:			media pads
  * @sink_fmt:			input format
  * @frame_sequence:		used to synchronize frame_id between video devices.
- * @config_lock:		lock crop and resize, and updating the shadow registers
+ * @config_lock:		program crop and scaler atomically wrt updating shadow registers
+ * @crop_lock:			lock isp_crop and mrsz_crop
  * @isp_crop:			source crop on the ISP subdev
  * @mrsz_crop:			sink crop on the main resizer subdev
  */
@@ -214,6 +215,7 @@ struct rkisp1_isp {
 	const struct rkisp1_mbus_info *sink_fmt;
 	__u32 frame_sequence;
 	spinlock_t config_lock;
+	struct mutex crop_lock;
 	struct v4l2_rect isp_crop;
 	struct v4l2_rect mrsz_crop;
 };
@@ -517,6 +519,14 @@ struct rkisp1_mbus_info {
 	unsigned int direction;
 };
 
+struct rkisp1_rsz_regs {
+	u32 ratio_hy;
+	u32 ratio_hc;
+	u32 ratio_vy;
+	u32 ratio_vc;
+	u32 rsz_ctrl;
+};
+
 static inline void
 rkisp1_write(struct rkisp1_device *rkisp1, unsigned int addr, u32 val)
 {
@@ -641,6 +651,17 @@ void rkisp1_stats_unregister(struct rkisp1_device *rkisp1);
 
 int rkisp1_params_register(struct rkisp1_device *rkisp1);
 void rkisp1_params_unregister(struct rkisp1_device *rkisp1);
+
+void rkisp1_config_scaler_crop_single(struct rkisp1_resizer *rsz);
+
+void rkisp1_rsz_update_shadow(struct rkisp1_resizer *rsz);
+
+void rkisp1_rsz_write_regs(struct rkisp1_resizer *rsz,
+			   struct rkisp1_rsz_regs *vals);
+
+void rkisp1_rsz_compute(struct rkisp1_resizer *rsz,
+			struct rkisp1_rsz_regs *ret,
+			struct v4l2_rect *sink_crop);
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 void rkisp1_debug_init(struct rkisp1_device *rkisp1);
