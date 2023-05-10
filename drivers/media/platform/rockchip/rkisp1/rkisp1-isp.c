@@ -979,6 +979,7 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	struct media_pad *source_pad;
 	struct media_pad *sink_pad;
 	enum v4l2_mbus_type mbus_type;
+	struct v4l2_rect crop;
 	u32 mbus_flags;
 	int ret;
 
@@ -1018,11 +1019,11 @@ static int rkisp1_isp_s_stream(struct v4l2_subdev *sd, int enable)
 	isp->frame_sequence = -1;
 
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
+	crop = *v4l2_subdev_get_pad_crop(sd, sd_state,
+					 RKISP1_ISP_PAD_SOURCE_VIDEO);
 
 	mutex_lock(&rkisp1->isp.crop_lock);
-	rkisp1->isp.isp_crop =
-		*v4l2_subdev_get_pad_crop(sd, sd_state,
-					  RKISP1_ISP_PAD_SOURCE_VIDEO);
+	rkisp1->isp.isp_crop = crop;
 	mutex_unlock(&rkisp1->isp.crop_lock);
 
 	ret = rkisp1_config_cif(isp, sd_state, mbus_type, mbus_flags);
@@ -1085,6 +1086,8 @@ int rkisp1_isp_register(struct rkisp1_device *rkisp1)
 
 	isp->rkisp1 = rkisp1;
 
+	mutex_init(&isp->crop_lock);
+
 	v4l2_subdev_init(sd, &rkisp1_isp_ops);
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.ops = &rkisp1_isp_media_ops;
@@ -1125,6 +1128,7 @@ err_subdev_cleanup:
 	v4l2_subdev_cleanup(sd);
 err_entity_cleanup:
 	media_entity_cleanup(&sd->entity);
+	mutex_destroy(&isp->crop_lock);
 	isp->sd.v4l2_dev = NULL;
 	return ret;
 }
@@ -1138,6 +1142,7 @@ void rkisp1_isp_unregister(struct rkisp1_device *rkisp1)
 
 	v4l2_device_unregister_subdev(&isp->sd);
 	media_entity_cleanup(&isp->sd.entity);
+	mutex_destroy(&isp->crop_lock);
 }
 
 /* ----------------------------------------------------------------------------

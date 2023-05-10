@@ -673,6 +673,7 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 	enum rkisp1_shadow_regs_when when = RKISP1_SHADOW_REGS_SYNC;
 	bool has_self_path = rkisp1_has_feature(rkisp1, SELF_PATH);
 	struct v4l2_subdev_state *sd_state;
+	struct v4l2_rect crop;
 
 	if (!enable) {
 		if (rkisp1_has_feature(rkisp1, DUAL_CROP))
@@ -685,10 +686,10 @@ static int rkisp1_rsz_s_stream(struct v4l2_subdev *sd, int enable)
 		when = RKISP1_SHADOW_REGS_ASYNC;
 
 	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
+	crop = *v4l2_subdev_get_pad_crop(sd, sd_state, RKISP1_RSZ_PAD_SINK);
 
 	mutex_lock(&rkisp1->isp.crop_lock);
-	rkisp1->isp.mrsz_crop = *v4l2_subdev_get_pad_crop(sd, sd_state,
-							  RKISP1_RSZ_PAD_SINK);
+	rkisp1->isp.mrsz_crop = crop;
 	mutex_unlock(&rkisp1->isp.crop_lock);
 
 	/* The ISP subdev will program the scaler, so no need to do it here */
