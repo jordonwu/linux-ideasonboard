@@ -1598,9 +1598,11 @@ void rkisp1_params_isr(struct rkisp1_device *rkisp1)
 	rkisp1_isp_isr_lsc_config(params, new_params);
 	rkisp1_isp_isr_meas_config(params, new_params);
 
-	/* update shadow register immediately */
+	/* Automatically propagate shadow register update signal */
+	spin_lock(&rkisp1->isp.config_lock);
 	rkisp1_param_set_bits(params, RKISP1_CIF_ISP_CTRL,
-			      RKISP1_CIF_ISP_CTRL_ISP_CFG_UPD);
+			      RKISP1_CIF_ISP_CTRL_ISP_GEN_CFG_UPD);
+	spin_unlock(&rkisp1->isp.config_lock);
 
 	/*
 	 * This isr is called when the ISR finishes processing a frame
